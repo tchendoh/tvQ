@@ -26,7 +26,6 @@
 ![Gif du formulaire](https://github.com/tchendoh/tchendoh.github.io/blob/main/images/DatingQ-formulaire-et-resultat.gif)
 
 ### Achat avec StoreKit 2
-(un peu inutile, mais seulement pour la pratique)
 ![Gif de StoreKit](https://github.com/tchendoh/tchendoh.github.io/blob/main/images/DatingQ-achat.gif)
 
 ### Fonction copier-coller
