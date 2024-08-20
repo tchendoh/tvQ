@@ -1,35 +1,39 @@
 # tvQ
- Création de profils Tinder originaux grâce à Chat-GPT et un peu d’humour.
- 
+App qui permet de suivre des séries télé afin de connaitre l’horaire des prochains épisodes.
+
 ## Objectifs
-- Interactions avec l’API de Chat-GPT
-- Construire un prompt selon les paramètres du formulaire
-- Implanter une gestion des usagers avec login et base de données
-- Effectuer des achats via StoreKit 2
-- Expérimenter avec les animations
+- Interactions avec l’API de The Movie Database (TMDB)
+- Construire un horaire selon les séries suivies
+- Implanter une gestion des usagers avec login et base de données pour conserver les séries suivies
+- Transitions fluides alors que l’app attend après le serveur pour les données et les images qui arrivent de manière asynchrone
+- Système de cache pour les images et les horaires
+- Navigation avec les Tabs
 - Mode sombre
 
 ## Frameworks et technologies :
-- Base de données Firestore/Firebase
-- Validation Combine
-- Achats StoreKit 2
-- Animations parfaitement superflues
-- Chat-GPT
+- URLSession
+- Async/Await
+- Authentification Firebase
+- Base de données Firestore
+- TabView
+- Framework Observation (iOS 17)
+- Stucture MVVM
+- Principes SOLID
 
-### Captures d’écran, mode normal et sombre
-![Mode normal vs sombre](https://github.com/tchendoh/tchendoh.github.io/blob/main/images/DatingQ-light-dark-mode.png)
+### Recherche de série + suivre la série
+![Recherche et follow](https://github.com/tchendoh/tchendoh.github.io/blob/main/images/tvQ-recherche.gif)
 
-### Login et page principale
-![Gif du login](https://github.com/tchendoh/tchendoh.github.io/blob/main/images/DatingQ-login-et-intro.gif)
+### Timeline + mode sombre
+![Timeline sombre](https://github.com/tchendoh/tchendoh.github.io/blob/main/images/tvQ-timeline-mode-sombre.gif)
 
-### Formulaire et résultat
-![Gif du formulaire](https://github.com/tchendoh/tchendoh.github.io/blob/main/images/DatingQ-formulaire-et-resultat.gif)
+### Bio des acteurs
+![Bio des acteurs](https://github.com/tchendoh/tchendoh.github.io/blob/main/images/tvQ-bio.gif)
 
-### Achat avec StoreKit 2
-![Gif de StoreKit](https://github.com/tchendoh/tchendoh.github.io/blob/main/images/DatingQ-achat.gif)
+### Recherche par nom d’acteur ou personnage
+![Recherche par nom](https://github.com/tchendoh/tchendoh.github.io/blob/main/images/tvQ-recherche2.gif)
 
-### Fonction copier-coller
-![Gif du copier-coller](https://github.com/tchendoh/tchendoh.github.io/blob/main/images/DatingQ-copier-coller.gif)
+### Connexion avec Face ID
+![FaceID](https://github.com/tchendoh/tchendoh.github.io/blob/main/images/tvQ-faceid.gif)
 
 ### Icône
-![Icône pour DatingQ](https://github.com/tchendoh/tchendoh.github.io/blob/main/images/DatingQ-icon.png)
+![Icône pour tvQ](https://github.com/tchendoh/tchendoh.github.io/blob/main/images/tvQ-icon.png)
