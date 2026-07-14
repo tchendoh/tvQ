@@ -6,9 +6,9 @@ import SwiftUI
 struct MainTabView: View {
     var body: some View {
         TabView {
-            UpcomingView()
+            ScheduleView()
                 .tabItem {
-                    Label("Upcoming", systemImage: "calendar")
+                    Label("Schedule", systemImage: "calendar")
                 }
 
             MyShowsView()

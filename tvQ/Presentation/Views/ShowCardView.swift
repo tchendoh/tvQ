@@ -74,9 +74,6 @@ private struct FollowBadge: View {
         .shadow(color: .black.opacity(0.3), radius: 3, x: 0, y: 1)
     }
 
-    // Un seul effet à la fois : .bounce + .replace en même temps se marchent sur
-    // les pieds (deux animations concurrentes sur le même changement de symbole).
-    // .replace suffit pour un morph propre entre les deux symboles.
     private var icon: some View {
         Image(systemName: isFollowed ? "checkmark.circle" : "plus.viewfinder")
             .font(.system(size: 20, weight: .bold))
