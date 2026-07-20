@@ -49,13 +49,22 @@ final class ScheduleViewModel {
             defer { isLoading = false }
 
             do {
-                var shows: [Show] = []
-                for idString in showIDs {
-                    guard let tmdbID = Int(idString) else { continue }
-                    let show = try await showRepository.getShow(tmdbID: tmdbID)
-                    if Task.isCancelled { return }
-                    shows.append(show)
+                // Résolution en parallèle plutôt que séquentielle — voir
+                // MyShowsViewModel.load pour le même changement et son
+                // raisonnement (le vrai goulot n'était pas l'horaire lui-même,
+                // déjà mis en cache, mais cette résolution de Show en boucle).
+                let tmdbIDs = showIDs.compactMap { Int($0) }
+                let shows = try await withThrowingTaskGroup(of: Show.self) { group in
+                    for tmdbID in tmdbIDs {
+                        group.addTask { try await self.showRepository.getShow(tmdbID: tmdbID) }
+                    }
+                    var resolved: [Show] = []
+                    for try await show in group {
+                        resolved.append(show)
+                    }
+                    return resolved
                 }
+                if Task.isCancelled { return }
 
                 let showsByID = Dictionary(uniqueKeysWithValues: shows.map { ($0.id, $0) })
                 let episodes = try await scheduleRepository.getUpcomingEpisodes(for: shows)

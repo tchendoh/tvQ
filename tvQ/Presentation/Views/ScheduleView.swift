@@ -29,7 +29,7 @@ struct ScheduleView: View {
                     ScrollViewReader { proxy in
                         List {
                             ForEach(daySections) { section in
-                                Section(section.title) {
+                                Section {
                                     if section.groups.isEmpty {
                                         Text("Nothing today")
                                             .foregroundStyle(.secondary)
@@ -40,6 +40,8 @@ struct ScheduleView: View {
                                             }
                                         }
                                     }
+                                } header: {
+                                    ScheduleSectionHeader(section: section)
                                 }
                                 .id(section.day)
                             }
@@ -116,7 +118,9 @@ struct ScheduleView: View {
         let seasonNumber: Int
     }
 
-    private struct DaySection: Identifiable {
+    /// fileprivate (pas private) : ScheduleSectionHeader, hors du scope de
+    /// ScheduleView, y référence directement.
+    fileprivate struct DaySection: Identifiable {
         let day: Date
         let groups: [EpisodeGroup]
         var id: Date { day }
@@ -157,19 +161,44 @@ struct ScheduleView: View {
     }
 }
 
+/// En-tête de section : jour à gauche ("Demain"), date complète à droite
+/// ("21 juil. 2026") — repris de l'ancienne version de tvQ (tvQ-legacy).
+private struct ScheduleSectionHeader: View {
+    let section: ScheduleView.DaySection
+
+    var body: some View {
+        HStack {
+            Text(section.title)
+            Spacer()
+            Text(section.day, format: .dateTime.day().month(.abbreviated).year())
+        }
+        .font(.subheadline.weight(.semibold))
+        .foregroundStyle(.secondary)
+    }
+}
+
 private struct ScheduleRow: View {
     let group: ScheduleView.EpisodeGroup
 
-    /// Un épisode est "déjà diffusé" si sa date est passée — atténué visuellement
-    /// pour que l'œil se porte d'abord sur ce qui s'en vient.
+    /// Un épisode est "déjà diffusé" si sa date est passée — affiche le badge
+    /// "Aired", peu importe le jour.
     private var hasAlreadyAired: Bool {
         guard let date = group.date else { return false }
         return date < Date()
     }
 
+    /// Contrairement à hasAlreadyAired, ne s'applique qu'aux jours *précédant*
+    /// aujourd'hui. Un épisode diffusé aujourd'hui doit rester bien visible :
+    /// c'est justement le rôle de cet écran de le mettre en évidence pour que
+    /// l'utilisateur puisse le rattraper, pas de le faire disparaître dans le fond.
+    private var shouldDim: Bool {
+        guard let date = group.date else { return false }
+        return date < Calendar.current.startOfDay(for: Date())
+    }
+
     var body: some View {
-        HStack(spacing: 12) {
-            AsyncImage(url: group.show.posterURL) { image in
+        HStack(alignment: .top, spacing: 12) {
+            RetryingAsyncImage(url: group.show.posterURL) { image in
                 image.resizable().aspectRatio(contentMode: .fill)
             } placeholder: {
                 ZStack {
@@ -181,16 +210,27 @@ private struct ScheduleRow: View {
             .frame(width: 46, height: 66)
             .clipShape(RoundedRectangle(cornerRadius: 6))
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text(group.show.title)
                     .font(.headline)
 
-                Text(episodeLabel)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                // Reprise de l'ancienne version de tvQ (tvQ-legacy) : un tag par
+                // épisode plutôt qu'un résumé texte ("Saison X — N épisodes") —
+                // reste lisible même quand une saison complète sort le même jour.
+                FlowLayout(spacing: 6) {
+                    ForEach(group.episodeNumbers, id: \.self) { episodeNumber in
+                        EpisodeTag(
+                            text: String(format: "S%02dE%02d", group.seasonNumber, episodeNumber),
+                            style: .episode
+                        )
+                        if episodeNumber == 1 {
+                            EpisodeTag(text: String(localized: "Premiere"), style: .premiere)
+                        }
+                    }
+                }
             }
 
-            Spacer()
+            Spacer(minLength: 0)
 
             if hasAlreadyAired {
                 Text("Aired")
@@ -198,22 +238,84 @@ private struct ScheduleRow: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .opacity(hasAlreadyAired ? 0.6 : 1)
+        .opacity(shouldDim ? 0.6 : 1)
         .padding(.vertical, 4)
     }
+}
 
-    /// Un seul épisode : format SxxExx habituel. Plusieurs (sortie groupée
-    /// d'une saison complète) : "Saison X — N épisodes", plus lisible qu'une
-    /// plage de numéros.
-    private var episodeLabel: String {
-        if group.episodeNumbers.count == 1 {
-            return String(format: "S%02dE%02d", group.seasonNumber, group.episodeNumbers[0])
-        } else {
-            return String(
-                format: String(localized: "Season %d — %d episodes"),
-                group.seasonNumber,
-                group.episodeNumbers.count
-            )
+/// Petit badge arrondi façon "tag" — repris de l'ancienne version de tvQ
+/// (tvQ-legacy) pour l'affichage des numéros d'épisode.
+private struct EpisodeTag: View {
+    enum Style {
+        case episode
+        case premiere
+    }
+
+    let text: String
+    let style: Style
+
+    var body: some View {
+        Text(text.uppercased())
+            .font(.caption2.weight(.bold))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(backgroundColor, in: Capsule())
+            .foregroundStyle(.white)
+    }
+
+    private var backgroundColor: Color {
+        switch style {
+        case .episode: .green
+        case .premiere: .pink
+        }
+    }
+}
+
+/// Layout simple qui enchaîne ses enfants horizontalement et retourne à la
+/// ligne quand ça déborde — nécessaire pour les tags d'épisode, dont le
+/// nombre varie (1 à N par sortie groupée).
+private struct FlowLayout: Layout {
+    var spacing: CGFloat = 6
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let maxWidth = proposal.width ?? .infinity
+        var rowWidth: CGFloat = 0
+        var rowHeight: CGFloat = 0
+        var totalWidth: CGFloat = 0
+        var totalHeight: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if rowWidth > 0, rowWidth + spacing + size.width > maxWidth {
+                totalHeight += rowHeight + spacing
+                totalWidth = max(totalWidth, rowWidth)
+                rowWidth = 0
+                rowHeight = 0
+            }
+            rowWidth += (rowWidth > 0 ? spacing : 0) + size.width
+            rowHeight = max(rowHeight, size.height)
+        }
+        totalHeight += rowHeight
+        totalWidth = max(totalWidth, rowWidth)
+
+        return CGSize(width: totalWidth, height: totalHeight)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var x = bounds.minX
+        var y = bounds.minY
+        var rowHeight: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x > bounds.minX, x + size.width > bounds.maxX {
+                x = bounds.minX
+                y += rowHeight + spacing
+                rowHeight = 0
+            }
+            subview.place(at: CGPoint(x: x, y: y), proposal: .unspecified)
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
         }
     }
 }

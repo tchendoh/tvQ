@@ -12,6 +12,9 @@ struct SettingsView: View {
     @AppStorage(AppSettings.Keys.useOriginalLanguage)
     private var useOriginalLanguage: Bool = false
 
+    @AppStorage(AppSettings.Keys.watchProviderRegion)
+    private var watchProviderRegion: String = WatchProviderRegion.canada.rawValue
+
     var body: some View {
         Form {
             Section("Appearance") {
@@ -40,6 +43,24 @@ struct SettingsView: View {
                 Toggle("Prefer show's original language", isOn: $useOriginalLanguage)
             } footer: {
                 Text("When on, a show's page and episodes use its original language instead of the setting above. Search results are unaffected.")
+            }
+
+            Section {
+                Picker("Country", selection: $watchProviderRegion) {
+                    ForEach(WatchProviderRegion.allCases) { option in
+                        Text(option.displayName).tag(option.rawValue)
+                    }
+                }
+            } header: {
+                Text("Where to Watch")
+            } footer: {
+                Text("Used to show which services carry a show in your country.")
+            }
+
+            Section {
+                NavigationLink("About") {
+                    AboutView()
+                }
             }
 
             Section {

@@ -18,7 +18,7 @@ struct ShowCardView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            AsyncImage(url: posterURL) { image in
+            RetryingAsyncImage(url: posterURL) { image in
                 image.resizable().aspectRatio(contentMode: .fill)
             } placeholder: {
                 ZStack {
@@ -75,12 +75,8 @@ private struct FollowBadge: View {
     }
 
     private var icon: some View {
-        Image(systemName: isFollowed ? "checkmark.circle" : "plus.viewfinder")
+        FollowIcon(isFollowing: isFollowed)
             .font(.system(size: 20, weight: .bold))
-            .symbolRenderingMode(.palette)
-            .symbolEffect(.bounce, value: isFollowed)
-            // .contentTransition(.symbolEffect(.replace))
-            .foregroundStyle(isFollowed ? .green : .pink, isFollowed ? .green : .pink)
     }
 }
 

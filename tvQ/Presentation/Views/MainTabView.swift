@@ -6,6 +6,11 @@ import SwiftUI
 struct MainTabView: View {
     var body: some View {
         TabView {
+            HomeView()
+                .tabItem {
+                    Label("Home", systemImage: "sparkles")
+                }
+
             ScheduleView()
                 .tabItem {
                     Label("Schedule", systemImage: "calendar")

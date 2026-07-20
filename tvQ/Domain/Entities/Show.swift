@@ -3,7 +3,7 @@ import Foundation
 /// Entité métier représentant une série suivie ou consultable.
 /// Agrège les données pertinentes provenant de TMDB (métadonnées, images)
 /// et de TVmaze (horaire), sans exposer la provenance à l'extérieur de la couche Data.
-struct Show: Identifiable, Equatable, Hashable {
+nonisolated struct Show: Identifiable, Equatable, Hashable, Codable {
     /// Identifiant TMDB — clé primaire de l'entité. Garanti présent pour toute
     /// série connue de TMDB, contrairement à l'IMDB ID qui est parfois absent.
     let tmdbID: Int
@@ -34,7 +34,7 @@ struct Show: Identifiable, Equatable, Hashable {
     let originalLanguage: String
 }
 
-enum ShowStatus: Equatable, Hashable {
+nonisolated enum ShowStatus: Equatable, Hashable, Codable {
     case running
     case ended
     case upcoming

@@ -18,20 +18,13 @@ struct MyShowsView: View {
                     )
                 } else {
                     ScrollView {
-                        LazyVGrid(columns: gridColumns, spacing: 24) {
-                            ForEach(viewModel.shows) { show in
-                                NavigationLink(value: show) {
-                                    ShowCardView(
-                                        title: show.title,
-                                        posterURL: show.posterURL,
-                                        isFollowed: true,
-                                        onToggleFollow: { followedShowsStore.toggle(showID: show.id) }
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                            }
+                        VStack(alignment: .leading, spacing: 28) {
+                            showSection(title: "Running", shows: viewModel.currentShows)
+                            showSection(title: "Season ended", shows: viewModel.seasonEndedShows)
+                            showSection(title: "Coming soon", shows: viewModel.upcomingShows)
+                            showSection(title: "Ended", shows: viewModel.endedShows)
                         }
-                        .padding(20)
+                        .padding(.vertical, 20)
                     }
                 }
             }
@@ -42,6 +35,30 @@ struct MyShowsView: View {
             }
             .task(id: followedShowsStore.followedShowIDs) {
                 viewModel.load(showIDs: followedShowsStore.followedShowIDs)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func showSection(title: LocalizedStringKey, shows: [Show]) -> some View {
+        if !shows.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(title)
+                    .font(.title3.weight(.semibold))
+                    .padding(.horizontal, 20)
+
+                LazyVGrid(columns: gridColumns, spacing: 24) {
+                    ForEach(shows) { show in
+                        NavigationLink(value: show) {
+                            ShowCardView(
+                                title: show.title,
+                                posterURL: show.posterURL
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 20)
             }
         }
     }

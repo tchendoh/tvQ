@@ -11,4 +11,11 @@ protocol ShowRepository {
     /// Résout les métadonnées complètes + l'IMDB ID pivot + l'horaire TVmaze
     /// pour une série identifiée par son ID TMDB.
     func getShow(tmdbID: Int) async throws -> Show
+
+    /// Trois listes de découverte toutes faites de TMDB — pour la page Accueil.
+    /// Résumé léger comme search(), pas de Show complet nécessaire tant que
+    /// l'utilisateur n'a pas ouvert la fiche.
+    func trendingShows() async throws -> [ShowSummary]
+    func onTheAirShows() async throws -> [ShowSummary]
+    func airingTodayShows() async throws -> [ShowSummary]
 }

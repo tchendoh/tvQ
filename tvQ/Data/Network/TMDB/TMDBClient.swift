@@ -50,4 +50,39 @@ struct TMDBClient {
         let response: TMDBSeasonResponseDTO = try await httpClient.get(url: components.url!, headers: authHeaders)
         return response.episodes
     }
+
+    /// Trois listes toutes faites de TMDB, pour la page Accueil (découverte) —
+    /// à ne pas confondre avec une métrique propre à tvQ (voir discussion sur
+    /// Tendances-interne, mise de côté pour l'instant faute d'utilisateurs).
+
+    /// "week" plutôt que "day" : plus stable d'une ouverture d'app à l'autre.
+    func fetchTrendingTV(timeWindow: String = "week") async throws -> [TMDBSearchResultDTO] {
+        try await fetchList(path: "trending/tv/\(timeWindow)")
+    }
+
+    /// Séries ayant un épisode prévu dans les 7 prochains jours.
+    func fetchOnTheAirTV() async throws -> [TMDBSearchResultDTO] {
+        try await fetchList(path: "tv/on_the_air")
+    }
+
+    /// Séries ayant un épisode qui sort aujourd'hui même.
+    func fetchAiringTodayTV() async throws -> [TMDBSearchResultDTO] {
+        try await fetchList(path: "tv/airing_today")
+    }
+
+    /// `watch_region` est ignoré par TMDB sur cet endpoint précis : la réponse
+    /// contient déjà toutes les régions, filtrées côté appelant (voir
+    /// WatchProvidersMapper). Pas de paramètre `language` non plus — les noms
+    /// de diffuseurs (`provider_name`) ne sont pas localisés par TMDB.
+    func fetchWatchProviders(seriesID: Int) async throws -> TMDBWatchProvidersDTO {
+        let url = baseURL.appendingPathComponent("tv/\(seriesID)/watch/providers")
+        return try await httpClient.get(url: url, headers: authHeaders)
+    }
+
+    private func fetchList(path: String) async throws -> [TMDBSearchResultDTO] {
+        var components = URLComponents(url: baseURL.appendingPathComponent(path), resolvingAgainstBaseURL: false)!
+        components.queryItems = [URLQueryItem(name: "language", value: language)]
+        let response: TMDBSearchResponseDTO = try await httpClient.get(url: components.url!, headers: authHeaders)
+        return response.results
+    }
 }

@@ -3,7 +3,7 @@ import Foundation
 /// Entité métier représentant un épisode.
 /// `airDate` provient de TMDB (date seule, toujours disponible en fallback).
 /// `airStamp` provient de TVmaze quand disponible (date + heure précise, timezone incluse).
-struct Episode: Identifiable, Equatable, Hashable, Codable {
+nonisolated struct Episode: Identifiable, Equatable, Hashable, Codable {
     let id: String
     let showID: String
     let seasonNumber: Int

@@ -28,12 +28,25 @@ final class RemoteScheduleRepository: ScheduleRepository {
     }
 
     func getEpisodes(for show: Show) async throws -> [Episode] {
-        if let cached = await localCache.episodes(showID: show.id) {
+        // La clé inclut la langue effective : le cache partagé Firestore est
+        // commun à tous les utilisateurs, et le contenu (titres, synopsis) est
+        // localisé — sans ça, deux utilisateurs avec des langues différentes
+        // s'écraseraient mutuellement le cache. Voir AppSettings.cacheLanguageKey.
+        let cacheKey = "\(show.id)_\(AppSettings.cacheLanguageKey)"
+
+        // Une série .ended ne produira plus jamais de nouvel épisode : une fois
+        // en cache, ses épisodes restent valides indéfiniment (maxAge: nil),
+        // sur les deux paliers — pas seulement pour l'horaire, aussi pour
+        // ShowDetailView, qui appelle cette même méthode.
+        let maxAge: TimeInterval? = show.status == .ended ? nil : LocalEpisodeCache.ttl
+        let sharedMaxAge: TimeInterval? = show.status == .ended ? nil : FirestoreEpisodeCacheRepository.ttl
+
+        if let cached = await localCache.episodes(showID: cacheKey, maxAge: maxAge) {
             return cached
         }
 
-        if let cached = try? await sharedCache.episodes(showID: show.id) {
-            await localCache.store(showID: show.id, episodes: cached)
+        if let cached = try? await sharedCache.episodes(showID: cacheKey, maxAge: sharedMaxAge) {
+            await localCache.store(showID: cacheKey, episodes: cached)
             return cached
         }
 
@@ -42,8 +55,8 @@ final class RemoteScheduleRepository: ScheduleRepository {
         // Écriture best-effort dans le cache partagé : un échec ici (offline,
         // règles Firestore, etc.) ne doit pas empêcher de retourner le résultat
         // déjà obtenu depuis TMDB/TVmaze à l'utilisateur courant.
-        try? await sharedCache.store(showID: show.id, episodes: episodes)
-        await localCache.store(showID: show.id, episodes: episodes)
+        try? await sharedCache.store(showID: cacheKey, episodes: episodes)
+        await localCache.store(showID: cacheKey, episodes: episodes)
 
         return episodes
     }

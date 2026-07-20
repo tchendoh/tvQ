@@ -15,7 +15,7 @@ final class FirestoreEpisodeCacheRepository {
     /// Plus long que le cache local (6h) : ce palier absorbe la charge entre
     /// *tous* les utilisateurs, pas juste un appareil — une fraîcheur de 24h
     /// suffit largement pour un horaire de diffusion.
-    static let ttl: TimeInterval = 60 * 60 * 24 // 24h
+    nonisolated static let ttl: TimeInterval = 60 * 60 * 24 // 24h
 
     private let db: Firestore
 
@@ -27,13 +27,17 @@ final class FirestoreEpisodeCacheRepository {
         db.collection("showsCache").document(showID)
     }
 
-    /// nil si absent ou périmé (plus vieux que Self.ttl).
-    func episodes(showID: String) async throws -> [Episode]? {
+    /// nil si absent ou périmé. `maxAge: nil` désactive toute expiration — voir
+    /// LocalEpisodeCache.episodes(showID:maxAge:) pour le raisonnement complet
+    /// (séries .ended, dont les épisodes ne changeront plus jamais).
+    func episodes(showID: String, maxAge: TimeInterval? = FirestoreEpisodeCacheRepository.ttl) async throws -> [Episode]? {
         let snapshot = try await document(showID: showID).getDocument()
         guard snapshot.exists, let entry = try? snapshot.data(as: FirestoreEpisodeCacheEntry.self) else {
             return nil
         }
-        guard Date().timeIntervalSince(entry.syncedAt) < Self.ttl else { return nil }
+        if let maxAge {
+            guard Date().timeIntervalSince(entry.syncedAt) < maxAge else { return nil }
+        }
         return entry.episodes
     }
 

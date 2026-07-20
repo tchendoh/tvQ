@@ -8,6 +8,7 @@ import Observation
 final class ShowDetailViewModel {
     private(set) var show: Show?
     private(set) var episodesBySeason: [Int: [Episode]] = [:]
+    private(set) var watchAvailability: WatchAvailability?
     private(set) var isLoading = false
     private(set) var errorMessage: String?
 
@@ -15,16 +16,22 @@ final class ShowDetailViewModel {
 
     private let showRepository: ShowRepository
     private let scheduleRepository: ScheduleRepository
+    private let tmdbClient: TMDBClient
+    private let watchAvailabilityCache: LocalWatchAvailabilityCache
     private var loadTask: Task<Void, Never>?
 
     init(
         tmdbID: Int,
         showRepository: ShowRepository = RemoteShowRepository(),
-        scheduleRepository: ScheduleRepository = RemoteScheduleRepository()
+        scheduleRepository: ScheduleRepository = RemoteScheduleRepository(),
+        tmdbClient: TMDBClient = TMDBClient(),
+        watchAvailabilityCache: LocalWatchAvailabilityCache = .shared
     ) {
         self.tmdbID = tmdbID
         self.showRepository = showRepository
         self.scheduleRepository = scheduleRepository
+        self.tmdbClient = tmdbClient
+        self.watchAvailabilityCache = watchAvailabilityCache
     }
 
     var sortedSeasonNumbers: [Int] {
@@ -54,6 +61,21 @@ final class ShowDetailViewModel {
                 if !Task.isCancelled {
                     errorMessage = String(localized: "Couldn't load this show. Check your connection and try again.")
                 }
+            }
+
+            // Best-effort, sans bloquer ni faire échouer l'affichage de la fiche :
+            // un problème réseau ici ne doit pas cacher les métadonnées déjà chargées.
+            // Cache local seulement (pas de palier Firestore partagé, contrairement
+            // à getShow/getEpisodes) — dépend du pays choisi par l'utilisateur, donc
+            // peu de réutilisation entre utilisateurs, mais utile pour éviter un
+            // appel TMDB à chaque réouverture de la même fiche sur le même appareil.
+            let cacheKey = "\(tmdbID)_\(AppSettings.watchProviderRegion)"
+            if let cached = await watchAvailabilityCache.availability(cacheKey: cacheKey) {
+                watchAvailability = cached
+            } else if let dto = try? await tmdbClient.fetchWatchProviders(seriesID: tmdbID) {
+                let availability = WatchAvailabilityMapper.map(dto: dto, region: AppSettings.watchProviderRegion)
+                watchAvailability = availability
+                await watchAvailabilityCache.store(cacheKey: cacheKey, availability: availability)
             }
         }
     }

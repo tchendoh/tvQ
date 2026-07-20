@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ShowDetailView: View {
+    @Environment(FollowedShowsStore.self) private var followedShowsStore
     @State private var viewModel: ShowDetailViewModel
 
     init(tmdbID: Int) {
@@ -25,6 +26,28 @@ struct ShowDetailView: View {
         .task { viewModel.load() }
         .navigationTitle(viewModel.show?.title ?? "")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            // Suivre/ne plus suivre directement depuis la fiche — jusqu'ici
+            // seulement possible via le badge sur les grilles (Search, My Shows).
+            if let show = viewModel.show {
+                ToolbarItem(placement: .topBarTrailing) {
+                    let isFollowing = followedShowsStore.isFollowing(show.id)
+                    Button {
+                        withAnimation(.spring) {
+                            followedShowsStore.toggle(showID: show.id)
+                        }
+                    } label: {
+                        // FollowIcon centralise icône + couleur, partagée avec
+                        // FollowBadge dans ShowCardView (Search, My Shows).
+                        Label {
+                            Text(isFollowing ? "Following" : "Follow")
+                        } icon: {
+                            FollowIcon(isFollowing: isFollowing)
+                        }
+                    }
+                }
+            }
+        }
     }
 
     @ViewBuilder
@@ -64,6 +87,33 @@ struct ShowDetailView: View {
                             .font(.body)
                             .padding(.top, 4)
                     }
+
+                    // imdbID est optionnel (voir Show.swift) : certaines séries
+                    // n'ont pas d'IMDB ID renseigné sur TMDB, auquel cas il n'y a
+                    // simplement pas de lien à montrer.
+                    if let imdbID = show.imdbID, let imdbURL = URL(string: "https://www.imdb.com/title/\(imdbID)/") {
+                        // Logo officiel (trousse de marque IMDb, brand.imdb.com) plutôt
+                        // qu'une icône générique — versions noir/blanc en Assets.xcassets
+                        // (IMDbLogo), adaptées automatiquement au mode clair/sombre.
+                        Link(destination: imdbURL) {
+                            HStack(spacing: 6) {
+                                Image("IMDbLogo")
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(height: 16)
+                                    .accessibilityHidden(true)
+                                Image(systemName: "arrow.up.right")
+                                    .font(.caption2.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .accessibilityLabel("View on IMDb")
+                        .padding(.top, 4)
+                    }
+
+                    if let availability = viewModel.watchAvailability {
+                        watchAvailabilitySection(availability)
+                    }
                 }
                 .padding(.horizontal)
 
@@ -78,9 +128,46 @@ struct ShowDetailView: View {
         }
     }
 
+    // Texte seulement — pas les logos des diffuseurs/JustWatch, jugés pas assez
+    // propres visuellement pour l'app (voir discussion, backlog "Où regarder").
+    // Le lien JustWatch en fin de section reste discret (petite police, gris),
+    // pas un deep-link vers l'app d'un diffuseur — TMDB n'en fournit pas.
+    //
+    // Quand TMDB n'a aucun diffuseur pour le pays choisi (providerNames vide),
+    // on n'affiche pas juste rien : un CTA "Where to watch?" renvoie directement
+    // vers JustWatch, mis à jour plus souvent que le cache TMDB (max 1×/24h).
+    @ViewBuilder
+    private func watchAvailabilitySection(_ availability: WatchAvailability) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if availability.isEmpty {
+                Link(destination: availability.justWatchURL) {
+                    HStack(spacing: 4) {
+                        Text("Where to watch?")
+                        Image(systemName: "arrow.up.right")
+                            .font(.caption2.weight(.semibold))
+                    }
+                }
+                .font(.subheadline)
+
+                Text("via JustWatch")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            } else {
+                Text("Watch (\(availability.regionDisplayName)) on \(availability.providerNames.joined(separator: ", "))")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                Link("via JustWatch", destination: availability.justWatchURL)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .padding(.top, 4)
+    }
+
     @ViewBuilder
     private func header(for show: Show) -> some View {
-        AsyncImage(url: show.backdropURL ?? show.posterURL) { image in
+        RetryingAsyncImage(url: show.backdropURL ?? show.posterURL) { image in
             image.resizable().aspectRatio(contentMode: .fill)
         } placeholder: {
             Rectangle().fill(.secondary.opacity(0.2))
@@ -153,4 +240,5 @@ private extension ShowStatus {
     NavigationStack {
         ShowDetailView(tmdbID: 1399)
     }
+    .environment(FollowedShowsStore())
 }
