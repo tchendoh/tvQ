@@ -14,6 +14,7 @@ Choses identifiées en cours de route, volontairement mises de côté pour reste
 
 ## UX / fonctionnalités pas commencées
 
+- **Look de l'app à définir** — l'UI actuelle est fonctionnelle mais aucune direction visuelle (couleurs, typographie, style d'icônes, ambiance générale) n'a encore été arrêtée. À faire avant de peaufiner l'UI existante ou d'en ajouter de nouvelle, pour éviter de refaire le travail deux fois.
 - **Page "Tendances"** — afficher ce qui est suivi par le plus d'utilisateurs en ce moment (idée du 2026-07-14). Demande une agrégation des follows (compteur par série mis à jour à chaque follow/unfollow plutôt qu'un scan à la volée de toutes les sous-collections `followedShows`) — design à faire avant de commencer.
 - **Déverrouillage biométrique automatique** (façon Tangerine) — Face ID qui redéverrouille la session au lancement sans aucun tap. Différent de Sign in with Apple (déjà fait) : ça suppose LocalAuthentication + Keychain, complètement séparé de Firebase. Pas commencé.
 - **Rafraîchissement de la langue de contenu TMDB** — changer la langue dans Settings ne rafraîchit pas les écrans déjà chargés en mémoire (`TMDBClient.language` n'est lu qu'à la construction). Il faut relancer l'app. Mentionné dans le footer de `SettingsView`, pas résolu.
