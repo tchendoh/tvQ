@@ -44,7 +44,6 @@ Application iOS (SwiftUI) pour suivre l'horaire de diffusion des séries télé 
 - Page "Tendances" (séries les plus suivies) — demande une agrégation des follows, design à faire
 - Déverrouillage biométrique automatique (Face ID au lancement, façon Tangerine)
 - Rafraîchissement à chaud de la langue de contenu TMDB (actuellement il faut relancer l'app après un changement dans Settings)
-- Monétisation — **bloquée probablement** par les conditions commerciales de TMDB et JustWatch, voir `BACKLOG.md` pour le détail
 
 Le détail complet (raisonnement, dates, décisions techniques) est dans `BACKLOG.md`.
 
