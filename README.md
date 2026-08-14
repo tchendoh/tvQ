@@ -4,6 +4,16 @@ Application iOS (SwiftUI) pour suivre l'horaire de diffusion des séries télé 
 
 > Ce README est mis à jour au fur et à mesure du développement — il reflète l'état du projet à la date indiquée en fin de fichier, pas nécessairement l'état futur.
 
+## Aperçu
+
+| Accueil | Horaire | Mes séries |
+|---|---|---|
+| ![Accueil](Screenshots/tvQ-accueil.png) | ![Horaire](Screenshots/tvQ-horaire-dark-mode.png) | ![Mes séries](Screenshots/tvQ-mesSeries-dark-mode.jpeg) |
+
+| Recherche | Fiche série (sombre) | Fiche série (clair) |
+|---|---|---|
+| ![Recherche](Screenshots/tvQ-recherche-dark-mode.jpeg) | ![Fiche série (sombre)](Screenshots/tvQ-serie-detail-dark-mode.png) | ![Fiche série (clair)](Screenshots/tvQ-serie-detail.png) |
+
 ## Stack technique
 
 - **UI** : SwiftUI

@@ -28,6 +28,10 @@ final class RemoteScheduleRepository: ScheduleRepository {
     }
 
     func getEpisodes(for show: Show) async throws -> [Episode] {
+        try await getEpisodesWithTier(for: show).episodes
+    }
+
+    private func getEpisodesWithTier(for show: Show) async throws -> (episodes: [Episode], tier: CacheTier) {
         // La clé inclut la langue effective : le cache partagé Firestore est
         // commun à tous les utilisateurs, et le contenu (titres, synopsis) est
         // localisé — sans ça, deux utilisateurs avec des langues différentes
@@ -42,12 +46,12 @@ final class RemoteScheduleRepository: ScheduleRepository {
         let sharedMaxAge: TimeInterval? = show.status == .ended ? nil : FirestoreEpisodeCacheRepository.ttl
 
         if let cached = await localCache.episodes(showID: cacheKey, maxAge: maxAge) {
-            return cached
+            return (cached, .local)
         }
 
         if let cached = try? await sharedCache.episodes(showID: cacheKey, maxAge: sharedMaxAge) {
             await localCache.store(showID: cacheKey, episodes: cached)
-            return cached
+            return (cached, .shared)
         }
 
         let episodes = try await fetchEpisodes(for: show)
@@ -58,7 +62,7 @@ final class RemoteScheduleRepository: ScheduleRepository {
         try? await sharedCache.store(showID: cacheKey, episodes: episodes)
         await localCache.store(showID: cacheKey, episodes: episodes)
 
-        return episodes
+        return (episodes, .remote)
     }
 
     /// Appel direct aux APIs externes, sans passer par aucun des deux caches —
@@ -95,6 +99,10 @@ final class RemoteScheduleRepository: ScheduleRepository {
     private static let recentlyAiredWindow: TimeInterval = 60 * 60 * 24 * 7 // 7 jours
 
     func getUpcomingEpisodes(for shows: [Show]) async throws -> [Episode] {
+        try await getUpcomingEpisodesWithTiers(for: shows).episodes
+    }
+
+    func getUpcomingEpisodesWithTiers(for shows: [Show]) async throws -> (episodes: [Episode], tiers: ScheduleLoadMetrics.TierBreakdown) {
         let now = Date()
         let earliestRelevantDate = now.addingTimeInterval(-Self.recentlyAiredWindow)
 
@@ -103,18 +111,25 @@ final class RemoteScheduleRepository: ScheduleRepository {
         let relevantShows = shows.filter { $0.status != .ended }
 
         // Récupération en parallèle plutôt que séquentielle : chaque appel passe
-        // par getEpisodes(for:), qui sert depuis le cache local ou Firestore
-        // avant de retomber sur TMDB/TVmaze.
-        let allUpcoming = try await withThrowingTaskGroup(of: [Episode].self) { group in
+        // par getEpisodesWithTier(for:), qui sert depuis le cache local ou
+        // Firestore avant de retomber sur TMDB/TVmaze.
+        let results = try await withThrowingTaskGroup(of: (episodes: [Episode], tier: CacheTier).self) { group in
             for show in relevantShows {
-                group.addTask { try await self.getEpisodes(for: show) }
+                group.addTask { try await self.getEpisodesWithTier(for: show) }
             }
 
-            var episodes: [Episode] = []
-            for try await showEpisodes in group {
-                episodes.append(contentsOf: showEpisodes)
+            var results: [(episodes: [Episode], tier: CacheTier)] = []
+            for try await result in group {
+                results.append(result)
             }
-            return episodes
+            return results
+        }
+
+        var tiers = ScheduleLoadMetrics.TierBreakdown()
+        var allUpcoming: [Episode] = []
+        for result in results {
+            tiers.record(result.tier)
+            allUpcoming.append(contentsOf: result.episodes)
         }
 
         let upcoming = allUpcoming.filter { episode in
@@ -122,8 +137,10 @@ final class RemoteScheduleRepository: ScheduleRepository {
             return date >= earliestRelevantDate
         }
 
-        return upcoming.sorted { lhs, rhs in
+        let sorted = upcoming.sorted { lhs, rhs in
             (lhs.bestAvailableDate ?? .distantFuture) < (rhs.bestAvailableDate ?? .distantFuture)
         }
+
+        return (sorted, tiers)
     }
 }

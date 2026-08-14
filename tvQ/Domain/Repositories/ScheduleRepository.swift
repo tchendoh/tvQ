@@ -9,4 +9,16 @@ protocol ScheduleRepository {
 
     /// Épisodes à venir, toutes séries confondues, triés par date — utilisé pour la timeline.
     func getUpcomingEpisodes(for shows: [Show]) async throws -> [Episode]
+
+    /// Même résultat que getUpcomingEpisodes(for:), avec en plus le décompte
+    /// par palier de cache (combien de séries ont été servies depuis le disque
+    /// local / Firestore partagé / l'API fraîche) — utilisé uniquement pour le
+    /// diagnostic de performance de l'écran Schedule (voir ScheduleLoadMetrics).
+    func getUpcomingEpisodesWithTiers(for shows: [Show]) async throws -> (episodes: [Episode], tiers: ScheduleLoadMetrics.TierBreakdown)
+}
+
+extension ScheduleRepository {
+    func getUpcomingEpisodesWithTiers(for shows: [Show]) async throws -> (episodes: [Episode], tiers: ScheduleLoadMetrics.TierBreakdown) {
+        (try await getUpcomingEpisodes(for: shows), ScheduleLoadMetrics.TierBreakdown())
+    }
 }

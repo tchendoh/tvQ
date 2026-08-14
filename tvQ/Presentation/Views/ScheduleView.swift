@@ -6,6 +6,7 @@ import SwiftUI
 struct ScheduleView: View {
     @Environment(FollowedShowsStore.self) private var followedShowsStore
     @State private var viewModel = ScheduleViewModel()
+    @State private var showingDiagnostics = false
 
     var body: some View {
         NavigationStack {
@@ -27,26 +28,36 @@ struct ScheduleView: View {
                     )
                 } else {
                     ScrollViewReader { proxy in
-                        List {
-                            ForEach(daySections) { section in
-                                Section {
-                                    if section.groups.isEmpty {
-                                        Text("Nothing today")
-                                            .foregroundStyle(.secondary)
-                                    } else {
-                                        ForEach(section.groups) { group in
-                                            NavigationLink(value: group.show) {
-                                                ScheduleRow(group: group)
+                        ScrollView {
+                            LazyVStack(spacing: 16) {
+                                ForEach(daySections) { section in
+                                    GroupedCard(isHighlighted: section.isToday) {
+                                        ScheduleSectionHeader(section: section)
+                                    } content: {
+                                        if section.groups.isEmpty {
+                                            Text("Nothing today")
+                                                .foregroundStyle(.secondary)
+                                        } else {
+                                            VStack(spacing: 0) {
+                                                ForEach(Array(section.groups.enumerated()), id: \.element.id) { index, group in
+                                                    if index > 0 {
+                                                        Divider()
+                                                            .padding(.vertical, 10)
+                                                    }
+                                                    NavigationLink(value: group.show) {
+                                                        ScheduleRow(group: group)
+                                                    }
+                                                    .buttonStyle(.plain)
+                                                }
                                             }
                                         }
                                     }
-                                } header: {
-                                    ScheduleSectionHeader(section: section)
+                                    .id(section.day)
                                 }
-                                .id(section.day)
                             }
+                            .padding(.horizontal)
+                            .padding(.vertical, 12)
                         }
-                        .listStyle(.plain)
                         // On atterrit sur "Aujourd'hui" plutôt qu'en haut de liste
                         // (qui montrerait d'abord les jours passés) — l'utilisateur
                         // scrolle vers le haut seulement s'il veut revoir les
@@ -56,6 +67,45 @@ struct ScheduleView: View {
                         }
                         .onAppear {
                             scrollToToday(using: proxy)
+                        }
+                        // Le cache (12h local, 24h Firestore) peut retarder la
+                        // prise en compte d'un nouvel épisode ou d'un cache vidé
+                        // manuellement (voir Settings) — ce geste permet de
+                        // forcer une revérification sans redémarrer l'app.
+                        .refreshable {
+                            await viewModel.refresh(showIDs: followedShowsStore.followedShowIDs)
+                        }
+                        .toolbar {
+                            // Retour manuel à "Aujourd'hui" — utile après avoir
+                            // scrollé loin dans les jours passés ou à venir,
+                            // sans devoir tout re-scroller à la main.
+                            ToolbarItem(placement: .navigationBarLeading) {
+                                Button {
+                                    withAnimation {
+                                        scrollToToday(using: proxy)
+                                    }
+                                } label: {
+                                    Text("Today")
+                                }
+                            }
+                            // Diagnostic de performance du dernier chargement
+                            // (voir ScheduleLoadMetrics) — utile pour vérifier
+                            // que le cache fonctionne comme prévu sans sortir
+                            // Instruments. Masqué s'il n'y a encore rien à montrer.
+                            if viewModel.lastLoadMetrics != nil {
+                                ToolbarItem(placement: .topBarTrailing) {
+                                    Button {
+                                        showingDiagnostics = true
+                                    } label: {
+                                        Image(systemName: "info.circle")
+                                    }
+                                    .popover(isPresented: $showingDiagnostics) {
+                                        if let metrics = viewModel.lastLoadMetrics {
+                                            ScheduleDiagnosticsView(metrics: metrics)
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -124,6 +174,7 @@ struct ScheduleView: View {
         let day: Date
         let groups: [EpisodeGroup]
         var id: Date { day }
+        var isToday: Bool { Calendar.current.isDateInToday(day) }
 
         /// Hier/Aujourd'hui/Demain d'abord (plus parlant qu'une date) ; puis le
         /// jour de semaine seul dans la semaine qui vient (ex. "Jeudi") — au-delà,
@@ -145,7 +196,16 @@ struct ScheduleView: View {
                 return day.formatted(.dateTime.weekday(.wide))
             }
 
-            return day.formatted(.dateTime.weekday(.wide).day().month(.wide))
+            // Au-delà d'une semaine, une date complète ici ferait doublon
+            // avec celle déjà affichée à droite (voir ScheduleSectionHeader) —
+            // "Dans N jours" reste utile sans répéter l'info.
+            if daysFromToday > 6 {
+                return String(localized: "In \(daysFromToday) days")
+            }
+
+            // Cas résiduel (passé au-delà d'hier) : borné à recentlyAiredWindow
+            // (7 jours), donc daysFromToday ne descend jamais en dessous de -7.
+            return String(localized: "\(-daysFromToday) days ago")
         }
     }
 
@@ -161,19 +221,27 @@ struct ScheduleView: View {
     }
 }
 
-/// En-tête de section : jour à gauche ("Demain"), date complète à droite
+/// En-tête de jour : jour à gauche ("Demain"), date complète à droite
 /// ("21 juil. 2026") — repris de l'ancienne version de tvQ (tvQ-legacy).
+///
+/// Affiché comme en-tête d'un GroupedCard : chaque jour est ainsi un bloc
+/// visuellement délimité de bout en bout (même vocabulaire que les autres
+/// regroupements de l'app), plutôt qu'un simple libellé flottant au-dessus
+/// de lignes. "Aujourd'hui" reçoit en plus le contour d'accent du
+/// GroupedCard (isHighlighted) puisque c'est le point d'ancrage du scroll
+/// initial (voir ScheduleView.scrollToToday).
 private struct ScheduleSectionHeader: View {
     let section: ScheduleView.DaySection
 
     var body: some View {
         HStack {
             Text(section.title)
+                .font(.subheadline.weight(.bold))
             Spacer()
             Text(section.day, format: .dateTime.day().month(.abbreviated).year())
+                .font(.subheadline.weight(.medium))
         }
-        .font(.subheadline.weight(.semibold))
-        .foregroundStyle(.secondary)
+        .foregroundStyle(section.isToday ? Color.emphasis : .secondary)
     }
 }
 
@@ -217,14 +285,19 @@ private struct ScheduleRow: View {
                 // Reprise de l'ancienne version de tvQ (tvQ-legacy) : un tag par
                 // épisode plutôt qu'un résumé texte ("Saison X — N épisodes") —
                 // reste lisible même quand une saison complète sort le même jour.
-                FlowLayout(spacing: 6) {
+                // Une ligne par épisode (plutôt qu'un flow horizontal qui wrap) :
+                // "Premiere" reste collé au tag d'épisode correspondant, pas
+                // poussé à l'autre bout de la ligne.
+                VStack(alignment: .leading, spacing: 4) {
                     ForEach(group.episodeNumbers, id: \.self) { episodeNumber in
-                        EpisodeTag(
-                            text: String(format: "S%02dE%02d", group.seasonNumber, episodeNumber),
-                            style: .episode
-                        )
-                        if episodeNumber == 1 {
-                            EpisodeTag(text: String(localized: "Premiere"), style: .premiere)
+                        HStack(spacing: 8) {
+                            EpisodeTag(
+                                text: String(format: "S%02dE%02d", group.seasonNumber, episodeNumber),
+                                style: .episode
+                            )
+                            if episodeNumber == 1 {
+                                EpisodeTag(text: String(localized: "Premiere"), style: .premiere)
+                            }
                         }
                     }
                 }
@@ -239,12 +312,17 @@ private struct ScheduleRow: View {
             }
         }
         .opacity(shouldDim ? 0.6 : 1)
-        .padding(.vertical, 4)
     }
 }
 
-/// Petit badge arrondi façon "tag" — repris de l'ancienne version de tvQ
-/// (tvQ-legacy) pour l'affichage des numéros d'épisode.
+/// Numéro d'épisode / repère "Premiere".
+///
+/// Style "glass" (choisi le 2026-08-09 après comparaison dans TagStyleLabView,
+/// voir Debug/TagStyleLabView.swift pour les autres looks essayés — néon,
+/// glossy, métallique, minimaliste) : fond `.ultraThinMaterial`, contour
+/// teinté. Le numéro d'épisode utilise Color.emphasis (même noir #101010 /
+/// quasi-blanc adaptatif que le bloc "Aujourd'hui") ; "Premiere" utilise
+/// l'accent (rose), seule info à mériter vraiment de ressortir.
 private struct EpisodeTag: View {
     enum Style {
         case episode
@@ -254,68 +332,93 @@ private struct EpisodeTag: View {
     let text: String
     let style: Style
 
-    var body: some View {
-        Text(text.uppercased())
-            .font(.caption2.weight(.bold))
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(backgroundColor, in: Capsule())
-            .foregroundStyle(.white)
+    private var cornerRadius: CGFloat { 8 }
+
+    /// Couleur du texte et du contour — .emphasis pour un numéro
+    /// d'épisode ordinaire, l'accent (rose) pour "Premiere".
+    private var tintColor: Color {
+        switch style {
+        case .episode: Color.emphasis
+        case .premiere: Color.accentColor
+        }
     }
 
-    private var backgroundColor: Color {
-        switch style {
-        case .episode: .green
-        case .premiere: .pink
-        }
+    var body: some View {
+        Text(text.uppercased())
+            .font(.caption2.weight(.semibold))
+            .tracking(0.4)
+            .foregroundStyle(tintColor)
+            // Largeur minimale : "S04E01", "S04E02"... ont le même nombre
+            // de caractères mais un rendu à chasse variable (ex. "1" plus
+            // étroit que "8") peut les décaler de 1-2pt d'une ligne à
+            // l'autre quand elles sont empilées verticalement, ce qui se
+            // remarque bien plus que dans l'ancien flow horizontal. minWidth
+            // plutôt que width : certaines séries dépassent 99 épisodes
+            // dans une saison (ex. animes à numérotation continue), et le
+            // tag doit pouvoir s'élargir sans se faire couper dans ce cas.
+            // Ne s'applique qu'au style .episode : "Premiere" n'a pas besoin
+            // de s'aligner sur les numéros d'épisode.
+            .frame(minWidth: style == .episode ? 52 : 0)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: cornerRadius))
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .strokeBorder(tintColor.opacity(0.5), lineWidth: 1)
+            }
     }
 }
 
-/// Layout simple qui enchaîne ses enfants horizontalement et retourne à la
-/// ligne quand ça déborde — nécessaire pour les tags d'épisode, dont le
-/// nombre varie (1 à N par sortie groupée).
-private struct FlowLayout: Layout {
-    var spacing: CGFloat = 6
+/// Résumé du dernier chargement de l'horaire — temps par étape et d'où
+/// viennent les données (cache local / Firestore partagé / API fraîche).
+/// Voir ScheduleLoadMetrics ; accessible via le bouton "i" de ScheduleView.
+private struct ScheduleDiagnosticsView: View {
+    let metrics: ScheduleLoadMetrics
 
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let maxWidth = proposal.width ?? .infinity
-        var rowWidth: CGFloat = 0
-        var rowHeight: CGFloat = 0
-        var totalWidth: CGFloat = 0
-        var totalHeight: CGFloat = 0
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Last load")
+                .font(.headline)
 
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if rowWidth > 0, rowWidth + spacing + size.width > maxWidth {
-                totalHeight += rowHeight + spacing
-                totalWidth = max(totalWidth, rowWidth)
-                rowWidth = 0
-                rowHeight = 0
+            row(
+                label: "Shows",
+                duration: metrics.showsDuration,
+                tiers: metrics.showsByTier
+            )
+            row(
+                label: "Episodes",
+                duration: metrics.episodesDuration,
+                tiers: metrics.episodesByTier
+            )
+
+            Divider()
+
+            HStack {
+                Text("Total")
+                    .fontWeight(.semibold)
+                Spacer()
+                Text(metrics.totalDuration.diagnosticDescription)
+                    .fontWeight(.semibold)
             }
-            rowWidth += (rowWidth > 0 ? spacing : 0) + size.width
-            rowHeight = max(rowHeight, size.height)
         }
-        totalHeight += rowHeight
-        totalWidth = max(totalWidth, rowWidth)
-
-        return CGSize(width: totalWidth, height: totalHeight)
+        .padding()
+        .frame(minWidth: 260)
+        .presentationCompactAdaptation(.popover)
     }
 
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        var x = bounds.minX
-        var y = bounds.minY
-        var rowHeight: CGFloat = 0
-
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if x > bounds.minX, x + size.width > bounds.maxX {
-                x = bounds.minX
-                y += rowHeight + spacing
-                rowHeight = 0
+    private func row(label: LocalizedStringKey, duration: Duration, tiers: ScheduleLoadMetrics.TierBreakdown) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(label)
+                Spacer()
+                Text(duration.diagnosticDescription)
+                    .foregroundStyle(.secondary)
             }
-            subview.place(at: CGPoint(x: x, y: y), proposal: .unspecified)
-            x += size.width + spacing
-            rowHeight = max(rowHeight, size.height)
+            if tiers.total > 0 {
+                Text("\(tiers.local) local · \(tiers.shared) shared · \(tiers.remote) fresh")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 }

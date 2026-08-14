@@ -15,8 +15,16 @@ struct SettingsView: View {
     @AppStorage(AppSettings.Keys.watchProviderRegion)
     private var watchProviderRegion: String = WatchProviderRegion.canada.rawValue
 
+    @State private var didClearCache = false
+
     var body: some View {
         Form {
+            if let user = authViewModel.currentUser {
+                Section {
+                    Text(user.displayName ?? user.email)
+                }
+            }
+
             Section("Appearance") {
                 Picker("Appearance", selection: $appearance) {
                     ForEach(AppAppearance.allCases) { option in
@@ -63,13 +71,50 @@ struct SettingsView: View {
                 }
             }
 
+            // TEMPORAIRE — retirer cette section une fois les styles choisis
+            // pour EpisodeTag et FollowIcon (voir TagStyleLabView).
+            Section {
+                NavigationLink("Style Lab") {
+                    TagStyleLabView()
+                }
+            } footer: {
+                Text("Temporary — testing different looks for episode tags and the follow icon.")
+            }
+
             Section {
                 Button("Sign Out", role: .destructive) {
                     authViewModel.signOut()
                 }
             }
+
+            // Palier 1 (disque local) uniquement — le cache Firestore partagé
+            // reste intact, pour ne pas effacer les données des autres
+            // utilisateurs. Utile pour retester le chemin de chargement à froid
+            // (voir FollowedShowsStore.prefetchContent) sans désinstaller l'app.
+            Section {
+                Button("Clear local cache") {
+                    clearLocalCache()
+                }
+            } footer: {
+                if didClearCache {
+                    Text("Local cache cleared.")
+                } else {
+                    Text("Forces shows and episodes to reload from scratch on next view. Useful for testing.")
+                }
+            }
         }
         .navigationTitle("Settings")
+    }
+
+    private func clearLocalCache() {
+        didClearCache = false
+        Task {
+            await LocalShowCache.shared.clear()
+            await LocalEpisodeCache.shared.clear()
+            await LocalWatchAvailabilityCache.shared.clear()
+            await ImageCache.shared.clear()
+            didClearCache = true
+        }
     }
 }
 

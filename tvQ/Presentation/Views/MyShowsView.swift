@@ -22,7 +22,7 @@ struct MyShowsView: View {
                             showSection(title: "Running", shows: viewModel.currentShows)
                             showSection(title: "Season ended", shows: viewModel.seasonEndedShows)
                             showSection(title: "Coming soon", shows: viewModel.upcomingShows)
-                            showSection(title: "Ended", shows: viewModel.endedShows)
+                            showSection(title: "Ended", shows: viewModel.endedShows, showsUnfollowButton: true)
                         }
                         .padding(.vertical, 20)
                     }
@@ -40,7 +40,11 @@ struct MyShowsView: View {
     }
 
     @ViewBuilder
-    private func showSection(title: LocalizedStringKey, shows: [Show]) -> some View {
+    private func showSection(
+        title: LocalizedStringKey,
+        shows: [Show],
+        showsUnfollowButton: Bool = false
+    ) -> some View {
         if !shows.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
                 Text(title)
@@ -52,7 +56,11 @@ struct MyShowsView: View {
                         NavigationLink(value: show) {
                             ShowCardView(
                                 title: show.title,
-                                posterURL: show.posterURL
+                                posterURL: show.posterURL,
+                                isFollowed: showsUnfollowButton ? true : nil,
+                                onToggleFollow: showsUnfollowButton
+                                    ? { followedShowsStore.toggle(showID: show.id) }
+                                    : nil
                             )
                         }
                         .buttonStyle(.plain)

@@ -54,18 +54,22 @@ final class RemoteShowRepository: ShowRepository {
     }
 
     func getShow(tmdbID: Int) async throws -> Show {
+        try await getShowWithTier(tmdbID: tmdbID).show
+    }
+
+    func getShowWithTier(tmdbID: Int) async throws -> (show: Show, tier: CacheTier) {
         // Même raisonnement que RemoteScheduleRepository.getEpisodes : la clé
         // inclut la langue effective, parce que le cache Firestore est partagé
         // entre utilisateurs et le contenu (titre, résumé) est localisé.
         let cacheKey = "\(tmdbID)_\(AppSettings.cacheLanguageKey)"
 
         if let cached = await localCache.show(cacheKey: cacheKey) {
-            return cached
+            return (cached, .local)
         }
 
         if let cached = try? await sharedCache.show(cacheKey: cacheKey) {
             await localCache.store(cacheKey: cacheKey, show: cached)
-            return cached
+            return (cached, .shared)
         }
 
         let show = try await fetchShow(tmdbID: tmdbID)
@@ -75,7 +79,7 @@ final class RemoteShowRepository: ShowRepository {
         try? await sharedCache.store(cacheKey: cacheKey, show: show)
         await localCache.store(cacheKey: cacheKey, show: show)
 
-        return show
+        return (show, .remote)
     }
 
     /// Appel direct aux APIs externes, sans passer par aucun des deux caches —

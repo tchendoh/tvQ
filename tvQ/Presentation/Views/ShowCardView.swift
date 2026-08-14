@@ -47,13 +47,19 @@ struct ShowCardView: View {
     }
 }
 
-/// Reprise fidèle de FollowButton.swift dans tvQ-legacy (github.com/tchendoh/tvQ-legacy) :
-/// carré arrondi noir, viseur+ rose pour "pas suivie", crochet vert pour "suivie",
-/// avec l'animation bounce + morph au toggle. Ici sans état interne — isFollowed
-/// vient de FollowedShowsStore, la seule source de vérité.
+/// Look "glass" (choisi le 2026-08-09 après comparaison dans
+/// Debug/TagStyleLabView.swift, section "Follow Icon") : fond
+/// `.ultraThinMaterial` circulaire, contour teinté selon l'état — remplace
+/// l'ancien carré noir plein. Icône + couleur toujours dérivées de FollowIcon,
+/// pour rester la seule source de vérité sur cette apparence ; ici sans état
+/// interne — isFollowed vient de FollowedShowsStore.
 private struct FollowBadge: View {
     let isFollowed: Bool
     let action: (() -> Void)?
+
+    private var tintColor: Color {
+        FollowIcon.tintColor(isFollowing: isFollowed)
+    }
 
     var body: some View {
         Group {
@@ -68,15 +74,22 @@ private struct FollowBadge: View {
                 icon
             }
         }
-        .frame(width: 30, height: 30)
-        .background(Color.black.opacity(0.7))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .shadow(color: .black.opacity(0.3), radius: 3, x: 0, y: 1)
+        .frame(width: 34, height: 34)
+        .background(.ultraThinMaterial, in: Circle())
+        .overlay {
+            Circle().strokeBorder(tintColor.opacity(0.5), lineWidth: 1)
+        }
+        // Le badge flotte sur des affiches de contenu très variable
+        // (claires, sombres, saturées) — on force le mode sombre pour que le
+        // matériau et Color.emphasis restent lisibles peu importe l'image en
+        // dessous, plutôt que de dépendre du thème système de l'utilisateur.
+        .environment(\.colorScheme, .dark)
+        .shadow(color: .black.opacity(0.25), radius: 3, x: 0, y: 1)
     }
 
     private var icon: some View {
         FollowIcon(isFollowing: isFollowed)
-            .font(.system(size: 20, weight: .bold))
+            .font(.system(size: 18, weight: .bold))
     }
 }
 

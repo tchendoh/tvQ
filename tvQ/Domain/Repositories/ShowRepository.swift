@@ -18,4 +18,18 @@ protocol ShowRepository {
     func trendingShows() async throws -> [ShowSummary]
     func onTheAirShows() async throws -> [ShowSummary]
     func airingTodayShows() async throws -> [ShowSummary]
+
+    /// Même résolution que getShow(tmdbID:), mais indique en plus d'où vient
+    /// le résultat (cache local / Firestore partagé / API fraîche) — utilisé
+    /// uniquement pour le diagnostic de performance de l'écran Schedule
+    /// (voir ScheduleLoadMetrics). Défaut à `.remote` pour toute implémentation
+    /// qui ne se donne pas la peine de le tracker (pas d'info à perdre : ce
+    /// n'est qu'un affichage de diagnostic, jamais utilisé pour une décision).
+    func getShowWithTier(tmdbID: Int) async throws -> (show: Show, tier: CacheTier)
+}
+
+extension ShowRepository {
+    func getShowWithTier(tmdbID: Int) async throws -> (show: Show, tier: CacheTier) {
+        (try await getShow(tmdbID: tmdbID), .remote)
+    }
 }

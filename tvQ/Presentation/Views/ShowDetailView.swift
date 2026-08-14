@@ -45,6 +45,11 @@ struct ShowDetailView: View {
                             FollowIcon(isFollowing: isFollowing)
                         }
                     }
+                    // Le bouton de toolbar en verre (iOS 26) teinte son glyphe
+                    // lui-même et ignore le foregroundStyle interne de
+                    // FollowIcon — il faut teinter le Button directement pour
+                    // que la couleur voulue s'applique réellement ici.
+                    .tint(FollowIcon.tintColor(isFollowing: isFollowing))
                 }
             }
         }

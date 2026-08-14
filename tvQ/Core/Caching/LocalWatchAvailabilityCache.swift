@@ -57,6 +57,13 @@ actor LocalWatchAvailabilityCache {
         entries[cacheKey] = WatchAvailabilityCacheEntry(availability: availability, syncedAt: syncedAt)
         persist()
     }
+
+    /// Vide ce palier — voir LocalShowCache.clear() pour le raisonnement.
+    func clear() {
+        isLoaded = true
+        entries = [:]
+        try? FileManager.default.removeItem(at: fileURL)
+    }
 }
 
 private struct WatchAvailabilityCacheEntry: Codable {

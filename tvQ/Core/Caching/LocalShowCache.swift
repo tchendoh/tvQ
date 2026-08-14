@@ -56,6 +56,15 @@ actor LocalShowCache {
         entries[cacheKey] = ShowCacheEntry(show: show, syncedAt: syncedAt)
         persist()
     }
+
+    /// Vide ce palier — utilisé par le bouton "Clear local cache" de Settings,
+    /// pour tester le chemin de chargement à froid (getShow/getEpisodes sans
+    /// rien en cache disque) sans devoir désinstaller l'app.
+    func clear() {
+        isLoaded = true
+        entries = [:]
+        try? FileManager.default.removeItem(at: fileURL)
+    }
 }
 
 private struct ShowCacheEntry: Codable {

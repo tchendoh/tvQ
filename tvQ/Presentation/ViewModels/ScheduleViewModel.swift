@@ -20,6 +20,11 @@ final class ScheduleViewModel {
     private(set) var isLoading = false
     private(set) var errorMessage: String?
 
+    /// Chronométrage du dernier chargement réussi — affiché dans ScheduleView
+    /// à des fins de diagnostic (voir ScheduleLoadMetrics). nil avant le
+    /// premier chargement, ou si le dernier a échoué en cours de route.
+    private(set) var lastLoadMetrics: ScheduleLoadMetrics?
+
     private let showRepository: ShowRepository
     private let scheduleRepository: ScheduleRepository
     private var loadTask: Task<Void, Never>?
@@ -48,37 +53,66 @@ final class ScheduleViewModel {
             errorMessage = nil
             defer { isLoading = false }
 
+            let overallStart = ContinuousClock.now
+
             do {
                 // Résolution en parallèle plutôt que séquentielle — voir
                 // MyShowsViewModel.load pour le même changement et son
                 // raisonnement (le vrai goulot n'était pas l'horaire lui-même,
                 // déjà mis en cache, mais cette résolution de Show en boucle).
+                let showsStart = ContinuousClock.now
                 let tmdbIDs = showIDs.compactMap { Int($0) }
-                let shows = try await withThrowingTaskGroup(of: Show.self) { group in
+                let showResults = try await withThrowingTaskGroup(of: (show: Show, tier: CacheTier).self) { group in
                     for tmdbID in tmdbIDs {
-                        group.addTask { try await self.showRepository.getShow(tmdbID: tmdbID) }
+                        group.addTask { try await self.showRepository.getShowWithTier(tmdbID: tmdbID) }
                     }
-                    var resolved: [Show] = []
-                    for try await show in group {
-                        resolved.append(show)
+                    var resolved: [(show: Show, tier: CacheTier)] = []
+                    for try await result in group {
+                        resolved.append(result)
                     }
                     return resolved
                 }
+                let showsDuration = ContinuousClock.now - showsStart
                 if Task.isCancelled { return }
 
+                var showsByTier = ScheduleLoadMetrics.TierBreakdown()
+                for result in showResults {
+                    showsByTier.record(result.tier)
+                }
+                let shows = showResults.map(\.show)
+
                 let showsByID = Dictionary(uniqueKeysWithValues: shows.map { ($0.id, $0) })
-                let episodes = try await scheduleRepository.getUpcomingEpisodes(for: shows)
+                let episodesStart = ContinuousClock.now
+                let (episodes, episodesByTier) = try await scheduleRepository.getUpcomingEpisodesWithTiers(for: shows)
+                let episodesDuration = ContinuousClock.now - episodesStart
                 if Task.isCancelled { return }
 
                 items = episodes.compactMap { episode in
                     guard let show = showsByID[episode.showID] else { return nil }
                     return ScheduleItem(episode: episode, show: show)
                 }
+
+                lastLoadMetrics = ScheduleLoadMetrics(
+                    showsDuration: showsDuration,
+                    episodesDuration: episodesDuration,
+                    totalDuration: ContinuousClock.now - overallStart,
+                    showsByTier: showsByTier,
+                    episodesByTier: episodesByTier
+                )
             } catch {
                 if !Task.isCancelled {
                     errorMessage = String(localized: "Couldn't load your upcoming episodes. Check your connection and try again.")
                 }
             }
         }
+    }
+
+    /// Pour .refreshable (voir ScheduleView) : `load` lance une Task et retourne
+    /// aussitôt (utilisé depuis .task(id:), qui ne peut pas attendre), donc on a
+    /// besoin d'une variante awaitable qui bloque jusqu'à la fin du chargement —
+    /// sans ça le rafraîchissement disparaîtrait avant même que la requête parte.
+    func refresh(showIDs: Set<String>) async {
+        load(showIDs: showIDs)
+        await loadTask?.value
     }
 }

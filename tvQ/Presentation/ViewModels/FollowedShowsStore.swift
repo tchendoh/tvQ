@@ -11,10 +11,18 @@ final class FollowedShowsStore {
     private(set) var errorMessage: String?
 
     private let repository: UserShowsRepository
+    private let showRepository: ShowRepository
+    private let scheduleRepository: ScheduleRepository
     private var userID: String?
 
-    init(repository: UserShowsRepository = FirestoreUserShowsRepository()) {
+    init(
+        repository: UserShowsRepository = FirestoreUserShowsRepository(),
+        showRepository: ShowRepository = RemoteShowRepository(),
+        scheduleRepository: ScheduleRepository = RemoteScheduleRepository()
+    ) {
         self.repository = repository
+        self.showRepository = showRepository
+        self.scheduleRepository = scheduleRepository
     }
 
     func isFollowing(_ showID: String) -> Bool {
@@ -61,6 +69,7 @@ final class FollowedShowsStore {
                     try await repository.unfollow(showID: showID, userID: userID)
                 } else {
                     try await repository.follow(showID: showID, userID: userID)
+                    prefetchContent(showID: showID)
                 }
             } catch {
                 if wasFollowing {
@@ -70,6 +79,20 @@ final class FollowedShowsStore {
                 }
                 errorMessage = String(localized: "Couldn't update follow status. Try again.")
             }
+        }
+    }
+
+    /// Réchauffe les caches (disque + Firestore partagé) dès le follow, plutôt que
+    /// d'attendre l'ouverture de Schedule/My Shows/ShowDetailView — c'est ce qui
+    /// rendait le premier passage sur Schedule si long (getShow + getEpisodes,
+    /// un appel TMDB par saison, pour chaque série sans rien en cache). Ici, une
+    /// seule série à la fois et en tâche de fond : best-effort, on ignore les
+    /// erreurs silencieusement, le vrai chargement se refera normalement si ça échoue.
+    private func prefetchContent(showID: String) {
+        guard let tmdbID = Int(showID) else { return }
+        Task {
+            guard let show = try? await showRepository.getShow(tmdbID: tmdbID) else { return }
+            _ = try? await scheduleRepository.getEpisodes(for: show)
         }
     }
 }
