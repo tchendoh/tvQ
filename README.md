@@ -63,7 +63,6 @@ Le détail complet (raisonnement, dates, décisions techniques) est dans `BACKLO
 - **Cache à 3 paliers (local disque → Firestore partagé → API)** pour l'horaire et les fiches série : l'app affiche quasi instantanément du contenu déjà vu par n'importe quel utilisateur, plutôt que de refaire un appel TMDB à chaque ouverture. Le TTL est désactivé pour les séries terminées (`.ended`), puisque leurs épisodes ne changeront plus jamais.
 - **Résolution en parallèle (`TaskGroup`)** plutôt que séquentielle pour charger les séries suivies — un des premiers goulots d'étranglement rencontrés (plusieurs secondes à l'ouverture de l'app) venait d'une boucle séquentielle sur chaque série suivie.
 - **Fusion des doublons de catalogue JustWatch** ("Où regarder") : JustWatch liste parfois la même offre sous deux noms légèrement différents (Disney Plus/Disney+, Netflix avec pub) — une table d'alias les fusionne sans fusionner des offres réellement distinctes (ex. achat vs abonnement Apple TV).
-- **Firebase + TMDB/JustWatch ne sont pas monétisables sans accord commercial séparé** — un des arbitrages produit rencontrés en cours de route (voir `BACKLOG.md`) : l'app reste gratuite pour cette raison, pas par choix initial.
 
 Le raisonnement complet (avec dates et alternatives considérées) est documenté au fil de l'eau dans `BACKLOG.md`.
 
