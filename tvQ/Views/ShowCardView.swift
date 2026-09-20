@@ -53,7 +53,7 @@ struct ShowCardView: View {
 /// l'ancien carré noir plein. Icône + couleur toujours dérivées de FollowIcon,
 /// pour rester la seule source de vérité sur cette apparence ; ici sans état
 /// interne — isFollowed vient de FollowedShowsStore.
-private struct FollowBadge: View {
+struct FollowBadge: View {
     let isFollowed: Bool
     let action: (() -> Void)?
 
@@ -70,6 +70,7 @@ private struct FollowBadge: View {
                     icon
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(isFollowed ? Text("Following") : Text("Follow"))
             } else {
                 icon
             }

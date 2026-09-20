@@ -26,33 +26,6 @@ struct ShowDetailView: View {
         .task { viewModel.load() }
         .navigationTitle(viewModel.show?.title ?? "")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            // Suivre/ne plus suivre directement depuis la fiche — jusqu'ici
-            // seulement possible via le badge sur les grilles (Search, My Shows).
-            if let show = viewModel.show {
-                ToolbarItem(placement: .topBarTrailing) {
-                    let isFollowing = followedShowsStore.isFollowing(show.id)
-                    Button {
-                        withAnimation(.spring) {
-                            followedShowsStore.toggle(showID: show.id)
-                        }
-                    } label: {
-                        // FollowIcon centralise icône + couleur, partagée avec
-                        // FollowBadge dans ShowCardView (Search, My Shows).
-                        Label {
-                            Text(isFollowing ? "Following" : "Follow")
-                        } icon: {
-                            FollowIcon(isFollowing: isFollowing)
-                        }
-                    }
-                    // Le bouton de toolbar en verre (iOS 26) teinte son glyphe
-                    // lui-même et ignore le foregroundStyle interne de
-                    // FollowIcon — il faut teinter le Button directement pour
-                    // que la couleur voulue s'applique réellement ici.
-                    .tint(FollowIcon.tintColor(isFollowing: isFollowing))
-                }
-            }
-        }
     }
 
     @ViewBuilder
@@ -179,6 +152,17 @@ struct ShowDetailView: View {
         }
         .frame(height: 200)
         .clipped()
+        // Même badge que sur les cartes (ShowCardView), dans le coin de l'image
+        // d'entête. Hors de la barre d'outils : les éléments de barre sont
+        // hébergés par UIKit et reconstruits à chaque changement d'état, ce qui
+        // empêchait l'animation du symbole (transition + rebond) de se jouer.
+        .overlay(alignment: .topTrailing) {
+            FollowBadge(
+                isFollowed: followedShowsStore.isFollowing(show.id),
+                action: { followedShowsStore.toggle(showID: show.id) }
+            )
+            .padding(12)
+        }
     }
 
     private var seasonsSection: some View {

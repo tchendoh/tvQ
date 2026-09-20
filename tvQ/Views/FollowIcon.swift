@@ -25,7 +25,7 @@ struct FollowIcon: View {
         Image(systemName: isFollowing ? "checkmark.circle" : "plus.viewfinder")
             // Transition "magic" entre les deux symboles (plus voyante qu'un simple
             // fondu), avec repli sur un downUp là où magic n'est pas applicable.
-            .contentTransition(.symbolEffect(.replace.magic(fallback: .downUp), options: .speed(1.2)))
+            .contentTransition(.symbolEffect(.replace.magic(fallback: .downUp)))
             .symbolEffect(.bounce, value: isFollowing)
             // Une seule couleur par état désormais (plus besoin de bicolore
             // comme à l'époque du vert/rose) — foregroundStyle simple plutôt
