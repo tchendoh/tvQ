@@ -1,8 +1,10 @@
 import Foundation
 
 /// Entité métier représentant un épisode.
-/// `airDate` provient de TMDB (date seule, toujours disponible en fallback).
-/// `airStamp` provient de TVmaze quand disponible (date + heure précise, timezone incluse).
+/// `airDate` est la meilleure date de diffusion connue, choisie une fois pour
+/// toutes par EpisodeMapper : le timestamp précis de TVmaze (date + heure,
+/// timezone incluse) quand il existe, sinon la date seule de TMDB.
+/// `hasPreciseTime` indique lequel des deux a été retenu.
 nonisolated struct Episode: Identifiable, Equatable, Hashable, Codable {
     let id: String
     let showID: String
@@ -12,14 +14,10 @@ nonisolated struct Episode: Identifiable, Equatable, Hashable, Codable {
     let overview: String
     let stillImageURL: URL?
 
-    /// Date de diffusion, sans heure garantie. Toujours présente si l'épisode est daté.
+    /// nil si l'épisode n'est pas encore daté.
     let airDate: Date?
 
-    /// Timestamp précis de diffusion (TVmaze), nil si non résolu ou pas encore connu.
-    let airStamp: Date?
-
-    /// Meilleure estimation disponible pour l'affichage : airStamp si présent, sinon airDate.
-    var bestAvailableDate: Date? {
-        airStamp ?? airDate
-    }
+    /// true si `airDate` porte une heure fiable (source TVmaze), false si c'est
+    /// une date seule (TMDB) dont l'heure n'a aucune signification.
+    let hasPreciseTime: Bool
 }
