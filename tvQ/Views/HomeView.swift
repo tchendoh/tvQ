@@ -3,9 +3,7 @@ import SwiftUI
 /// Page d'arrivée de l'app — pensée pour la découverte plutôt que le suivi
 /// personnel (voir MyShowsView et ScheduleView pour ça). Trois listes toutes
 /// faites de TMDB, clairement étiquetées comme telles : ce ne sont pas des
-/// métriques propres à tvQ (voir BACKLOG.md pour la discussion sur une future
-/// section "Tendances" internes, mise de côté pour l'instant faute d'assez
-/// d'utilisateurs pour que ce soit pertinent).
+/// métriques propres à tvQ.
 struct HomeView: View {
     @State private var viewModel = HomeViewModel()
     @Environment(FollowedShowsStore.self) private var followedShowsStore

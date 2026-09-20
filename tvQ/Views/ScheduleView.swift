@@ -68,8 +68,7 @@ struct ScheduleView: View {
                         .onAppear {
                             scrollToToday(using: proxy)
                         }
-                        // Le cache (12h local, 24h Firestore) peut retarder la
-                        // prise en compte d'un nouvel épisode ou d'un cache vidé
+                        // Le cache peut retarder la prise en compte d'un nouvel épisode ou d'un cache vidé
                         // manuellement (voir Settings) — ce geste permet de
                         // forcer une revérification sans redémarrer l'app.
                         .refreshable {

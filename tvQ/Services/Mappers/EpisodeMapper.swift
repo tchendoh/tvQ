@@ -1,7 +1,7 @@
 import Foundation
 
 /// Combine un DTO TMDB (date seule, toujours disponible) et un DTO TVmaze optionnel
-/// (timestamp précis) pour produire l'entité Domain `Episode`.
+/// (timestamp précis) pour produire le modèle `Episode`.
 enum EpisodeMapper {
     private static let dateOnlyFormatter: DateFormatter = {
         let formatter = DateFormatter()

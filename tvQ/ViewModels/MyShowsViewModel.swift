@@ -92,8 +92,8 @@ final class MyShowsViewModel {
                 // Résolution en parallèle plutôt que séquentielle — avec une
                 // centaine de séries suivies, un aller-retour à la fois faisait
                 // traîner l'écran plusieurs secondes. getShow(tmdbID:) passe par
-                // le cache à 3 paliers de ShowRepository, donc la plupart
-                // de ces appels ne touchent même pas le réseau.
+                // les caches de ShowRepository, donc la plupart de ces appels
+                // ne touchent même pas le réseau.
                 let tmdbIDs = missingIDs.compactMap { Int($0) }
                 let resolved = try await withThrowingTaskGroup(of: Show.self) { group in
                     for tmdbID in tmdbIDs {

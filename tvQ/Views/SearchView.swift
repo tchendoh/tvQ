@@ -63,7 +63,7 @@ struct SearchView: View {
     }
 
     // minimum 150 force 2 colonnes sur iPhone (3 ne rentrent plus) — plus d'air,
-    // affiches plus grandes et plus lisibles, voir discussion sur l'esthétique.
+    // affiches plus grandes et plus lisibles.
     private var gridColumns: [GridItem] {
         [GridItem(.adaptive(minimum: 150, maximum: 200), spacing: 24)]
     }

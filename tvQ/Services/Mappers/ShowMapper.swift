@@ -1,7 +1,7 @@
 import Foundation
 
 /// Combine un DTO TMDB (métadonnées) et un DTO TVmaze optionnel (statut de diffusion)
-/// pour produire l'entité Domain `Show`. C'est le seul endroit de l'app qui connaît
+/// pour produire le modèle `Show`. C'est le seul endroit de l'app qui connaît
 /// à la fois la forme de TMDB et celle de TVmaze.
 enum ShowMapper {
     static let imageBaseURL = URL(string: "https://image.tmdb.org/t/p/w500")!

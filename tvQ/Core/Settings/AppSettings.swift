@@ -91,16 +91,16 @@ enum AppSettings {
         UserDefaults.standard.string(forKey: Keys.watchProviderRegion) ?? WatchProviderRegion.canada.rawValue
     }
 
-    /// Portée volontairement limitée à ShowDetailView + épisodes (pas la recherche) —
-    /// voir discussion : dans une grille de résultats mélangeant plusieurs langues
-    /// d'origine, ce serait un appel réseau par résultat affiché.
+    /// Portée volontairement limitée à ShowDetailView + épisodes (pas la recherche) :
+    /// dans une grille de résultats mélangeant plusieurs langues d'origine, ce
+    /// serait un appel réseau par résultat affiché.
     static var useOriginalLanguage: Bool {
         UserDefaults.standard.bool(forKey: Keys.useOriginalLanguage)
     }
 
     /// Composant de clé de cache reflétant la langue effective des contenus
-    /// TMDB récupérés (voir LocalEpisodeCache, FirestoreEpisodeCacheService,
-    /// LocalShowCache, FirestoreShowCacheService). Nécessaire parce que le
+    /// TMDB récupérés (voir EpisodeStore, ShowStore et les caches Firestore
+    /// partagés). Nécessaire parce que le
     /// cache partagé Firestore est commun à tous les utilisateurs : sans ce
     /// composant, deux utilisateurs avec des préférences de langue différentes
     /// s'écraseraient mutuellement le cache avec la mauvaise langue.

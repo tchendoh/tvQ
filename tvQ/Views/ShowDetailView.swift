@@ -134,7 +134,7 @@ struct ShowDetailView: View {
     }
 
     // Texte seulement — pas les logos des diffuseurs/JustWatch, jugés pas assez
-    // propres visuellement pour l'app (voir discussion, backlog "Où regarder").
+    // propres visuellement pour l'app.
     // Le lien JustWatch en fin de section reste discret (petite police, gris),
     // pas un deep-link vers l'app d'un diffuseur — TMDB n'en fournit pas.
     //

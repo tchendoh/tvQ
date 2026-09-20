@@ -2,7 +2,7 @@ import Foundation
 
 /// Entité métier représentant une série suivie ou consultable.
 /// Agrège les données pertinentes provenant de TMDB (métadonnées, images)
-/// et de TVmaze (horaire), sans exposer la provenance à l'extérieur de la couche Data.
+/// et de TVmaze (horaire), sans exposer la provenance : ShowMapper fait la fusion.
 nonisolated struct Show: Identifiable, Equatable, Hashable, Codable {
     /// Identifiant TMDB — clé primaire de l'entité. Garanti présent pour toute
     /// série connue de TMDB, contrairement à l'IMDB ID qui est parfois absent.

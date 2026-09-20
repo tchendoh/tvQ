@@ -1,8 +1,8 @@
 import Foundation
 
-/// Service réseau brut pour TMDB : ne retourne que des DTOs, jamais d'entités Domain.
+/// Service réseau brut pour TMDB : ne retourne que des DTOs, jamais de modèles.
 /// L'orchestration (combiner avec TVmaze, mapper vers Show/Episode) se fait dans
-/// l'implémentation concrète de ShowRepository / ScheduleRepository, pas ici.
+/// ShowRepository / ScheduleRepository, pas ici.
 struct TMDBService {
     private let networkService: NetworkService
     private let baseURL = URL(string: "https://api.themoviedb.org/3")!
@@ -56,8 +56,7 @@ struct TMDBService {
     }
 
     /// Trois listes toutes faites de TMDB, pour la page Accueil (découverte) —
-    /// à ne pas confondre avec une métrique propre à tvQ (voir discussion sur
-    /// Tendances-interne, mise de côté pour l'instant faute d'utilisateurs).
+    /// à ne pas confondre avec une métrique propre à tvQ.
 
     /// "week" plutôt que "day" : plus stable d'une ouverture d'app à l'autre.
     func fetchTrendingTV(timeWindow: String = "week") async throws -> [TMDBSearchResultDTO] {

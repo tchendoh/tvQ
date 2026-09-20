@@ -15,9 +15,8 @@ enum CacheTier {
 /// (cache local / Firestore partagé / API fraîche TMDB-TVmaze).
 ///
 /// Sert uniquement à l'affichage diagnostic dans ScheduleView — n'affecte pas
-/// le chargement lui-même. Voir BACKLOG.md (2026-08-09) pour le contexte :
-/// le chargement de l'horaire peut être lent, ceci permet de voir en un
-/// coup d'œil où passe le temps sans sortir Instruments.
+/// le chargement lui-même. Permet de voir en un coup d'œil où passe le temps
+/// sans sortir Instruments.
 struct ScheduleLoadMetrics: Equatable {
     struct TierBreakdown: Equatable {
         var local = 0

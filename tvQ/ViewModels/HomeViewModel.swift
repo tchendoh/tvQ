@@ -1,9 +1,8 @@
 import Foundation
 import Observation
 
-/// Charge les listes de découverte TMDB pour la page Accueil — pas de métrique
-/// propre à tvQ ici (voir discussion sur Tendances-interne, mise de côté tant
-/// qu'il n'y a pas assez d'utilisateurs pour que ça ait du sens).
+/// Charge les listes de découverte TMDB pour la page Accueil. Ce sont des listes
+/// de TMDB, pas des métriques propres à tvQ.
 @Observable
 final class HomeViewModel {
     private(set) var trending: [ShowSummary] = []

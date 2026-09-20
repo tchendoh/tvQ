@@ -1,8 +1,8 @@
 import Foundation
 
 /// Extrait la région choisie par l'utilisateur (AppSettings.watchProviderRegion)
-/// de la réponse TMDB (toutes régions confondues) et l'aplatit en une entité
-/// Domain simple, texte seulement.
+/// de la réponse TMDB (toutes régions confondues) et l'aplatit en un modèle
+/// `WatchAvailability` simple, texte seulement.
 enum WatchAvailabilityMapper {
     static func map(dto: TMDBWatchProvidersDTO, region: String) -> WatchAvailability {
         let regionDisplayName = WatchProviderRegion(rawValue: region)?.displayNameString ?? region
