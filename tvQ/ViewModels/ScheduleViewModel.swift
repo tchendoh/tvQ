@@ -107,6 +107,18 @@ final class ScheduleViewModel {
         }
     }
 
+    /// À la déconnexion (voir RootView) : le view model vit dans RootView, donc
+    /// survit à la déconnexion. Annule le chargement en cours et vide l'état pour
+    /// qu'un autre compte ne voie pas l'horaire du précédent.
+    func clear() {
+        loadTask?.cancel()
+        loadTask = nil
+        items = []
+        errorMessage = nil
+        lastLoadMetrics = nil
+        isLoading = false
+    }
+
     /// Pour .refreshable (voir ScheduleView) : `load` lance une Task et retourne
     /// aussitôt (utilisé depuis .task(id:), qui ne peut pas attendre), donc on a
     /// besoin d'une variante awaitable qui bloque jusqu'à la fin du chargement —

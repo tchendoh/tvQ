@@ -5,7 +5,7 @@ import SwiftUI
 /// suivies confondues, groupés par jour.
 struct ScheduleView: View {
     @Environment(FollowedShowsStore.self) private var followedShowsStore
-    @State private var viewModel = ScheduleViewModel()
+    @Environment(ScheduleViewModel.self) private var viewModel
     @State private var showingDiagnostics = false
 
     var body: some View {
@@ -63,10 +63,10 @@ struct ScheduleView: View {
                         // scrolle vers le haut seulement s'il veut revoir les
                         // épisodes déjà diffusés.
                         .onChange(of: viewModel.items) {
-                            scrollToToday(using: proxy)
+                            scrollToTodayAfterLayout(using: proxy)
                         }
                         .onAppear {
-                            scrollToToday(using: proxy)
+                            scrollToTodayAfterLayout(using: proxy)
                         }
                         // Le cache peut retarder la prise en compte d'un nouvel épisode ou d'un cache vidé
                         // manuellement (voir Settings) — ce geste permet de
@@ -114,15 +114,24 @@ struct ScheduleView: View {
             .navigationDestination(for: Show.self) { show in
                 ShowDetailView(tmdbID: show.tmdbID)
             }
-            .task(id: followedShowsStore.followedShowIDs) {
-                viewModel.load(showIDs: followedShowsStore.followedShowIDs)
-            }
         }
     }
 
     private func scrollToToday(using proxy: ScrollViewProxy) {
         let today = Calendar.current.startOfDay(for: Date())
         proxy.scrollTo(today, anchor: .top)
+    }
+
+    /// Pour l'arrivée initiale sur l'écran : dans un LazyVStack, les sections
+    /// au-dessus d'"Aujourd'hui" n'ont pas encore été mesurées au premier passage
+    /// (hauteurs estimées), donc un seul scrollTo atterrit à côté. On le rejoue
+    /// une fois la mise en page stabilisée.
+    private func scrollToTodayAfterLayout(using proxy: ScrollViewProxy) {
+        scrollToToday(using: proxy)
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(250))
+            scrollToToday(using: proxy)
+        }
     }
 
     /// Regroupe les items par jour civil, puis par (série, saison) au sein d'un
@@ -310,6 +319,10 @@ private struct ScheduleRow: View {
                     .foregroundStyle(.secondary)
             }
         }
+        // Sans ça, avec .buttonStyle(.plain), seuls les pixels réellement dessinés
+        // (affiche, textes, tags) captent le tap : le Spacer et les vides restent
+        // inertes. Rectangle() rend toute la ligne cliquable.
+        .contentShape(Rectangle())
         .opacity(shouldDim ? 0.6 : 1)
     }
 }
@@ -425,4 +438,5 @@ private struct ScheduleDiagnosticsView: View {
 #Preview {
     ScheduleView()
         .environment(FollowedShowsStore())
+        .environment(ScheduleViewModel())
 }

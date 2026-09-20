@@ -39,6 +39,9 @@ final class FollowedShowsStore {
 
             do {
                 let ids = try await userShowsService.followedShowIDs(userID: userID)
+                // Déconnexion (ou changement de compte) survenue pendant l'appel :
+                // ne pas repeupler le store avec les séries de l'ancien compte.
+                guard self.userID == userID else { return }
                 followedShowIDs = Set(ids)
             } catch {
                 errorMessage = String(localized: "Couldn't load your followed shows.")
@@ -46,8 +49,12 @@ final class FollowedShowsStore {
         }
     }
 
+    /// À appeler à la déconnexion ou à la suppression de compte (voir RootView) :
+    /// le store vit dans RootView, donc survit à la déconnexion et montrerait
+    /// sinon les séries de l'ancien compte au suivant.
     func clear() {
         followedShowIDs = []
+        errorMessage = nil
         userID = nil
     }
 
