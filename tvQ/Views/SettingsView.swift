@@ -16,6 +16,7 @@ struct SettingsView: View {
     private var watchProviderRegion: String = WatchProviderRegion.canada.rawValue
 
     @State private var didClearCache = false
+    @State private var showingDeleteAccount = false
 
     var body: some View {
         Form {
@@ -87,6 +88,15 @@ struct SettingsView: View {
                 }
             }
 
+            Section {
+                Button("Delete Account", role: .destructive) {
+                    authViewModel.clearDeletionError()
+                    showingDeleteAccount = true
+                }
+            } footer: {
+                Text("Permanently deletes your account and the shows you follow.")
+            }
+
             // Copie locale uniquement — le cache Firestore partagé reste intact,
             // pour ne pas effacer les données des autres utilisateurs. Utile pour
             // retester le chemin de chargement à froid (voir
@@ -104,6 +114,9 @@ struct SettingsView: View {
             }
         }
         .navigationTitle("Settings")
+        .sheet(isPresented: $showingDeleteAccount) {
+            DeleteAccountView()
+        }
     }
 
     private func clearLocalCache() {

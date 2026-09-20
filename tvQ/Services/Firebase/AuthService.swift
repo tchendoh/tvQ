@@ -1,6 +1,10 @@
 import Foundation
 import FirebaseAuth
 
+enum AuthServiceError: Error {
+    case noCurrentUser
+}
+
 /// Accès à Firebase Auth (email/mot de passe et Sign in with Apple).
 /// C'est le seul endroit de l'app qui importe FirebaseAuth — le reste de l'app passe par ce service.
 final class AuthService {
@@ -62,6 +66,64 @@ final class AuthService {
 
     func signOut() throws {
         try Auth.auth().signOut()
+    }
+
+    // MARK: - Suppression de compte
+
+    /// Méthode de connexion du compte courant : détermine comment le
+    /// re-authentifier avant une suppression (opération sensible côté Firebase,
+    /// qui exige une connexion récente).
+    enum SignInMethod {
+        case password
+        case apple
+        case other
+    }
+
+    var signInMethod: SignInMethod {
+        MainActor.assumeIsolated {
+            let providerIDs = Auth.auth().currentUser?.providerData.map(\.providerID) ?? []
+            if providerIDs.contains("apple.com") { return .apple }
+            if providerIDs.contains("password") { return .password }
+            return .other
+        }
+    }
+
+    @MainActor
+    func reauthenticate(password: String) async throws {
+        guard let user = Auth.auth().currentUser, let email = user.email else {
+            throw AuthServiceError.noCurrentUser
+        }
+        let credential = EmailAuthProvider.credential(withEmail: email, password: password)
+        try await user.reauthenticate(with: credential)
+    }
+
+    @MainActor
+    func reauthenticateWithApple(idToken: String, rawNonce: String) async throws {
+        guard let user = Auth.auth().currentUser else {
+            throw AuthServiceError.noCurrentUser
+        }
+        let credential = OAuthProvider.credential(
+            providerID: AuthProviderID.apple,
+            idToken: idToken,
+            rawNonce: rawNonce
+        )
+        try await user.reauthenticate(with: credential)
+    }
+
+    /// Apple exige de révoquer le jeton Sign in with Apple quand un compte créé
+    /// avec Apple est supprimé. `authorizationCode` vient de la re-authentification
+    /// Apple qui précède (à usage unique, valable peu de temps).
+    @MainActor
+    func revokeAppleToken(authorizationCode: String) async throws {
+        try await Auth.auth().revokeToken(withAuthorizationCode: authorizationCode)
+    }
+
+    @MainActor
+    func deleteCurrentUser() async throws {
+        guard let user = Auth.auth().currentUser else {
+            throw AuthServiceError.noCurrentUser
+        }
+        try await user.delete()
     }
 
     private static func map(_ firebaseUser: FirebaseAuth.User) -> AppUser {
