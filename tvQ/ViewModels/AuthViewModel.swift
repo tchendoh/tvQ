@@ -4,10 +4,10 @@ import AuthenticationServices
 
 /// Pilote l'authentification pour toute l'app : à la fois l'écran de connexion
 /// et le routage racine (LoginView vs contenu principal), via authStateChanges.
-/// Ne connaît que le protocole AuthRepository — aucune référence à Firebase ici.
+/// Ne connaît que AuthService — aucune référence directe à FirebaseAuth ici.
 @Observable
 final class AuthViewModel {
-    private(set) var currentUser: User?
+    private(set) var currentUser: AppUser?
     private(set) var isLoading = false
     private(set) var errorMessage: String?
 
@@ -20,16 +20,16 @@ final class AuthViewModel {
         case signUp
     }
 
-    private let authRepository: AuthRepository
+    private let authService: AuthService
     private var authStateTask: Task<Void, Never>?
 
     /// Nonce brut en attente de la réponse d'Apple — généré à chaque requête,
     /// consommé (et effacé) une fois le sign-in Firebase tenté.
     private var pendingAppleNonce: String?
 
-    init(authRepository: AuthRepository = FirebaseAuthRepository()) {
-        self.authRepository = authRepository
-        currentUser = authRepository.currentUser
+    init(authService: AuthService = AuthService()) {
+        self.authService = authService
+        currentUser = authService.currentUser
         observeAuthState()
     }
 
@@ -40,7 +40,7 @@ final class AuthViewModel {
     private func observeAuthState() {
         authStateTask = Task { [weak self] in
             guard let self else { return }
-            for await user in authRepository.authStateChanges {
+            for await user in authService.authStateChanges {
                 self.currentUser = user
             }
         }
@@ -68,9 +68,9 @@ final class AuthViewModel {
             do {
                 switch mode {
                 case .signIn:
-                    _ = try await authRepository.signIn(email: trimmedEmail, password: password)
+                    _ = try await authService.signIn(email: trimmedEmail, password: password)
                 case .signUp:
-                    _ = try await authRepository.signUp(email: trimmedEmail, password: password)
+                    _ = try await authService.signUp(email: trimmedEmail, password: password)
                 }
             } catch {
                 errorMessage = mode == .signIn
@@ -123,7 +123,7 @@ final class AuthViewModel {
                 defer { isLoading = false }
 
                 do {
-                    _ = try await authRepository.signInWithApple(
+                    _ = try await authService.signInWithApple(
                         idToken: idToken,
                         rawNonce: nonce,
                         displayName: displayName.isEmpty ? nil : displayName
@@ -137,7 +137,7 @@ final class AuthViewModel {
 
     func signOut() {
         do {
-            try authRepository.signOut()
+            try authService.signOut()
         } catch {
             errorMessage = String(localized: "Sign out failed.")
         }

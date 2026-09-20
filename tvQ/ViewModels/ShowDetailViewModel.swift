@@ -2,8 +2,8 @@ import Foundation
 import Observation
 
 /// Pilote l'écran de fiche détail d'une série. Charge le Show complet (résolution
-/// TMDB + TVmaze) puis ses épisodes. Ne connaît que les protocoles ShowRepository
-/// et ScheduleRepository — testable avec de faux repositories sans appel réseau.
+/// TMDB + TVmaze) puis ses épisodes. Ne connaît que ShowRepository
+/// et ScheduleRepository — aucune référence à TMDB, TVmaze ou Firestore ici.
 @Observable
 final class ShowDetailViewModel {
     private(set) var show: Show?
@@ -16,21 +16,21 @@ final class ShowDetailViewModel {
 
     private let showRepository: ShowRepository
     private let scheduleRepository: ScheduleRepository
-    private let tmdbClient: TMDBClient
+    private let tmdbService: TMDBService
     private let watchAvailabilityCache: LocalWatchAvailabilityCache
     private var loadTask: Task<Void, Never>?
 
     init(
         tmdbID: Int,
-        showRepository: ShowRepository = RemoteShowRepository(),
-        scheduleRepository: ScheduleRepository = RemoteScheduleRepository(),
-        tmdbClient: TMDBClient = TMDBClient(),
+        showRepository: ShowRepository = ShowRepository(),
+        scheduleRepository: ScheduleRepository = ScheduleRepository(),
+        tmdbService: TMDBService = TMDBService(),
         watchAvailabilityCache: LocalWatchAvailabilityCache = .shared
     ) {
         self.tmdbID = tmdbID
         self.showRepository = showRepository
         self.scheduleRepository = scheduleRepository
-        self.tmdbClient = tmdbClient
+        self.tmdbService = tmdbService
         self.watchAvailabilityCache = watchAvailabilityCache
     }
 
@@ -72,7 +72,7 @@ final class ShowDetailViewModel {
             let cacheKey = "\(tmdbID)_\(AppSettings.watchProviderRegion)"
             if let cached = await watchAvailabilityCache.availability(cacheKey: cacheKey) {
                 watchAvailability = cached
-            } else if let dto = try? await tmdbClient.fetchWatchProviders(seriesID: tmdbID) {
+            } else if let dto = try? await tmdbService.fetchWatchProviders(seriesID: tmdbID) {
                 let availability = WatchAvailabilityMapper.map(dto: dto, region: AppSettings.watchProviderRegion)
                 watchAvailability = availability
                 await watchAvailabilityCache.store(cacheKey: cacheKey, availability: availability)

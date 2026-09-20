@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Horaire de diffusion : épisodes récemment diffusés (jusqu'à 7 jours, voir
-/// RemoteScheduleRepository.recentlyAiredWindow) et à venir, toutes séries
+/// ScheduleRepository.recentlyAiredWindow) et à venir, toutes séries
 /// suivies confondues, groupés par jour.
 struct ScheduleView: View {
     @Environment(FollowedShowsStore.self) private var followedShowsStore
@@ -136,7 +136,7 @@ struct ScheduleView: View {
     private var daySections: [DaySection] {
         let calendar = Calendar.current
         var itemsByDay = Dictionary(grouping: viewModel.items) { item in
-            calendar.startOfDay(for: item.episode.bestAvailableDate ?? .distantFuture)
+            calendar.startOfDay(for: item.episode.airDate ?? .distantFuture)
         }
 
         let today = calendar.startOfDay(for: Date())
@@ -155,7 +155,7 @@ struct ScheduleView: View {
                     return nil
                 }
                 let episodeNumbers = seasonItems.map(\.episode.episodeNumber).sorted()
-                let earliestDate = seasonItems.compactMap { $0.episode.bestAvailableDate }.min()
+                let earliestDate = seasonItems.compactMap { $0.episode.airDate }.min()
                 return EpisodeGroup(show: show, seasonNumber: seasonNumber, episodeNumbers: episodeNumbers, date: earliestDate)
             }
 

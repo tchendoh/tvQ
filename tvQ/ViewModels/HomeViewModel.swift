@@ -15,7 +15,7 @@ final class HomeViewModel {
     private let showRepository: ShowRepository
     private var loadTask: Task<Void, Never>?
 
-    init(showRepository: ShowRepository = RemoteShowRepository()) {
+    init(showRepository: ShowRepository = ShowRepository()) {
         self.showRepository = showRepository
     }
 
@@ -32,7 +32,7 @@ final class HomeViewModel {
 
             // Les trois listes sont indépendantes les unes des autres — en
             // parallèle plutôt que séquentiel, même raisonnement que partout
-            // ailleurs dans l'app (MyShowsViewModel, RemoteScheduleRepository).
+            // ailleurs dans l'app (MyShowsViewModel, ScheduleRepository).
             // Chacune est best-effort (try?) : un échec sur une seule liste
             // (ex. un endpoint TMDB temporairement indisponible) ne doit pas
             // vider les deux autres, qui peuvent très bien avoir réussi.

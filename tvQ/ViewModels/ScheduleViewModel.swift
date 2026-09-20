@@ -30,8 +30,8 @@ final class ScheduleViewModel {
     private var loadTask: Task<Void, Never>?
 
     init(
-        showRepository: ShowRepository = RemoteShowRepository(),
-        scheduleRepository: ScheduleRepository = RemoteScheduleRepository()
+        showRepository: ShowRepository = ShowRepository(),
+        scheduleRepository: ScheduleRepository = ScheduleRepository()
     ) {
         self.showRepository = showRepository
         self.scheduleRepository = scheduleRepository

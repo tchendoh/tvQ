@@ -1,9 +1,8 @@
 import Foundation
 import Observation
 
-/// Pilote l'écran de recherche de séries. Ne connaît que le protocole
-/// ShowRepository — aucune référence à TMDB, TVmaze ou URLSession ici,
-/// ce qui permet de le tester avec un faux repository sans appel réseau.
+/// Pilote l'écran de recherche de séries. Ne connaît que ShowRepository —
+/// aucune référence à TMDB, TVmaze ou URLSession ici.
 @Observable
 final class SearchViewModel {
     private(set) var results: [ShowSummary] = []
@@ -15,7 +14,7 @@ final class SearchViewModel {
     private let showRepository: ShowRepository
     private var searchTask: Task<Void, Never>?
 
-    init(showRepository: ShowRepository = RemoteShowRepository()) {
+    init(showRepository: ShowRepository = ShowRepository()) {
         self.showRepository = showRepository
     }
 

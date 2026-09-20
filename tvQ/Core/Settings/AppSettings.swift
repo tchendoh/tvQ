@@ -16,7 +16,7 @@ enum ContentLanguage: String, CaseIterable, Identifiable {
 }
 
 /// Code pays ISO 3166-1 utilisé pour filtrer les diffuseurs retournés par
-/// `TMDBClient.fetchWatchProviders` (voir WatchProvidersMapper) — TMDB renvoie
+/// `TMDBService.fetchWatchProviders` (voir WatchProvidersMapper) — TMDB renvoie
 /// toutes les régions d'un coup, ce setting sert seulement à choisir laquelle
 /// afficher. Liste volontairement courte (marchés les plus probables pour les
 /// utilisateurs de tvQ) plutôt que la liste complète des ~60 pays TMDB.
@@ -79,7 +79,7 @@ enum AppSettings {
         static let watchProviderRegion = "settings.watchProviderRegion"
     }
 
-    /// Lu par TMDBClient à l'initialisation — voir son paramètre `language`.
+    /// Lu par TMDBService à l'initialisation — voir son paramètre `language`.
     static var contentLanguage: String {
         UserDefaults.standard.string(forKey: Keys.contentLanguage) ?? ContentLanguage.english.rawValue
     }
@@ -99,8 +99,8 @@ enum AppSettings {
     }
 
     /// Composant de clé de cache reflétant la langue effective des contenus
-    /// TMDB récupérés (voir LocalEpisodeCache, FirestoreEpisodeCacheRepository,
-    /// LocalShowCache, FirestoreShowCacheRepository). Nécessaire parce que le
+    /// TMDB récupérés (voir LocalEpisodeCache, FirestoreEpisodeCacheService,
+    /// LocalShowCache, FirestoreShowCacheService). Nécessaire parce que le
     /// cache partagé Firestore est commun à tous les utilisateurs : sans ce
     /// composant, deux utilisateurs avec des préférences de langue différentes
     /// s'écraseraient mutuellement le cache avec la mauvaise langue.

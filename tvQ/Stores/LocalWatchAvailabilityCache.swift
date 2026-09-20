@@ -11,7 +11,7 @@ actor LocalWatchAvailabilityCache {
     static let shared = LocalWatchAvailabilityCache()
 
     /// Plus long que le cycle de sync JustWatch → TMDB (max 1×/24h, voir
-    /// TMDBClient.fetchWatchProviders) : les diffuseurs d'une série changent
+    /// TMDBService.fetchWatchProviders) : les diffuseurs d'une série changent
     /// rarement d'un jour à l'autre, pas besoin de revérifier aussi souvent
     /// que le TTL minimal imposé par la fraîcheur des données TMDB.
     nonisolated static let ttl: TimeInterval = 60 * 60 * 72 // 72h

@@ -2,7 +2,7 @@ import Foundation
 
 /// Palier 1 du cache de métadonnées de série (titre, affiche, statut...) —
 /// même rôle que LocalEpisodeCache, mais pour Show plutôt qu'Episode. Voir
-/// FirestoreShowCacheRepository pour le palier partagé, et RemoteShowRepository
+/// FirestoreShowCacheService pour le palier partagé, et ShowRepository
 /// pour l'orchestration des trois paliers.
 actor LocalShowCache {
     static let shared = LocalShowCache()
@@ -42,7 +42,7 @@ actor LocalShowCache {
     }
 
     /// nil si absent ou périmé. Une série dont le statut caché est déjà .ended
-    /// ne périme jamais : son statut ne peut plus changer, voir RemoteShowRepository.
+    /// ne périme jamais : son statut ne peut plus changer, voir ShowRepository.
     func show(cacheKey: String) -> Show? {
         loadIfNeeded()
         guard let entry = entries[cacheKey] else { return nil }

@@ -213,7 +213,7 @@ private struct EpisodeRow: View {
                 Text("\(episode.episodeNumber). \(episode.title)")
                     .font(.subheadline.weight(.medium))
                 Spacer()
-                if let date = episode.bestAvailableDate {
+                if let date = episode.airDate {
                     Text(date, style: .date)
                         .font(.caption)
                         .foregroundStyle(.secondary)

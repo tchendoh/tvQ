@@ -10,17 +10,17 @@ final class FollowedShowsStore {
     private(set) var isLoading = false
     private(set) var errorMessage: String?
 
-    private let repository: UserShowsRepository
+    private let userShowsService: UserShowsService
     private let showRepository: ShowRepository
     private let scheduleRepository: ScheduleRepository
     private var userID: String?
 
     init(
-        repository: UserShowsRepository = FirestoreUserShowsRepository(),
-        showRepository: ShowRepository = RemoteShowRepository(),
-        scheduleRepository: ScheduleRepository = RemoteScheduleRepository()
+        userShowsService: UserShowsService = UserShowsService(),
+        showRepository: ShowRepository = ShowRepository(),
+        scheduleRepository: ScheduleRepository = ScheduleRepository()
     ) {
-        self.repository = repository
+        self.userShowsService = userShowsService
         self.showRepository = showRepository
         self.scheduleRepository = scheduleRepository
     }
@@ -38,7 +38,7 @@ final class FollowedShowsStore {
             defer { isLoading = false }
 
             do {
-                let ids = try await repository.followedShowIDs(userID: userID)
+                let ids = try await userShowsService.followedShowIDs(userID: userID)
                 followedShowIDs = Set(ids)
             } catch {
                 errorMessage = String(localized: "Couldn't load your followed shows.")
@@ -66,9 +66,9 @@ final class FollowedShowsStore {
         Task {
             do {
                 if wasFollowing {
-                    try await repository.unfollow(showID: showID, userID: userID)
+                    try await userShowsService.unfollow(showID: showID, userID: userID)
                 } else {
-                    try await repository.follow(showID: showID, userID: userID)
+                    try await userShowsService.follow(showID: showID, userID: userID)
                     prefetchContent(showID: showID)
                 }
             } catch {

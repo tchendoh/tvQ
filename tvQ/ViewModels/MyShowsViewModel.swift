@@ -11,7 +11,7 @@ final class MyShowsViewModel {
     private(set) var errorMessage: String?
 
     /// IDs des séries ayant un épisode diffusé récemment ou à venir (même fenêtre
-    /// que l'horaire "À venir", voir RemoteScheduleRepository.getUpcomingEpisodes).
+    /// que l'horaire "À venir", voir ScheduleRepository.getUpcomingEpisodes).
     /// Sert à distinguer "en cours" de "en pause" pour les séries non terminées.
     private(set) var upcomingShowIDs: Set<String> = []
 
@@ -21,8 +21,8 @@ final class MyShowsViewModel {
     private var scheduleTask: Task<Void, Never>?
 
     init(
-        showRepository: ShowRepository = RemoteShowRepository(),
-        scheduleRepository: ScheduleRepository = RemoteScheduleRepository()
+        showRepository: ShowRepository = ShowRepository(),
+        scheduleRepository: ScheduleRepository = ScheduleRepository()
     ) {
         self.showRepository = showRepository
         self.scheduleRepository = scheduleRepository
@@ -92,7 +92,7 @@ final class MyShowsViewModel {
                 // Résolution en parallèle plutôt que séquentielle — avec une
                 // centaine de séries suivies, un aller-retour à la fois faisait
                 // traîner l'écran plusieurs secondes. getShow(tmdbID:) passe par
-                // le cache à 3 paliers de RemoteShowRepository, donc la plupart
+                // le cache à 3 paliers de ShowRepository, donc la plupart
                 // de ces appels ne touchent même pas le réseau.
                 let tmdbIDs = missingIDs.compactMap { Int($0) }
                 let resolved = try await withThrowingTaskGroup(of: Show.self) { group in

@@ -3,8 +3,8 @@ import Foundation
 /// Palier 1 du cache d'épisodes : disque local, par appareil. Sert d'abord à
 /// éviter de re-solliciter Firestore à chaque ouverture d'écran dans une même
 /// session, et permet un affichage instantané (même hors-ligne) avec la
-/// dernière donnée connue. Voir FirestoreEpisodeCacheRepository pour le palier
-/// partagé entre utilisateurs, et RemoteScheduleRepository pour l'orchestration
+/// dernière donnée connue. Voir FirestoreEpisodeCacheService pour le palier
+/// partagé entre utilisateurs, et ScheduleRepository pour l'orchestration
 /// des trois paliers (local → Firestore → TMDB/TVmaze).
 actor LocalEpisodeCache {
     static let shared = LocalEpisodeCache()
@@ -46,7 +46,7 @@ actor LocalEpisodeCache {
     }
 
     /// nil si absent en cache ou périmé. `maxAge: nil` désactive toute
-    /// expiration — utilisé pour les séries .ended par RemoteScheduleRepository :
+    /// expiration — utilisé pour les séries .ended par ScheduleRepository :
     /// leurs épisodes ne changeront plus jamais, donc une fois en cache, elles
     /// n'ont plus jamais besoin d'être revalidées.
     func episodes(showID: String, maxAge: TimeInterval? = LocalEpisodeCache.ttl) -> [Episode]? {
