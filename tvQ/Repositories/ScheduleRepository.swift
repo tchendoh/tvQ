@@ -4,71 +4,105 @@ import Foundation
 /// (source de vérité pour le contenu — titres, synopsis, saisons) avec les
 /// timestamps précis de TVmaze quand la série y est résolue.
 ///
-/// Trois paliers de cache, du plus rapide/étroit au plus lent/large :
-///   1. `localCache` — disque, par appareil, TTL 6h.
-///   2. `sharedCache` — Firestore, partagé entre tous les utilisateurs, TTL 24h.
-///   3. TMDB/TVmaze — seulement sollicités si les deux paliers précédents sont périmés.
-/// Voir BACKLOG.md pour la discussion complète sur ce choix d'architecture.
+/// Lecture en cascade : copie locale (EpisodeStore, SwiftData), puis copie partagée
+/// (Firestore), puis TMDB/TVmaze. Une copie locale périmée est retournée quand même
+/// et rafraîchie en arrière-plan. La liste « à venir » n'est plus construite en
+/// chargeant tous les épisodes de chaque série : elle est lue d'un seul coup dans le
+/// store par une requête sur la date (voir getUpcomingEpisodesWithTiers).
 final class ScheduleRepository {
     private let tmdbService: TMDBService
     private let tvmazeService: TVmazeService
-    private let localCache: LocalEpisodeCache
+    private let episodeStore: EpisodeStore
     private let sharedCache: FirestoreEpisodeCacheService
+
+    /// Résolutions distantes déjà en cours, par clé de cache : deux écrans qui demandent
+    /// la même série en même temps partagent un seul appel au lieu de le doubler.
+    private var inFlight: [String: Task<(episodes: [Episode], tier: CacheTier), Error>] = [:]
 
     init(
         tmdbService: TMDBService = TMDBService(),
         tvmazeService: TVmazeService = TVmazeService(),
-        localCache: LocalEpisodeCache = .shared,
+        episodeStore: EpisodeStore = .shared,
         sharedCache: FirestoreEpisodeCacheService = FirestoreEpisodeCacheService()
     ) {
         self.tmdbService = tmdbService
         self.tvmazeService = tvmazeService
-        self.localCache = localCache
+        self.episodeStore = episodeStore
         self.sharedCache = sharedCache
     }
 
-    func getEpisodes(for show: Show) async throws -> [Episode] {
-        try await getEpisodesWithTier(for: show).episodes
+    /// La clé inclut la langue effective : la copie Firestore est commune à tous les
+    /// utilisateurs et le contenu (titres, synopsis) est localisé. Voir AppSettings.cacheLanguageKey.
+    private func cacheKey(for show: Show) -> String {
+        "\(show.id)_\(AppSettings.cacheLanguageKey)"
     }
 
-    private func getEpisodesWithTier(for show: Show) async throws -> (episodes: [Episode], tier: CacheTier) {
-        // La clé inclut la langue effective : le cache partagé Firestore est
-        // commun à tous les utilisateurs, et le contenu (titres, synopsis) est
-        // localisé — sans ça, deux utilisateurs avec des langues différentes
-        // s'écraseraient mutuellement le cache. Voir AppSettings.cacheLanguageKey.
-        let cacheKey = "\(show.id)_\(AppSettings.cacheLanguageKey)"
+    // MARK: - Épisodes d'une série
 
-        // Une série .ended ne produira plus jamais de nouvel épisode : une fois
-        // en cache, ses épisodes restent valides indéfiniment (maxAge: nil),
-        // sur les deux paliers — pas seulement pour l'horaire, aussi pour
-        // ShowDetailView, qui appelle cette même méthode.
-        let maxAge: TimeInterval? = show.status == .ended ? nil : LocalEpisodeCache.ttl
-        let sharedMaxAge: TimeInterval? = show.status == .ended ? nil : FirestoreEpisodeCacheService.ttl
+    func getEpisodes(for show: Show) async throws -> [Episode] {
+        let cacheKey = cacheKey(for: show)
 
-        if let cached = await localCache.episodes(showID: cacheKey, maxAge: maxAge) {
-            return (cached, .local)
+        if let local = try? await episodeStore.entry(cacheKey: cacheKey) {
+            refreshInBackgroundIfStale(show: show, cacheKey: cacheKey, syncedAt: local.syncedAt)
+            return local.value
         }
 
-        if let cached = try? await sharedCache.episodes(showID: cacheKey, maxAge: sharedMaxAge) {
-            await localCache.store(showID: cacheKey, episodes: cached)
-            return (cached, .shared)
+        return try await resolveRemotely(show: show, cacheKey: cacheKey).episodes
+    }
+
+    /// Vérifie qu'une série a des épisodes en local, sans les décoder : c'est tout ce dont
+    /// l'écran Schedule a besoin avant de faire sa requête groupée. Ne charge depuis le réseau
+    /// que si la série n'a jamais été synchronisée.
+    private func ensureEpisodes(for show: Show) async throws -> CacheTier {
+        let cacheKey = cacheKey(for: show)
+
+        if let syncedAt = try? await episodeStore.syncedAt(cacheKey: cacheKey) {
+            refreshInBackgroundIfStale(show: show, cacheKey: cacheKey, syncedAt: syncedAt)
+            return .local
+        }
+
+        return try await resolveRemotely(show: show, cacheKey: cacheKey).tier
+    }
+
+    /// Une série terminée ne produira plus jamais de nouvel épisode : sa copie ne périme pas.
+    private func refreshInBackgroundIfStale(show: Show, cacheKey: String, syncedAt: Date) {
+        guard !CachePolicy.local.isFresh(syncedAt: syncedAt, isEnded: show.status == .ended) else { return }
+        Task { _ = try? await self.resolveRemotely(show: show, cacheKey: cacheKey) }
+    }
+
+    /// Copie partagée puis TMDB/TVmaze, avec écriture dans les deux copies.
+    private func resolveRemotely(show: Show, cacheKey: String) async throws -> (episodes: [Episode], tier: CacheTier) {
+        if let task = inFlight[cacheKey] {
+            return try await task.value
+        }
+
+        let task = Task { try await self.loadFromSharedOrRemote(show: show, cacheKey: cacheKey) }
+        inFlight[cacheKey] = task
+        defer { inFlight[cacheKey] = nil }
+        return try await task.value
+    }
+
+    private func loadFromSharedOrRemote(show: Show, cacheKey: String) async throws -> (episodes: [Episode], tier: CacheTier) {
+        if let shared = try? await sharedCache.episodes(cacheKey: cacheKey),
+           CachePolicy.shared.isFresh(syncedAt: shared.syncedAt, isEnded: show.status == .ended) {
+            // On garde la date d'origine : une copie déjà vieille ne redevient pas "fraîche".
+            try? await episodeStore.save(shared.value, cacheKey: cacheKey, syncedAt: shared.syncedAt)
+            return (shared.value, .shared)
         }
 
         let episodes = try await fetchEpisodes(for: show)
+        let now = Date.now
 
-        // Écriture best-effort dans le cache partagé : un échec ici (offline,
-        // règles Firestore, etc.) ne doit pas empêcher de retourner le résultat
-        // déjà obtenu depuis TMDB/TVmaze à l'utilisateur courant.
-        try? await sharedCache.store(showID: cacheKey, episodes: episodes)
-        await localCache.store(showID: cacheKey, episodes: episodes)
-
+        // Écriture best-effort dans la copie partagée : un échec (hors ligne, règles
+        // Firestore) ne doit pas empêcher de retourner le résultat à l'utilisateur.
+        try? await sharedCache.store(cacheKey: cacheKey, episodes: episodes, syncedAt: now)
+        try? await episodeStore.save(episodes, cacheKey: cacheKey, syncedAt: now)
         return (episodes, .remote)
     }
 
-    /// Appel direct aux APIs externes, sans passer par aucun des deux caches —
-    /// utilisé uniquement par getEpisodes(for:) une fois les deux paliers vérifiés.
+    /// Appel direct aux APIs externes, sans passer par aucun cache.
     private func fetchEpisodes(for show: Show) async throws -> [Episode] {
-        // Même logique que ShowRepository.getShow — voir discussion sur la langue d'origine.
+        // Même logique que ShowRepository.getShow pour la langue d'origine.
         let episodeLanguage = AppSettings.useOriginalLanguage ? show.originalLanguage : nil
 
         // TMDB : un appel par saison, il n'y a pas d'endpoint "tous les épisodes" en un coup.
@@ -84,13 +118,22 @@ final class ScheduleRepository {
             tvmazeEpisodes = try await tvmazeService.fetchEpisodes(showID: tvmazeID)
         }
 
+        // Index (saison, numéro) pour la jointure TMDB/TVmaze en O(n) plutôt qu'O(n·m).
+        struct EpisodeKey: Hashable { let season: Int; let number: Int }
+        let tvmazeByKey = Dictionary(
+            tvmazeEpisodes.compactMap { episode in
+                episode.number.map { (EpisodeKey(season: episode.season, number: $0), episode) }
+            },
+            uniquingKeysWith: { first, _ in first }
+        )
+
         return tmdbEpisodes.map { tmdbEpisode in
-            let matchingTVmazeEpisode = tvmazeEpisodes.first {
-                $0.season == tmdbEpisode.seasonNumber && $0.number == tmdbEpisode.episodeNumber
-            }
-            return EpisodeMapper.map(tmdb: tmdbEpisode, tvmaze: matchingTVmazeEpisode, showID: show.id)
+            let key = EpisodeKey(season: tmdbEpisode.seasonNumber, number: tmdbEpisode.episodeNumber)
+            return EpisodeMapper.map(tmdb: tmdbEpisode, tvmaze: tvmazeByKey[key], showID: show.id)
         }
     }
+
+    // MARK: - Horaire "à venir"
 
     /// "À venir" inclut aussi les épisodes récemment diffusés (jusqu'à 7 jours
     /// en arrière) — pas seulement le futur — pour qu'un épisode sorti hier ou
@@ -103,44 +146,31 @@ final class ScheduleRepository {
     }
 
     func getUpcomingEpisodesWithTiers(for shows: [Show]) async throws -> (episodes: [Episode], tiers: ScheduleLoadMetrics.TierBreakdown) {
-        let now = Date()
-        let earliestRelevantDate = now.addingTimeInterval(-Self.recentlyAiredWindow)
+        let earliestRelevantDate = Date.now.addingTimeInterval(-Self.recentlyAiredWindow)
 
         // Une série .ended n'aura plus jamais de nouvel épisode : inutile de la
-        // requêter pour l'horaire "à venir" (voir BACKLOG.md).
+        // requêter pour l'horaire "à venir".
         let relevantShows = shows.filter { $0.status != .ended }
 
-        // Récupération en parallèle plutôt que séquentielle : chaque appel passe
-        // par getEpisodesWithTier(for:), qui sert depuis le cache local ou
-        // Firestore avant de retomber sur TMDB/TVmaze.
-        let results = try await withThrowingTaskGroup(of: (episodes: [Episode], tier: CacheTier).self) { group in
+        // 1. S'assurer, en parallèle, que chaque série a des épisodes en local.
+        let cacheTiers = try await withThrowingTaskGroup(of: CacheTier.self) { group in
             for show in relevantShows {
-                group.addTask { try await self.getEpisodesWithTier(for: show) }
+                group.addTask { try await self.ensureEpisodes(for: show) }
             }
 
-            var results: [(episodes: [Episode], tier: CacheTier)] = []
-            for try await result in group {
-                results.append(result)
+            var results: [CacheTier] = []
+            for try await tier in group {
+                results.append(tier)
             }
             return results
         }
 
         var tiers = ScheduleLoadMetrics.TierBreakdown()
-        var allUpcoming: [Episode] = []
-        for result in results {
-            tiers.record(result.tier)
-            allUpcoming.append(contentsOf: result.episodes)
-        }
+        cacheTiers.forEach { tiers.record($0) }
 
-        let upcoming = allUpcoming.filter { episode in
-            guard let date = episode.airDate else { return false }
-            return date >= earliestRelevantDate
-        }
-
-        let sorted = upcoming.sorted { lhs, rhs in
-            (lhs.airDate ?? .distantFuture) < (rhs.airDate ?? .distantFuture)
-        }
-
-        return (sorted, tiers)
+        // 2. Une seule requête, filtrée et triée par date dans le store.
+        let cacheKeys = relevantShows.map { cacheKey(for: $0) }
+        let upcoming = try await episodeStore.upcoming(cacheKeys: cacheKeys, since: earliestRelevantDate)
+        return (upcoming, tiers)
     }
 }

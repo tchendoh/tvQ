@@ -87,10 +87,10 @@ struct SettingsView: View {
                 }
             }
 
-            // Palier 1 (disque local) uniquement — le cache Firestore partagé
-            // reste intact, pour ne pas effacer les données des autres
-            // utilisateurs. Utile pour retester le chemin de chargement à froid
-            // (voir FollowedShowsStore.prefetchContent) sans désinstaller l'app.
+            // Copie locale uniquement — le cache Firestore partagé reste intact,
+            // pour ne pas effacer les données des autres utilisateurs. Utile pour
+            // retester le chemin de chargement à froid (voir
+            // FollowedShowsStore.prefetchContent) sans désinstaller l'app.
             Section {
                 Button("Clear local cache") {
                     clearLocalCache()
@@ -109,9 +109,9 @@ struct SettingsView: View {
     private func clearLocalCache() {
         didClearCache = false
         Task {
-            await LocalShowCache.shared.clear()
-            await LocalEpisodeCache.shared.clear()
-            await LocalWatchAvailabilityCache.shared.clear()
+            try? await ShowStore.shared.clear()
+            try? await EpisodeStore.shared.clear()
+            try? await WatchAvailabilityStore.shared.clear()
             await ImageCache.shared.clear()
             didClearCache = true
         }

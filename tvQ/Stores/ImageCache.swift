@@ -3,7 +3,7 @@ import CryptoKit
 
 /// Cache d'images à deux paliers pour les posters (TMDB) — mémoire (NSCache,
 /// instantané) puis disque (survit aux redémarrages). Contrairement aux
-/// caches de métadonnées (LocalShowCache, etc.), pas de TTL : une image de
+/// données en cache (voir CachePolicy), pas de durée de validité : une image de
 /// poster ne change essentiellement jamais une fois publiée.
 actor ImageCache {
     static let shared = ImageCache()
@@ -51,7 +51,7 @@ actor ImageCache {
         try? data.write(to: fileURL(for: url.absoluteString), options: .atomic)
     }
 
-    /// Vide ce palier — utilisé par le bouton "Clear local cache" de Settings.
+    /// Vide le cache d'images — utilisé par le bouton "Clear local cache" de Settings.
     func clear() {
         memoryCache.removeAllObjects()
         try? FileManager.default.removeItem(at: directoryURL)
