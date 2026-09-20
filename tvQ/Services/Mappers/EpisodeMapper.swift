@@ -13,7 +13,10 @@ enum EpisodeMapper {
     private static let isoFormatter = ISO8601DateFormatter()
 
     static func map(tmdb: TMDBEpisodeDTO, tvmaze: TVmazeEpisodeDTO?, showID: String) -> Episode {
-        Episode(
+        let tmdbDate = tmdb.airDate.flatMap { dateOnlyFormatter.date(from: $0) }
+        let tvmazeStamp = tvmaze?.airstamp.flatMap { isoFormatter.date(from: $0) }
+
+        return Episode(
             id: "\(showID)-s\(tmdb.seasonNumber)e\(tmdb.episodeNumber)",
             showID: showID,
             seasonNumber: tmdb.seasonNumber,
@@ -23,8 +26,8 @@ enum EpisodeMapper {
             stillImageURL: tmdb.stillPath.map {
                 ShowMapper.imageBaseURL.appendingPathComponent($0)
             },
-            airDate: tmdb.airDate.flatMap { dateOnlyFormatter.date(from: $0) },
-            airStamp: tvmaze?.airstamp.flatMap { isoFormatter.date(from: $0) }
+            airDate: tvmazeStamp ?? tmdbDate,
+            hasPreciseTime: tvmazeStamp != nil
         )
     }
 }

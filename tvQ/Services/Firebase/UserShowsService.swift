@@ -1,10 +1,10 @@
 import Foundation
 import FirebaseFirestore
 
-/// Implémentation concrète de UserShowsRepository : Firestore, une sous-collection
+/// Accès Firestore à la liste des séries suivies : une sous-collection
 /// par utilisateur (users/{userID}/followedShows/{showID}). C'est le seul endroit
-/// de l'app qui importe FirebaseFirestore — le reste ne voit que le protocole.
-final class FirestoreUserShowsRepository: UserShowsRepository {
+/// de l'app qui importe FirebaseFirestore — le reste de l'app passe par ce service.
+final class UserShowsService {
     private let db: Firestore
 
     init(db: Firestore = Firestore.firestore()) {

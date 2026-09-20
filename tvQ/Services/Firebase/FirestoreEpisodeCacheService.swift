@@ -11,7 +11,7 @@ import FirebaseFirestore
 /// Collection `showsCache/{tmdbID}` — voir BACKLOG.md pour la note sur les
 /// règles de sécurité Firestore (actuellement lecture+écriture ouvertes à tout
 /// utilisateur authentifié ; à revisiter avec une Cloud Function si l'app grossit).
-final class FirestoreEpisodeCacheRepository {
+final class FirestoreEpisodeCacheService {
     /// Plus long que le cache local (6h) : ce palier absorbe la charge entre
     /// *tous* les utilisateurs, pas juste un appareil — une fraîcheur de 24h
     /// suffit largement pour un horaire de diffusion.
@@ -30,7 +30,7 @@ final class FirestoreEpisodeCacheRepository {
     /// nil si absent ou périmé. `maxAge: nil` désactive toute expiration — voir
     /// LocalEpisodeCache.episodes(showID:maxAge:) pour le raisonnement complet
     /// (séries .ended, dont les épisodes ne changeront plus jamais).
-    func episodes(showID: String, maxAge: TimeInterval? = FirestoreEpisodeCacheRepository.ttl) async throws -> [Episode]? {
+    func episodes(showID: String, maxAge: TimeInterval? = FirestoreEpisodeCacheService.ttl) async throws -> [Episode]? {
         let snapshot = try await document(showID: showID).getDocument()
         guard snapshot.exists, let entry = try? snapshot.data(as: FirestoreEpisodeCacheEntry.self) else {
             return nil

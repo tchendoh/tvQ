@@ -2,11 +2,11 @@ import Foundation
 import FirebaseFirestore
 
 /// Palier 2 du cache de métadonnées de série — même principe que
-/// FirestoreEpisodeCacheRepository (voir ce fichier pour le raisonnement complet
+/// FirestoreEpisodeCacheService (voir ce fichier pour le raisonnement complet
 /// sur pourquoi un cache partagé entre utilisateurs). Collection séparée
 /// (`showMetadataCache`) plutôt que de réutiliser `showsCache` : structure et
 /// TTL différents, pas besoin de les mélanger dans la même collection.
-final class FirestoreShowCacheRepository {
+final class FirestoreShowCacheService {
     nonisolated static let ttl: TimeInterval = 60 * 60 * 24 // 24h
 
     private let db: Firestore

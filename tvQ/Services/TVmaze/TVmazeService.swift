@@ -1,13 +1,17 @@
 import Foundation
 
-/// Client réseau brut pour TVmaze : ne retourne que des DTOs.
+/// Service réseau brut pour TVmaze : ne retourne que des DTOs.
 /// Pas de clé API requise côté TVmaze (contrairement à TMDB).
-struct TVmazeClient {
-    private let httpClient: HTTPClient
+struct TVmazeService {
+    private let networkService: NetworkService
     private let baseURL = URL(string: "https://api.tvmaze.com")!
 
-    init(httpClient: HTTPClient = URLSessionHTTPClient()) {
-        self.httpClient = httpClient
+    init(networkService: NetworkService = NetworkService()) {
+        self.networkService = networkService
+    }
+
+    private func get<T: Decodable>(_ url: URL) async throws -> T {
+        try await networkService.fetch(URLRequest(url: url), as: T.self)
     }
 
     /// `/lookup/shows?imdb=:id` répond par une redirection HTTP 301 vers la fiche
@@ -20,14 +24,14 @@ struct TVmazeClient {
         components.queryItems = [URLQueryItem(name: "imdb", value: imdbID)]
 
         do {
-            return try await httpClient.get(url: components.url!, headers: [:])
-        } catch HTTPClientError.httpError(let statusCode) where statusCode == 404 {
+            return try await get(components.url!)
+        } catch NetworkError.httpStatus(let statusCode) where statusCode == 404 {
             return nil
         }
     }
 
     func fetchEpisodes(showID: Int) async throws -> [TVmazeEpisodeDTO] {
         let url = baseURL.appendingPathComponent("shows/\(showID)/episodes")
-        return try await httpClient.get(url: url, headers: [:])
+        return try await get(url)
     }
 }
