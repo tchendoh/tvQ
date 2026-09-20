@@ -63,7 +63,7 @@ private extension String {
     /// Hash stable entre les lancements (contrairement à Hasher, qui varie
     /// d'un processus à l'autre) — nécessaire puisque ça sert de nom de
     /// fichier sur disque.
-    var sha256Hex: String {
+    nonisolated var sha256Hex: String {
         let digest = SHA256.hash(data: Data(self.utf8))
         return digest.map { String(format: "%02x", $0) }.joined()
     }
