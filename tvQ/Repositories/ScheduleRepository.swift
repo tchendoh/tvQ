@@ -1,6 +1,6 @@
 import Foundation
 
-/// Implémentation concrète de ScheduleRepository : combine les épisodes TMDB
+/// Repository des épisodes : combine les épisodes TMDB
 /// (source de vérité pour le contenu — titres, synopsis, saisons) avec les
 /// timestamps précis de TVmaze quand la série y est résolue.
 ///
@@ -9,20 +9,20 @@ import Foundation
 ///   2. `sharedCache` — Firestore, partagé entre tous les utilisateurs, TTL 24h.
 ///   3. TMDB/TVmaze — seulement sollicités si les deux paliers précédents sont périmés.
 /// Voir BACKLOG.md pour la discussion complète sur ce choix d'architecture.
-final class RemoteScheduleRepository: ScheduleRepository {
-    private let tmdbClient: TMDBClient
-    private let tvmazeClient: TVmazeClient
+final class ScheduleRepository {
+    private let tmdbService: TMDBService
+    private let tvmazeService: TVmazeService
     private let localCache: LocalEpisodeCache
-    private let sharedCache: FirestoreEpisodeCacheRepository
+    private let sharedCache: FirestoreEpisodeCacheService
 
     init(
-        tmdbClient: TMDBClient = TMDBClient(),
-        tvmazeClient: TVmazeClient = TVmazeClient(),
+        tmdbService: TMDBService = TMDBService(),
+        tvmazeService: TVmazeService = TVmazeService(),
         localCache: LocalEpisodeCache = .shared,
-        sharedCache: FirestoreEpisodeCacheRepository = FirestoreEpisodeCacheRepository()
+        sharedCache: FirestoreEpisodeCacheService = FirestoreEpisodeCacheService()
     ) {
-        self.tmdbClient = tmdbClient
-        self.tvmazeClient = tvmazeClient
+        self.tmdbService = tmdbService
+        self.tvmazeService = tvmazeService
         self.localCache = localCache
         self.sharedCache = sharedCache
     }
@@ -43,7 +43,7 @@ final class RemoteScheduleRepository: ScheduleRepository {
         // sur les deux paliers — pas seulement pour l'horaire, aussi pour
         // ShowDetailView, qui appelle cette même méthode.
         let maxAge: TimeInterval? = show.status == .ended ? nil : LocalEpisodeCache.ttl
-        let sharedMaxAge: TimeInterval? = show.status == .ended ? nil : FirestoreEpisodeCacheRepository.ttl
+        let sharedMaxAge: TimeInterval? = show.status == .ended ? nil : FirestoreEpisodeCacheService.ttl
 
         if let cached = await localCache.episodes(showID: cacheKey, maxAge: maxAge) {
             return (cached, .local)
@@ -74,14 +74,14 @@ final class RemoteScheduleRepository: ScheduleRepository {
         // TMDB : un appel par saison, il n'y a pas d'endpoint "tous les épisodes" en un coup.
         var tmdbEpisodes: [TMDBEpisodeDTO] = []
         for season in 1...max(show.numberOfSeasons, 1) {
-            let episodes = try await tmdbClient.fetchEpisodes(seriesID: show.tmdbID, season: season, language: episodeLanguage)
+            let episodes = try await tmdbService.fetchEpisodes(seriesID: show.tmdbID, season: season, language: episodeLanguage)
             tmdbEpisodes.append(contentsOf: episodes)
         }
 
         // TVmaze : un seul appel retourne tous les épisodes de toutes les saisons.
         var tvmazeEpisodes: [TVmazeEpisodeDTO] = []
         if let tvmazeID = show.tvmazeID {
-            tvmazeEpisodes = try await tvmazeClient.fetchEpisodes(showID: tvmazeID)
+            tvmazeEpisodes = try await tvmazeService.fetchEpisodes(showID: tvmazeID)
         }
 
         return tmdbEpisodes.map { tmdbEpisode in
@@ -133,12 +133,12 @@ final class RemoteScheduleRepository: ScheduleRepository {
         }
 
         let upcoming = allUpcoming.filter { episode in
-            guard let date = episode.bestAvailableDate else { return false }
+            guard let date = episode.airDate else { return false }
             return date >= earliestRelevantDate
         }
 
         let sorted = upcoming.sorted { lhs, rhs in
-            (lhs.bestAvailableDate ?? .distantFuture) < (rhs.bestAvailableDate ?? .distantFuture)
+            (lhs.airDate ?? .distantFuture) < (rhs.airDate ?? .distantFuture)
         }
 
         return (sorted, tiers)
