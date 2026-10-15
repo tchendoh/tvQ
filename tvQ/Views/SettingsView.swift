@@ -4,7 +4,7 @@ struct SettingsView: View {
     @Environment(AuthViewModel.self) private var authViewModel
 
     @AppStorage(AppSettings.Keys.appearance)
-    private var appearance: String = AppAppearance.system.rawValue
+    private var appearance: AppAppearance = .system
 
     @AppStorage(AppSettings.Keys.contentLanguage)
     private var contentLanguage: String = ContentLanguage.english.rawValue
@@ -29,7 +29,7 @@ struct SettingsView: View {
             Section("Appearance") {
                 Picker("Appearance", selection: $appearance) {
                     ForEach(AppAppearance.allCases) { option in
-                        Text(option.displayName).tag(option.rawValue)
+                        Text(option.displayName).tag(option)
                     }
                 }
                 .pickerStyle(.inline)

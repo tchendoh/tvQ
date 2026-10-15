@@ -10,7 +10,7 @@ struct RootView: View {
     @State private var scheduleViewModel = ScheduleViewModel()
 
     @AppStorage(AppSettings.Keys.appearance)
-    private var appearance: String = AppAppearance.system.rawValue
+    private var appearance: AppAppearance = .system
 
     var body: some View {
         Group {
@@ -26,7 +26,9 @@ struct RootView: View {
                 LoginView(viewModel: authViewModel)
             }
         }
-        .preferredColorScheme(AppAppearance(rawValue: appearance)?.colorScheme)
+        // Écoute Firebase tant que l'app est ouverte ; SwiftUI annule la tâche avec la vue.
+        .task { await session.observe() }
+        .preferredColorScheme(appearance.colorScheme)
         // Déconnexion ou suppression de compte : vider l'état partagé qui vit ici.
         .onChange(of: authViewModel.currentUser?.id) { _, newID in
             if newID == nil {
