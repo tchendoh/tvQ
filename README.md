@@ -1,116 +1,107 @@
 # tvQ
 
-Application iOS (SwiftUI) pour suivre l'horaire de diffusion des séries télé qu'on suit, savoir où les regarder, et ne rien manquer.
+**Never miss an episode.** tvQ shows when the next episodes of the series you follow air, down to the exact local time, and where to watch them in your country.
 
-> Ce README est mis à jour au fur et à mesure du développement. Il reflète l'état du projet à la date indiquée en fin de fichier, pas nécessairement l'état futur.
+A native iOS app built solo in Swift 6 and SwiftUI.
 
-## Aperçu
+*[Version française](README.fr.md)*
 
-| Accueil | Horaire | Mes séries |
+| Home | Schedule | My Shows |
 |---|---|---|
-| ![Accueil](Screenshots/tvQ-accueil.png) | ![Horaire](Screenshots/tvQ-horaire-dark-mode.png) | ![Mes séries](Screenshots/tvQ-mesSeries-dark-mode.jpeg) |
+| ![Home](Screenshots/tvQ-accueil.png) | ![Schedule](Screenshots/tvQ-horaire-dark-mode.png) | ![My Shows](Screenshots/tvQ-mesSeries-dark-mode.jpeg) |
 
-| Recherche | Fiche série (sombre) | Fiche série (clair) |
+| Search | Show detail (dark) | Show detail (light) |
 |---|---|---|
-| ![Recherche](Screenshots/tvQ-recherche-dark-mode.jpeg) | ![Fiche série (sombre)](Screenshots/tvQ-serie-detail-dark-mode.png) | ![Fiche série (clair)](Screenshots/tvQ-serie-detail.png) |
+| ![Search](Screenshots/tvQ-recherche-dark-mode.jpeg) | ![Show detail, dark](Screenshots/tvQ-serie-detail-dark-mode.png) | ![Show detail, light](Screenshots/tvQ-serie-detail.png) |
 
-## Stack technique
+## Highlights
 
-- **UI** : SwiftUI, `@Observable`
-- **Auth** : Firebase Auth (Sign in with Apple)
-- **Cache partagé** : Firestore (séries et épisodes communs à tous les utilisateurs) et liste des séries suivies par utilisateur
-- **Persistance locale** : SwiftData
-- **Données séries** : [TMDB](https://www.themoviedb.org/) (métadonnées, épisodes) et [TVmaze](https://www.tvmaze.com/) (horaires précis)
-- **Où regarder** : [JustWatch](https://www.justwatch.com/) (via TMDB `watch/providers`)
-- **Concurrence** : `async/await`, actors (`@ModelActor`), `TaskGroup`
-- **Tests** : Swift Testing
+- **Swift 6 strict concurrency.** Compiled in Swift 6 language mode: main actor isolation by default, SwiftData confined to `@ModelActor` stores, immutable `Sendable` models crossing between them.
+- **Three-tier cache with stale-while-revalidate.** Local SwiftData first, then a Firestore cache shared by all users, then the TMDB and TVmaze APIs. Stale data is shown instantly and refreshed in the background, so the schedule never waits on the network.
+- **Two APIs merged into one schedule.** TMDB provides the content (titles, synopses, seasons, artwork); TVmaze provides the precise air time with its time zone. When TVmaze has no match, the app falls back to TMDB's date without inventing an hour.
+- **Where to watch, per country.** Streaming, rental and purchase options for Canada, the US, France and the UK, with duplicate catalog entries merged (Disney Plus and Disney+, Netflix with ads).
+- **Sign in with Apple and account deletion** that meet App Store requirements, including Apple token revocation.
+- **Bilingual** (English and French), for both the interface and the show content.
+
+## Tech stack
+
+| | |
+|---|---|
+| UI | SwiftUI, Observation (`@Observable`) |
+| Language | Swift 6 language mode, iOS 27.2 |
+| Concurrency | `async`/`await`, actors, `@ModelActor`, task groups |
+| Local storage | SwiftData |
+| Backend | Firebase Auth (Sign in with Apple, email), Cloud Firestore |
+| Data | [TMDB](https://www.themoviedb.org/), [TVmaze](https://www.tvmaze.com/), [JustWatch](https://www.justwatch.com/) via TMDB |
+| Tests | Swift Testing |
 
 ## Architecture
 
-MVVM léger, pensé pour une app développée en solo : pas de couche Domain séparée, pas de protocoles ajoutés par principe. Le flux va toujours dans le même sens :
+Lightweight MVVM, sized for a solo project. Data always flows in one direction:
 
 ```
 Views  →  ViewModels  →  Repositories  →  Services  (TMDB, TVmaze, Firebase)
                                        →  Stores    (SwiftData)
 ```
 
-- **Views / ViewModels** : l'affichage et l'état des écrans. Les ViewModels ne connaissent que les repositories.
-- **Repositories** (`ShowRepository`, `ScheduleRepository`) : décident *quand* utiliser le cache ou le réseau, en composant Services et Stores. C'est le seul endroit qui connaît à la fois TMDB et TVmaze.
-- **Services** : un par système externe (`TMDBService`, `TVmazeService`, `AuthService`, `UserShowsService`, caches Firestore). Ils ne retournent que des DTO ou des modèles, sans logique de cache. `NetworkService` factorise la mécanique HTTP (statut, décodage, classement des erreurs).
-- **Stores** : persistance locale SwiftData (`ShowStore`, `EpisodeStore`, `WatchAvailabilityStore`), qui retournent des modèles et jamais d'entités SwiftData.
-- **Models** : `Show`, `Episode`, `ShowSummary`, `WatchAvailability`, `AppUser`.
+- **Views and ViewModels** hold screen state. ViewModels only know repositories.
+- **Repositories** decide *when* to use the cache or the network. They are the only layer that knows both TMDB and TVmaze, and a single shared instance lets two screens asking for the same show share one network call.
+- **Services** wrap one external system each and contain no caching logic.
+- **Stores** are actors around SwiftData. They return plain models, never SwiftData entities, so nothing non-`Sendable` leaves them.
 
-## Installation
+## Design decisions
 
-Prérequis : Xcode 27, iOS 26.5 (cible de déploiement actuelle).
+- **Freshness rules live in one place** (`CachePolicy`). An ended series never expires, since it will never get new episodes.
+- **A shared cache keeps its original sync date** when copied locally, so old data never becomes "fresh" by moving.
+- **The cache key includes the content language.** The Firestore cache is shared by every user and the content is localized, so two users with different languages can't overwrite each other's data.
+- **The schedule is one date query.** Instead of loading every episode of every show, the app makes sure each show is cached locally, then reads recent and upcoming episodes in a single SwiftData query.
+- **`currentUser` has one source of truth**: the Firebase auth stream. Sign in, sign out and account deletion update the whole app without extra code.
 
-1. Cloner le repo et ouvrir `tvQ.xcodeproj`. Les dépendances SPM (Firebase, etc.) se résolvent automatiquement au premier build.
-2. Copier `Config/Secrets.xcconfig.template` en `Config/Secrets.xcconfig` et y renseigner une clé [TMDB](https://www.themoviedb.org/settings/api) (gratuite).
-3. Ajouter un `GoogleService-Info.plist` (config Firebase) dans le dossier `tvQ/`. Il est nécessaire pour Sign in with Apple et le cache Firestore partagé.
-4. Build & run sur simulateur ou appareil.
+## What I learned
 
-Ces fichiers sont volontairement exclus du repo (`.gitignore`) : chaque environnement (dev, démo, prod) a les siens.
-
-## État des fonctionnalités
-
-### Fait
-
-- Horaire "À venir" servi par un cache à deux niveaux (SwiftData local, puis Firestore partagé, puis TMDB et TVmaze)
-- Fiche série (`ShowDetailView`) avec liste des épisodes et "Où regarder"
-- Suivi et retrait de séries, résolution en parallèle des séries suivies
-- Sign in with Apple
-- "Où regarder" par pays (CA/US/FR/GB) via TMDB + JustWatch, avec fusion des doublons de catalogue (ex. Disney Plus/Disney+)
-- Logo et identité visuelle de base
-
-### Pas commencé / en réflexion
-
-- Look de l'app (couleurs, typographie, ambiance générale) : pas encore défini
-- Page "Tendances" (séries les plus suivies) : demande une agrégation des follows, design à faire
-- Déverrouillage biométrique automatique (Face ID au lancement)
-- Rafraîchissement à chaud de la langue de contenu TMDB (il faut relancer l'app après un changement dans Settings)
-- Mise à jour visible d'un écran quand une donnée est rafraîchie en arrière-plan (elle n'apparaît qu'à la prochaine ouverture)
-
-Le détail (raisonnement, dates, décisions) est dans `BACKLOG.md`. Attention : ses entrées historiques utilisent les anciens noms de la structure d'avant la refonte (`RemoteScheduleRepository`, `LocalEpisodeCache`, etc.).
-
-## Quelques décisions techniques
-
-- **Cache à deux niveaux avec stale-while-revalidate** : la copie locale (SwiftData) est lue d'abord. Si elle est périmée, elle est retournée quand même et rafraîchie en arrière-plan, ce qui évite un écran vide quand le réseau est lent ou absent. Sans copie locale, on lit Firestore (partagé entre utilisateurs), puis TMDB et TVmaze. Les durées de validité sont définies à un seul endroit (`CachePolicy`) et une série terminée (`.ended`) ne périme jamais.
-- **Date de synchronisation conservée** quand une copie Firestore est recopiée en local : une donnée déjà vieille ne redevient pas "fraîche".
-- **Requêtes en vol partagées** : si deux écrans demandent la même série en même temps, un seul appel réseau est fait.
-- **Horaire par requête sur la date** : l'écran Schedule vérifie que chaque série est présente en local, puis lit les épisodes récents et à venir en une seule requête SwiftData, au lieu de charger tout l'historique de chaque série.
-- **Clé de cache avec la langue** : la copie Firestore est commune à tous les utilisateurs et le contenu est localisé, donc la clé inclut la langue effective.
-- **Architecture allégée** : abandon d'une Clean Architecture complète (couches Domain/Data/Presentation, protocoles pour chaque repository), jugée disproportionnée pour une app solo. Le vocabulaire est simple : Service pour parler à un système externe, Store pour le disque, Repository pour orchestrer.
-- **Résolution en parallèle (`TaskGroup`)** pour charger les séries suivies : un des premiers goulots d'étranglement (plusieurs secondes à l'ouverture) venait d'une boucle séquentielle.
-- **Fusion des doublons de catalogue JustWatch** : JustWatch liste parfois la même offre sous deux noms légèrement différents (Disney Plus/Disney+, Netflix avec pub). Une table d'alias les fusionne sans fusionner des offres réellement distinctes (ex. achat vs abonnement Apple TV).
+- **Scale the architecture to the project.** I started with a full Clean Architecture (Domain, Data and Presentation layers, a protocol for every repository) and removed it: for one developer, it added indirection without adding safety.
+- **Measure before optimizing.** The slow schedule screen wasn't caused by the schedule itself but by shows being resolved one at a time. Resolving them in parallel removed several seconds at launch.
+- **Moving to Swift 6 mode was worth it.** The compiler found real issues: a non-`Sendable` Firebase handle crossing actors, and a `[weak self]` that was silently strong for the lifetime of a stream.
+- **Read your own comments critically.** A comment promised that two screens would share in-flight requests, but each screen had its own repository instance. Sharing the repositories fixed it.
 
 ## Tests
 
-Swift Testing, avec une base SwiftData en mémoire (aucune écriture sur disque) :
+Swift Testing, with an in-memory SwiftData database:
 
-- `LocalStoresTests` : aller-retour, remplacement et vidage des stores, requête des épisodes à venir (filtre par date et par série, tri), deux langues sans collision.
-- `CachePolicyTests` : règles de fraîcheur, dont les séries terminées.
+- `LocalStoresTests`: round trips, replacement and clearing of stores, the upcoming-episodes query (date and show filters, sort order), and two languages without collisions.
+- `CachePolicyTests`: freshness rules, including ended series.
 
-Pas encore testés : les repositories (les services sont des types concrets, donc non injectables), `NetworkService` et les mappers.
+## Getting started
 
-## Structure du projet
+Requirements: Xcode 27, iOS 27.2.
+
+1. Clone the repository and open `tvQ.xcodeproj`. Swift Package Manager dependencies (Firebase) resolve on the first build.
+2. Copy `Config/Secrets.xcconfig.template` to `Config/Secrets.xcconfig` and add a free [TMDB](https://www.themoviedb.org/settings/api) API read access token.
+3. Add your own Firebase `GoogleService-Info.plist` to the `tvQ/` folder, with Sign in with Apple and Firestore enabled.
+4. Build and run.
+
+Both files are excluded from the repository on purpose.
+
+## Next steps
+
+- TestFlight beta
+- A "Trending" page based on what tvQ users follow most
+- Face ID to unlock the app at launch
+
+## Project structure
 
 ```
 tvQ/
-├── tvQ/
-│   ├── App/            Point d'entrée et navigation racine
-│   ├── Core/           Réglages, clés d'API, diagnostic de performance du Schedule
-│   ├── Debug/          Outils de développement
-│   ├── Models/         Show, Episode, ShowSummary, WatchAvailability, AppUser
-│   ├── Repositories/   ShowRepository, ScheduleRepository, CachePolicy
-│   ├── Services/       TMDB/, TVmaze/, Firebase/, Mappers/, NetworkService
-│   ├── Stores/         SwiftData (entités, stores, LocalDatabase) et ImageCache
-│   ├── ViewModels/
-│   ├── Views/
-│   └── Assets.xcassets/
-├── tvQTests/
-├── tvQUITests/
-└── Config/             Clés (exclues du repo) et modèle de configuration
+├── App/            Entry point and root navigation
+├── Core/           Settings and API configuration
+├── Models/         Show, Episode, ShowSummary, WatchAvailability, AppUser
+├── Repositories/   ShowRepository, ScheduleRepository, CachePolicy
+├── Services/       TMDB, TVmaze, Firebase, mappers, NetworkService
+├── Stores/         SwiftData entities and stores, image cache
+├── ViewModels/
+└── Views/
 ```
 
----
-*Dernière mise à jour : 2026-09-20*
+## Credits
+
+Show data from [TMDB](https://www.themoviedb.org/) (this product uses the TMDB API but is not endorsed or certified by TMDB) and [TVmaze](https://www.tvmaze.com/). Streaming availability from [JustWatch](https://www.justwatch.com/).

@@ -1,8 +1,50 @@
 import Foundation
 import FirebaseAuth
 
-enum AuthServiceError: Error {
+/// Erreurs propres à l'app : le reste du code ne voit jamais les codes d'erreur
+/// de Firebase. `errorDescription` est le texte affiché à l'utilisateur.
+enum AuthServiceError: LocalizedError {
     case noCurrentUser
+    case invalidCredentials
+    case invalidEmail
+    case emailAlreadyInUse
+    case weakPassword
+    case network
+    case tooManyRequests
+    case unknown
+
+    var errorDescription: String? {
+        switch self {
+        case .noCurrentUser: String(localized: "You're not signed in.")
+        case .invalidCredentials: String(localized: "Incorrect email or password.")
+        case .invalidEmail: String(localized: "This email address isn't valid.")
+        case .emailAlreadyInUse: String(localized: "An account already exists with this email.")
+        case .weakPassword: String(localized: "Choose a password of at least 6 characters.")
+        case .network: String(localized: "No connection. Check your network and try again.")
+        case .tooManyRequests: String(localized: "Too many attempts. Wait a moment and try again.")
+        case .unknown: String(localized: "Something went wrong. Try again.")
+        }
+    }
+
+    /// Traduit une erreur Firebase Auth. Une erreur qui ne vient pas de Firebase Auth
+    /// (ex. annulation) est retournée telle quelle par `translated(_:)`.
+    init(firebaseError error: NSError) {
+        switch AuthErrorCode(rawValue: error.code) {
+        case .wrongPassword, .invalidCredential, .userNotFound: self = .invalidCredentials
+        case .invalidEmail: self = .invalidEmail
+        case .emailAlreadyInUse: self = .emailAlreadyInUse
+        case .weakPassword: self = .weakPassword
+        case .networkError: self = .network
+        case .tooManyRequests: self = .tooManyRequests
+        default: self = .unknown
+        }
+    }
+
+    static func translated(_ error: Error) -> Error {
+        let nsError = error as NSError
+        guard nsError.domain == AuthErrorDomain else { return error }
+        return AuthServiceError(firebaseError: nsError)
+    }
 }
 
 /// Accès à Firebase Auth (email/mot de passe et Sign in with Apple).
@@ -22,7 +64,11 @@ final class AuthService {
 
     var authStateChanges: AsyncStream<AppUser?> {
         AsyncStream { continuation in
-            let handle = Auth.auth().addStateDidChangeListener { _, firebaseUser in
+            // `nonisolated(unsafe)` : le handle Firebase est un jeton opaque (NSObjectProtocol,
+            // donc non Sendable) qu'on ne lit ni ne modifie jamais ; il sert seulement à être
+            // rendu à Firebase, dont removeStateDidChangeListener est sûr depuis n'importe quel
+            // thread. Exception justifiée à la règle « pas de nonisolated(unsafe) ».
+            nonisolated(unsafe) let handle = Auth.auth().addStateDidChangeListener { _, firebaseUser in
                 let user = MainActor.assumeIsolated { () -> AppUser? in
                     guard let firebaseUser else { return nil }
                     return Self.map(firebaseUser)
@@ -36,13 +82,21 @@ final class AuthService {
     }
 
     func signIn(email: String, password: String) async throws -> AppUser {
-        let result = try await Auth.auth().signIn(withEmail: email, password: password)
-        return Self.map(result.user)
+        do {
+            let result = try await Auth.auth().signIn(withEmail: email, password: password)
+            return Self.map(result.user)
+        } catch {
+            throw AuthServiceError.translated(error)
+        }
     }
 
     func signUp(email: String, password: String) async throws -> AppUser {
-        let result = try await Auth.auth().createUser(withEmail: email, password: password)
-        return Self.map(result.user)
+        do {
+            let result = try await Auth.auth().createUser(withEmail: email, password: password)
+            return Self.map(result.user)
+        } catch {
+            throw AuthServiceError.translated(error)
+        }
     }
 
     func signInWithApple(idToken: String, rawNonce: String, displayName: String?) async throws -> AppUser {
@@ -94,7 +148,11 @@ final class AuthService {
             throw AuthServiceError.noCurrentUser
         }
         let credential = EmailAuthProvider.credential(withEmail: email, password: password)
-        try await user.reauthenticate(with: credential)
+        do {
+            try await user.reauthenticate(with: credential)
+        } catch {
+            throw AuthServiceError.translated(error)
+        }
     }
 
     @MainActor

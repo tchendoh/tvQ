@@ -20,18 +20,14 @@ final class ScheduleViewModel {
     private(set) var isLoading = false
     private(set) var errorMessage: String?
 
-    /// Chronométrage du dernier chargement réussi — affiché dans ScheduleView
-    /// à des fins de diagnostic (voir ScheduleLoadMetrics). nil avant le
-    /// premier chargement, ou si le dernier a échoué en cours de route.
-    private(set) var lastLoadMetrics: ScheduleLoadMetrics?
 
     private let showRepository: ShowRepository
     private let scheduleRepository: ScheduleRepository
     private var loadTask: Task<Void, Never>?
 
     init(
-        showRepository: ShowRepository = ShowRepository(),
-        scheduleRepository: ScheduleRepository = ScheduleRepository()
+        showRepository: ShowRepository = .shared,
+        scheduleRepository: ScheduleRepository = .shared
     ) {
         self.showRepository = showRepository
         self.scheduleRepository = scheduleRepository
@@ -53,52 +49,31 @@ final class ScheduleViewModel {
             errorMessage = nil
             defer { isLoading = false }
 
-            let overallStart = ContinuousClock.now
-
             do {
-                // Résolution en parallèle plutôt que séquentielle — voir
-                // MyShowsViewModel.load pour le même changement et son
-                // raisonnement (le vrai goulot n'était pas l'horaire lui-même,
-                // déjà mis en cache, mais cette résolution de Show en boucle).
-                let showsStart = ContinuousClock.now
+                // Résolution en parallèle plutôt que séquentielle : le vrai goulot
+                // n'était pas l'horaire lui-même, déjà mis en cache, mais cette
+                // résolution de Show en boucle.
                 let tmdbIDs = showIDs.compactMap { Int($0) }
-                let showResults = try await withThrowingTaskGroup(of: (show: Show, tier: CacheTier).self) { group in
+                let shows = try await withThrowingTaskGroup(of: Show.self) { group in
                     for tmdbID in tmdbIDs {
-                        group.addTask { try await self.showRepository.getShowWithTier(tmdbID: tmdbID) }
+                        group.addTask { try await self.showRepository.getShow(tmdbID: tmdbID) }
                     }
-                    var resolved: [(show: Show, tier: CacheTier)] = []
-                    for try await result in group {
-                        resolved.append(result)
+                    var resolved: [Show] = []
+                    for try await show in group {
+                        resolved.append(show)
                     }
                     return resolved
                 }
-                let showsDuration = ContinuousClock.now - showsStart
                 if Task.isCancelled { return }
 
-                var showsByTier = ScheduleLoadMetrics.TierBreakdown()
-                for result in showResults {
-                    showsByTier.record(result.tier)
-                }
-                let shows = showResults.map(\.show)
-
                 let showsByID = Dictionary(uniqueKeysWithValues: shows.map { ($0.id, $0) })
-                let episodesStart = ContinuousClock.now
-                let (episodes, episodesByTier) = try await scheduleRepository.getUpcomingEpisodesWithTiers(for: shows)
-                let episodesDuration = ContinuousClock.now - episodesStart
+                let episodes = try await scheduleRepository.getUpcomingEpisodes(for: shows)
                 if Task.isCancelled { return }
 
                 items = episodes.compactMap { episode in
                     guard let show = showsByID[episode.showID] else { return nil }
                     return ScheduleItem(episode: episode, show: show)
                 }
-
-                lastLoadMetrics = ScheduleLoadMetrics(
-                    showsDuration: showsDuration,
-                    episodesDuration: episodesDuration,
-                    totalDuration: ContinuousClock.now - overallStart,
-                    showsByTier: showsByTier,
-                    episodesByTier: episodesByTier
-                )
             } catch {
                 if !Task.isCancelled {
                     errorMessage = String(localized: "Couldn't load your upcoming episodes. Check your connection and try again.")
@@ -115,7 +90,6 @@ final class ScheduleViewModel {
         loadTask = nil
         items = []
         errorMessage = nil
-        lastLoadMetrics = nil
         isLoading = false
     }
 

@@ -49,7 +49,7 @@ enum AppAppearance: String, CaseIterable, Identifiable {
     case light
     case dark
 
-    var id: String { rawValue }
+    var id: Self { self }
 
     var displayName: LocalizedStringKey {
         switch self {

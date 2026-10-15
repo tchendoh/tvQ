@@ -6,11 +6,15 @@ import AuthenticationServices
 /// (Firebase exige une connexion récente pour supprimer un compte), puis supprime.
 /// Au succès, le compte disparaît et RootView ramène l'app à LoginView.
 struct DeleteAccountView: View {
-    @Environment(AuthViewModel.self) private var authViewModel
     @Environment(\.dismiss) private var dismiss
+    @State private var viewModel: DeleteAccountViewModel
 
     @State private var password = ""
     @State private var showingFinalConfirmation = false
+
+    init(userID: String) {
+        _viewModel = State(initialValue: DeleteAccountViewModel(userID: userID))
+    }
 
     var body: some View {
         NavigationStack {
@@ -19,13 +23,13 @@ struct DeleteAccountView: View {
                     Text("This permanently deletes your account and the list of shows you follow. This can't be undone.")
                 }
 
-                if authViewModel.usesAppleSignIn {
+                if viewModel.usesAppleSignIn {
                     Section {
                         SignInWithAppleButton(
                             .continue,
-                            onRequest: authViewModel.prepareAppleReauthRequest,
+                            onRequest: viewModel.prepareAppleRequest,
                             onCompletion: { result in
-                                Task { await authViewModel.deleteAccount(withApple: result) }
+                                Task { await viewModel.deleteAccount(withApple: result) }
                             }
                         )
                         .signInWithAppleButtonStyle(.black)
@@ -49,7 +53,7 @@ struct DeleteAccountView: View {
                     }
                 }
 
-                if let message = authViewModel.deletionErrorMessage {
+                if let message = viewModel.errorMessage {
                     Section {
                         Text(message)
                             .foregroundStyle(.red)
@@ -63,9 +67,9 @@ struct DeleteAccountView: View {
                     Button("Cancel") { dismiss() }
                 }
             }
-            .disabled(authViewModel.isDeletingAccount)
+            .disabled(viewModel.isDeleting)
             .overlay {
-                if authViewModel.isDeletingAccount {
+                if viewModel.isDeleting {
                     ProgressView()
                         .padding(24)
                         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
@@ -77,18 +81,17 @@ struct DeleteAccountView: View {
                 titleVisibility: .visible
             ) {
                 Button("Delete Account", role: .destructive) {
-                    Task { await authViewModel.deleteAccount(password: password) }
+                    Task { await viewModel.deleteAccount(password: password) }
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
                 Text("This can't be undone.")
             }
         }
-        .interactiveDismissDisabled(authViewModel.isDeletingAccount)
+        .interactiveDismissDisabled(viewModel.isDeleting)
     }
 }
 
 #Preview {
-    DeleteAccountView()
-        .environment(AuthViewModel())
+    DeleteAccountView(userID: "preview")
 }

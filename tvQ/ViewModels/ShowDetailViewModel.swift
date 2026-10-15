@@ -20,8 +20,8 @@ final class ShowDetailViewModel {
 
     init(
         tmdbID: Int,
-        showRepository: ShowRepository = ShowRepository(),
-        scheduleRepository: ScheduleRepository = ScheduleRepository()
+        showRepository: ShowRepository = .shared,
+        scheduleRepository: ScheduleRepository = .shared
     ) {
         self.tmdbID = tmdbID
         self.showRepository = showRepository

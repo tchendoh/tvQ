@@ -7,13 +7,20 @@ struct TMDBService {
     private let networkService: NetworkService
     private let baseURL = URL(string: "https://api.themoviedb.org/3")!
 
-    /// Langue des réponses TMDB (format ISO, ex. "en-US", "fr-CA"), lue depuis les
-    /// préférences locales de l'utilisateur (voir AppSettings / SettingsView).
-    private let language: String
+    /// Langue imposée à la construction (tests) ; nil pour suivre le réglage.
+    private let languageOverride: String?
 
-    init(networkService: NetworkService = NetworkService(), language: String = AppSettings.contentLanguage) {
+    /// Langue des réponses TMDB (format ISO, ex. "en-US", "fr-CA"). Lue à chaque
+    /// requête plutôt qu'une fois à la construction : les repositories sont partagés
+    /// pour toute la durée de l'app, et un changement dans Settings doit s'appliquer
+    /// aux requêtes suivantes sans redémarrer.
+    private var language: String {
+        languageOverride ?? AppSettings.contentLanguage
+    }
+
+    init(networkService: NetworkService = NetworkService(), language: String? = nil) {
         self.networkService = networkService
-        self.language = language
+        self.languageOverride = language
     }
 
     /// Toutes les requêtes TMDB passent par ici : ajoute l'en-tête d'authentification

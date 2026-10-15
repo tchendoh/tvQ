@@ -17,8 +17,8 @@ final class FollowedShowsStore {
 
     init(
         userShowsService: UserShowsService = UserShowsService(),
-        showRepository: ShowRepository = ShowRepository(),
-        scheduleRepository: ScheduleRepository = ScheduleRepository()
+        showRepository: ShowRepository = .shared,
+        scheduleRepository: ScheduleRepository = .shared
     ) {
         self.userShowsService = userShowsService
         self.showRepository = showRepository

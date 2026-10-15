@@ -10,6 +10,11 @@ import Foundation
 /// et rafraîchie en arrière-plan, pour que résoudre ~100 séries suivies (Schedule,
 /// My Shows) ne bloque jamais l'écran sur le réseau.
 final class ShowRepository {
+    /// Instance unique partagée par tous les écrans : c'est ce qui permet à `inFlight`
+    /// de dédoublonner les requêtes d'un écran à l'autre. L'`init` reste public
+    /// pour injecter une autre instance dans les tests.
+    static let shared = ShowRepository()
+
     private let tmdbService: TMDBService
     private let tvmazeService: TVmazeService
     private let showStore: ShowStore
@@ -18,7 +23,7 @@ final class ShowRepository {
 
     /// Résolutions distantes déjà en cours, par clé de cache : deux écrans qui demandent
     /// la même série en même temps partagent un seul appel au lieu de le doubler.
-    private var inFlight: [String: Task<(show: Show, tier: CacheTier), Error>] = [:]
+    private var inFlight: [String: Task<Show, Error>] = [:]
 
     init(
         tmdbService: TMDBService = TMDBService(),
@@ -65,11 +70,6 @@ final class ShowRepository {
     // MARK: - Série complète
 
     func getShow(tmdbID: Int) async throws -> Show {
-        try await getShowWithTier(tmdbID: tmdbID).show
-    }
-
-    /// Même résultat que getShow, avec en plus d'où il vient (diagnostic de l'écran Schedule).
-    func getShowWithTier(tmdbID: Int) async throws -> (show: Show, tier: CacheTier) {
         // La clé inclut la langue effective : la copie Firestore est partagée entre
         // utilisateurs et le contenu (titre, résumé) est localisé.
         let cacheKey = "\(tmdbID)_\(AppSettings.cacheLanguageKey)"
@@ -79,14 +79,14 @@ final class ShowRepository {
             if !CachePolicy.local.isFresh(syncedAt: local.syncedAt, isEnded: isEnded) {
                 Task { _ = try? await self.resolveRemotely(tmdbID: tmdbID, cacheKey: cacheKey) }
             }
-            return (local.value, .local)
+            return local.value
         }
 
         return try await resolveRemotely(tmdbID: tmdbID, cacheKey: cacheKey)
     }
 
     /// Copie partagée puis TMDB/TVmaze, avec écriture dans les deux copies.
-    private func resolveRemotely(tmdbID: Int, cacheKey: String) async throws -> (show: Show, tier: CacheTier) {
+    private func resolveRemotely(tmdbID: Int, cacheKey: String) async throws -> Show {
         if let task = inFlight[cacheKey] {
             return try await task.value
         }
@@ -97,12 +97,12 @@ final class ShowRepository {
         return try await task.value
     }
 
-    private func loadFromSharedOrRemote(tmdbID: Int, cacheKey: String) async throws -> (show: Show, tier: CacheTier) {
+    private func loadFromSharedOrRemote(tmdbID: Int, cacheKey: String) async throws -> Show {
         if let shared = try? await sharedCache.show(cacheKey: cacheKey),
            CachePolicy.shared.isFresh(syncedAt: shared.syncedAt, isEnded: shared.value.status == .ended) {
             // On garde la date d'origine : une copie déjà vieille ne redevient pas "fraîche".
             try? await showStore.save(shared.value, cacheKey: cacheKey, syncedAt: shared.syncedAt)
-            return (shared.value, .shared)
+            return shared.value
         }
 
         let show = try await fetchShow(tmdbID: tmdbID)
@@ -112,7 +112,7 @@ final class ShowRepository {
         // Firestore) ne doit pas empêcher de retourner le résultat à l'utilisateur.
         try? await sharedCache.store(cacheKey: cacheKey, show: show, syncedAt: now)
         try? await showStore.save(show, cacheKey: cacheKey, syncedAt: now)
-        return (show, .remote)
+        return show
     }
 
     /// Appel direct aux APIs externes, sans passer par aucun cache.

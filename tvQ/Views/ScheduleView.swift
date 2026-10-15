@@ -6,7 +6,6 @@ import SwiftUI
 struct ScheduleView: View {
     @Environment(FollowedShowsStore.self) private var followedShowsStore
     @Environment(ScheduleViewModel.self) private var viewModel
-    @State private var showingDiagnostics = false
 
     var body: some View {
         NavigationStack {
@@ -85,24 +84,6 @@ struct ScheduleView: View {
                                     }
                                 } label: {
                                     Text("Today")
-                                }
-                            }
-                            // Diagnostic de performance du dernier chargement
-                            // (voir ScheduleLoadMetrics) — utile pour vérifier
-                            // que le cache fonctionne comme prévu sans sortir
-                            // Instruments. Masqué s'il n'y a encore rien à montrer.
-                            if viewModel.lastLoadMetrics != nil {
-                                ToolbarItem(placement: .topBarTrailing) {
-                                    Button {
-                                        showingDiagnostics = true
-                                    } label: {
-                                        Image(systemName: "info.circle")
-                                    }
-                                    .popover(isPresented: $showingDiagnostics) {
-                                        if let metrics = viewModel.lastLoadMetrics {
-                                            ScheduleDiagnosticsView(metrics: metrics)
-                                        }
-                                    }
                                 }
                             }
                         }
@@ -329,9 +310,8 @@ private struct ScheduleRow: View {
 
 /// Numéro d'épisode / repère "Premiere".
 ///
-/// Style "glass" (choisi le 2026-08-09 après comparaison dans TagStyleLabView,
-/// voir Debug/TagStyleLabView.swift pour les autres looks essayés — néon,
-/// glossy, métallique, minimaliste) : fond `.ultraThinMaterial`, contour
+/// Style "glass" (choisi le 2026-08-09 après comparaison avec d'autres looks :
+/// néon, glossy, métallique, minimaliste) : fond `.ultraThinMaterial`, contour
 /// teinté. Le numéro d'épisode utilise Color.emphasis (même noir #101010 /
 /// quasi-blanc adaptatif que le bloc "Aujourd'hui") ; "Premiere" utilise
 /// l'accent (rose), seule info à mériter vraiment de ressortir.
@@ -378,60 +358,6 @@ private struct EpisodeTag: View {
                 RoundedRectangle(cornerRadius: cornerRadius)
                     .strokeBorder(tintColor.opacity(0.5), lineWidth: 1)
             }
-    }
-}
-
-/// Résumé du dernier chargement de l'horaire — temps par étape et d'où
-/// viennent les données (cache local / Firestore partagé / API fraîche).
-/// Voir ScheduleLoadMetrics ; accessible via le bouton "i" de ScheduleView.
-private struct ScheduleDiagnosticsView: View {
-    let metrics: ScheduleLoadMetrics
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Last load")
-                .font(.headline)
-
-            row(
-                label: "Shows",
-                duration: metrics.showsDuration,
-                tiers: metrics.showsByTier
-            )
-            row(
-                label: "Episodes",
-                duration: metrics.episodesDuration,
-                tiers: metrics.episodesByTier
-            )
-
-            Divider()
-
-            HStack {
-                Text("Total")
-                    .fontWeight(.semibold)
-                Spacer()
-                Text(metrics.totalDuration.diagnosticDescription)
-                    .fontWeight(.semibold)
-            }
-        }
-        .padding()
-        .frame(minWidth: 260)
-        .presentationCompactAdaptation(.popover)
-    }
-
-    private func row(label: LocalizedStringKey, duration: Duration, tiers: ScheduleLoadMetrics.TierBreakdown) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(label)
-                Spacer()
-                Text(duration.diagnosticDescription)
-                    .foregroundStyle(.secondary)
-            }
-            if tiers.total > 0 {
-                Text("\(tiers.local) local · \(tiers.shared) shared · \(tiers.remote) fresh")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
     }
 }
 

@@ -2,6 +2,9 @@ import SwiftUI
 
 struct SearchView: View {
     @State private var viewModel = SearchViewModel()
+    /// Largeur minimale d'une carte, qui grandit avec la taille du texte choisie
+    /// dans les réglages d'accessibilité.
+    @ScaledMetric(relativeTo: .body) private var cardMinimumWidth = ShowCardView.baseMinimumWidth
     @Environment(FollowedShowsStore.self) private var followedShowsStore
 
     var body: some View {
@@ -62,10 +65,8 @@ struct SearchView: View {
         }
     }
 
-    // minimum 150 force 2 colonnes sur iPhone (3 ne rentrent plus) — plus d'air,
-    // affiches plus grandes et plus lisibles.
     private var gridColumns: [GridItem] {
-        [GridItem(.adaptive(minimum: 150, maximum: 200), spacing: 24)]
+        ShowCardView.gridColumns(minimumWidth: cardMinimumWidth)
     }
 
     // Un vrai Binding, pas .constant() : fermer l'alerte doit pouvoir réinitialiser
