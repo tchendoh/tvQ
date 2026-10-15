@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @Environment(AuthViewModel.self) private var authViewModel
+    @Environment(SessionStore.self) private var session
 
     @AppStorage(AppSettings.Keys.appearance)
     private var appearance: AppAppearance = .system
@@ -17,10 +17,11 @@ struct SettingsView: View {
 
     @State private var didClearCache = false
     @State private var showingDeleteAccount = false
+    @State private var signOutFailed = false
 
     var body: some View {
         Form {
-            if let user = authViewModel.currentUser {
+            if let user = session.currentUser {
                 Section {
                     Text(user.displayName ?? user.email)
                 }
@@ -84,13 +85,16 @@ struct SettingsView: View {
 
             Section {
                 Button("Sign Out", role: .destructive) {
-                    authViewModel.signOut()
+                    do {
+                        try session.signOut()
+                    } catch {
+                        signOutFailed = true
+                    }
                 }
             }
 
             Section {
                 Button("Delete Account", role: .destructive) {
-                    authViewModel.clearDeletionError()
                     showingDeleteAccount = true
                 }
             } footer: {
@@ -115,7 +119,12 @@ struct SettingsView: View {
         }
         .navigationTitle("Settings")
         .sheet(isPresented: $showingDeleteAccount) {
-            DeleteAccountView()
+            if let user = session.currentUser {
+                DeleteAccountView(userID: user.id)
+            }
+        }
+        .alert("Sign out failed.", isPresented: $signOutFailed) {
+            Button("OK", role: .cancel) {}
         }
     }
 
@@ -135,5 +144,5 @@ struct SettingsView: View {
     NavigationStack {
         SettingsView()
     }
-    .environment(AuthViewModel())
+    .environment(SessionStore())
 }

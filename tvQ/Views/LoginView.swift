@@ -2,7 +2,7 @@ import SwiftUI
 import AuthenticationServices
 
 struct LoginView: View {
-    @Bindable var viewModel: AuthViewModel
+    @State private var viewModel = LoginViewModel()
 
     var body: some View {
         NavigationStack {
@@ -40,7 +40,7 @@ struct LoginView: View {
                     }
 
                     Button {
-                        viewModel.submit()
+                        Task { await viewModel.submit() }
                     } label: {
                         if viewModel.isLoading {
                             ProgressView()
@@ -70,9 +70,9 @@ struct LoginView: View {
                     }
 
                     SignInWithAppleButton(.signIn) { request in
-                        viewModel.prepareAppleSignInRequest(request)
+                        viewModel.prepareAppleRequest(request)
                     } onCompletion: { result in
-                        viewModel.handleAppleSignInResult(result)
+                        Task { await viewModel.signInWithApple(result) }
                     }
                     .signInWithAppleButtonStyle(.black)
                     .frame(height: 50)
@@ -99,5 +99,5 @@ struct LoginView: View {
 }
 
 #Preview {
-    LoginView(viewModel: AuthViewModel())
+    LoginView()
 }

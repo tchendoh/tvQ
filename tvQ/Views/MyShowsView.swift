@@ -78,6 +78,6 @@ struct MyShowsView: View {
 
 #Preview {
     MyShowsView()
-        .environment(AuthViewModel())
+        .environment(SessionStore())
         .environment(FollowedShowsStore())
 }
