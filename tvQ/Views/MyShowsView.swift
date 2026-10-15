@@ -3,6 +3,9 @@ import SwiftUI
 struct MyShowsView: View {
     @Environment(FollowedShowsStore.self) private var followedShowsStore
     @State private var viewModel = MyShowsViewModel()
+    /// Largeur minimale d'une carte, qui grandit avec la taille du texte choisie
+    /// dans les réglages d'accessibilité.
+    @ScaledMetric(relativeTo: .body) private var cardMinimumWidth = ShowCardView.baseMinimumWidth
 
     var body: some View {
         NavigationStack {
@@ -72,7 +75,7 @@ struct MyShowsView: View {
     }
 
     private var gridColumns: [GridItem] {
-        [GridItem(.adaptive(minimum: 150, maximum: 200), spacing: 24)]
+        ShowCardView.gridColumns(minimumWidth: cardMinimumWidth)
     }
 }
 
