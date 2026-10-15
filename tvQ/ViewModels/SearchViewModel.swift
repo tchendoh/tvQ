@@ -14,7 +14,7 @@ final class SearchViewModel {
     private let showRepository: ShowRepository
     private var searchTask: Task<Void, Never>?
 
-    init(showRepository: ShowRepository = ShowRepository()) {
+    init(showRepository: ShowRepository = .shared) {
         self.showRepository = showRepository
     }
 

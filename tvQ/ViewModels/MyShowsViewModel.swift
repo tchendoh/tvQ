@@ -21,8 +21,8 @@ final class MyShowsViewModel {
     private var scheduleTask: Task<Void, Never>?
 
     init(
-        showRepository: ShowRepository = ShowRepository(),
-        scheduleRepository: ScheduleRepository = ScheduleRepository()
+        showRepository: ShowRepository = .shared,
+        scheduleRepository: ScheduleRepository = .shared
     ) {
         self.showRepository = showRepository
         self.scheduleRepository = scheduleRepository

@@ -10,6 +10,11 @@ import Foundation
 /// et rafraîchie en arrière-plan, pour que résoudre ~100 séries suivies (Schedule,
 /// My Shows) ne bloque jamais l'écran sur le réseau.
 final class ShowRepository {
+    /// Instance unique partagée par tous les écrans : c'est ce qui permet à `inFlight`
+    /// de dédoublonner les requêtes d'un écran à l'autre. L'`init` reste public
+    /// pour injecter une autre instance dans les tests.
+    static let shared = ShowRepository()
+
     private let tmdbService: TMDBService
     private let tvmazeService: TVmazeService
     private let showStore: ShowStore

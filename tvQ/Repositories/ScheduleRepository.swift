@@ -10,6 +10,11 @@ import Foundation
 /// chargeant tous les épisodes de chaque série : elle est lue d'un seul coup dans le
 /// store par une requête sur la date (voir getUpcomingEpisodes).
 final class ScheduleRepository {
+    /// Instance unique partagée par tous les écrans : c'est ce qui permet à `inFlight`
+    /// de dédoublonner les requêtes d'un écran à l'autre. L'`init` reste public
+    /// pour injecter une autre instance dans les tests.
+    static let shared = ScheduleRepository()
+
     private let tmdbService: TMDBService
     private let tvmazeService: TVmazeService
     private let episodeStore: EpisodeStore
