@@ -47,8 +47,7 @@ struct ShowCardView: View {
     }
 }
 
-/// Look "glass" (choisi le 2026-08-09 après comparaison dans
-/// Debug/TagStyleLabView.swift, section "Follow Icon") : fond
+/// Look "glass" (choisi le 2026-08-09 après comparaison avec d'autres looks) : fond
 /// `.ultraThinMaterial` circulaire, contour teinté selon l'état — remplace
 /// l'ancien carré noir plein. Icône + couleur toujours dérivées de FollowIcon,
 /// pour rester la seule source de vérité sur cette apparence ; ici sans état

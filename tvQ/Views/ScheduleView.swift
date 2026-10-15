@@ -310,9 +310,8 @@ private struct ScheduleRow: View {
 
 /// Numéro d'épisode / repère "Premiere".
 ///
-/// Style "glass" (choisi le 2026-08-09 après comparaison dans TagStyleLabView,
-/// voir Debug/TagStyleLabView.swift pour les autres looks essayés — néon,
-/// glossy, métallique, minimaliste) : fond `.ultraThinMaterial`, contour
+/// Style "glass" (choisi le 2026-08-09 après comparaison avec d'autres looks :
+/// néon, glossy, métallique, minimaliste) : fond `.ultraThinMaterial`, contour
 /// teinté. Le numéro d'épisode utilise Color.emphasis (même noir #101010 /
 /// quasi-blanc adaptatif que le bloc "Aujourd'hui") ; "Premiere" utilise
 /// l'accent (rose), seule info à mériter vraiment de ressortir.

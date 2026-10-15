@@ -73,16 +73,6 @@ struct SettingsView: View {
                 }
             }
 
-            // TEMPORAIRE — retirer cette section une fois les styles choisis
-            // pour EpisodeTag et FollowIcon (voir TagStyleLabView).
-            Section {
-                NavigationLink("Style Lab") {
-                    TagStyleLabView()
-                }
-            } footer: {
-                Text("Temporary — testing different looks for episode tags and the follow icon.")
-            }
-
             Section {
                 Button("Sign Out", role: .destructive) {
                     do {

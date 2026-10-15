@@ -98,7 +98,6 @@ Contexte : `Config/Secrets.xcconfig` alimente `Config/Secrets.generated.swift`, 
 
 Retailles trouvées en parcourant le projet. Rien de bloquant.
 
-- [ ] **Style Lab** : retirer `Debug/TagStyleLabView.swift` (une dizaine de types `Lab...`) et la section « Style Lab » de `SettingsView`, marquée TEMPORAIRE. Le style « glass » a été choisi le 2026-08-09. Sinon, l'envelopper dans `#if DEBUG` pour qu'elle ne parte pas dans les builds TestFlight.
 - [ ] **Tests de gabarit Xcode** : `tvQTests.swift`, `tvQUITests.swift` et `tvQUITestsLaunchTests.swift` sont des squelettes générés. Les vrais tests sont `CachePolicyTests` et `LocalStoresTests`.
 - [ ] **`ContentView.swift`** : simple enveloppe autour de `RootView`, encore instanciée par `tvQApp`. Vérifier si elle sert à quelque chose, sinon lancer `RootView` directement.
 - [ ] **`AccentColor`** : la couleur n'est référencée nulle part dans le code (utilisée implicitement par `Color.accentColor` et le réglage de build, donc ne pas la supprimer sans vérifier).
