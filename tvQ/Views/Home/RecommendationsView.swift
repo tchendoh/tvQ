@@ -5,9 +5,9 @@ import SwiftUI
 /// pas des métriques propres à tvQ.
 ///
 /// Contient tout le contenu de la page (chargement, états, grilles), mais aucune
-/// navigation : les cartes produisent des `NavigationLink(value:)` vers un
-/// `ShowSummary`, et c'est l'écran qui l'accueille (HomeView) qui fournit la
-/// NavigationStack, le titre et la destination. La page peut ainsi devenir un
+/// navigation : les cartes ouvrent la fiche dans un sheet (voir
+/// ShowDetailSheet.swift), et c'est l'écran qui l'accueille
+/// (HomeView) qui fournit la NavigationStack et le titre. La page peut ainsi devenir un
 /// panneau dans une mise en page plus large (une ArrangementView, par exemple).
 struct RecommendationsView: View {
     @State private var viewModel = HomeViewModel()
@@ -15,6 +15,7 @@ struct RecommendationsView: View {
     /// dans les réglages d'accessibilité.
     @ScaledMetric(relativeTo: .body) private var cardMinimumWidth = ShowCardView.baseMinimumWidth
     @Environment(FollowedShowsStore.self) private var followedShowsStore
+    @State private var selectedTMDBID: Int?
 
     var body: some View {
         Group {
@@ -45,6 +46,7 @@ struct RecommendationsView: View {
             }
         }
         .task { viewModel.load() }
+        .presentsShowDetailSheet(tmdbID: $selectedTMDBID)
     }
 
     @ViewBuilder
@@ -70,7 +72,7 @@ struct RecommendationsView: View {
                     // reste affichée qu'elle soit suivie ou non — le badge peut
                     // donc rester tapable sans ce risque.
                     let showID = String(summary.tmdbID)
-                    NavigationLink(value: summary) {
+                    Button { selectedTMDBID = summary.tmdbID } label: {
                         ShowCardView(
                             title: summary.title,
                             posterURL: summary.posterURL,

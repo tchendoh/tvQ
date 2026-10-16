@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SearchView: View {
     @State private var viewModel = SearchViewModel()
+    @State private var selectedTMDBID: Int?
     /// Largeur minimale d'une carte, qui grandit avec la taille du texte choisie
     /// dans les réglages d'accessibilité.
     @ScaledMetric(relativeTo: .body) private var cardMinimumWidth = ShowCardView.baseMinimumWidth
@@ -22,7 +23,7 @@ struct SearchView: View {
                     ScrollView {
                         EvenGrid(items: viewModel.results, minimumWidth: cardMinimumWidth) { summary in
                             let showID = String(summary.tmdbID)
-                            NavigationLink(value: summary) {
+                            Button { selectedTMDBID = summary.tmdbID } label: {
                                 ShowCardView(
                                     title: summary.title,
                                     posterURL: summary.posterURL,
@@ -37,6 +38,7 @@ struct SearchView: View {
                 }
             }
             .navigationTitle("Search")
+            .presentsShowDetailSheet(tmdbID: $selectedTMDBID)
             .searchable(text: $viewModel.query, prompt: "Show title")
             .onChange(of: viewModel.query) {
                 viewModel.search()
@@ -55,9 +57,6 @@ struct SearchView: View {
                 Button("OK") { viewModel.dismissError() }
             } message: { message in
                 Text(message)
-            }
-            .navigationDestination(for: ShowSummary.self) { summary in
-                ShowDetailView(tmdbID: summary.tmdbID)
             }
             .settingsToolbarItem()
         }

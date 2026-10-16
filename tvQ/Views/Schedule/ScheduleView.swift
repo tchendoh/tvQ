@@ -6,6 +6,7 @@ import SwiftUI
 struct ScheduleView: View {
     @Environment(FollowedShowsStore.self) private var followedShowsStore
     @Environment(ScheduleViewModel.self) private var viewModel
+    @State private var selectedTMDBID: Int?
 
     var body: some View {
         NavigationStack {
@@ -43,7 +44,7 @@ struct ScheduleView: View {
                                                         Divider()
                                                             .padding(.vertical, 10)
                                                     }
-                                                    NavigationLink(value: group.show) {
+                                                    Button { selectedTMDBID = group.show.tmdbID } label: {
                                                         ScheduleRow(group: group)
                                                     }
                                                     .buttonStyle(.plain)
@@ -91,10 +92,8 @@ struct ScheduleView: View {
                 }
             }
             .navigationTitle("Schedule")
+            .presentsShowDetailSheet(tmdbID: $selectedTMDBID)
             .settingsToolbarItem()
-            .navigationDestination(for: Show.self) { show in
-                ShowDetailView(tmdbID: show.tmdbID)
-            }
         }
     }
 
@@ -271,12 +270,6 @@ private struct ScheduleRow: View {
                 Text(group.show.title)
                     .font(.headline)
 
-                // Reprise de l'ancienne version de tvQ (tvQ-legacy) : un tag par
-                // épisode plutôt qu'un résumé texte ("Saison X — N épisodes") —
-                // reste lisible même quand une saison complète sort le même jour.
-                // Une ligne par épisode (plutôt qu'un flow horizontal qui wrap) :
-                // "Premiere" reste collé au tag d'épisode correspondant, pas
-                // poussé à l'autre bout de la ligne.
                 VStack(alignment: .leading, spacing: 4) {
                     ForEach(group.episodeNumbers, id: \.self) { episodeNumber in
                         HStack(spacing: 8) {

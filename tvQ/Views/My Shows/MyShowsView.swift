@@ -3,6 +3,7 @@ import SwiftUI
 struct MyShowsView: View {
     @Environment(FollowedShowsStore.self) private var followedShowsStore
     @State private var viewModel = MyShowsViewModel()
+    @State private var selectedTMDBID: Int?
     /// Largeur minimale d'une carte, qui grandit avec la taille du texte choisie
     /// dans les réglages d'accessibilité.
     @ScaledMetric(relativeTo: .body) private var cardMinimumWidth = ShowCardView.baseMinimumWidth
@@ -32,10 +33,8 @@ struct MyShowsView: View {
                 }
             }
             .navigationTitle("My Shows")
+            .presentsShowDetailSheet(tmdbID: $selectedTMDBID)
             .settingsToolbarItem()
-            .navigationDestination(for: Show.self) { show in
-                ShowDetailView(tmdbID: show.tmdbID)
-            }
             .task(id: followedShowsStore.followedShowIDs) {
                 viewModel.load(showIDs: followedShowsStore.followedShowIDs)
             }
@@ -55,7 +54,7 @@ struct MyShowsView: View {
                     .padding(.horizontal, 20)
 
                 EvenGrid(items: shows, minimumWidth: cardMinimumWidth) { show in
-                    NavigationLink(value: show) {
+                    Button { selectedTMDBID = show.tmdbID } label: {
                         ShowCardView(
                             title: show.title,
                             posterURL: show.posterURL,
