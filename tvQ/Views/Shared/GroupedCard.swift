@@ -15,7 +15,7 @@ extension Color {
 }
 
 /// Bloc visuel générique : un en-tête et un contenu regroupés dans un même
-/// conteneur délimité (fond, coins arrondis, bordure d'accent optionnelle).
+/// conteneur délimité (fond, coins arrondis, contour discret, accentué si en évidence).
 ///
 /// Vocabulaire visuel commun pour toute vue qui a besoin de regrouper des
 /// éléments sous une même unité clairement délimitée (ex. les jours de
@@ -43,9 +43,12 @@ struct GroupedCard<Header: View, Content: View>: View {
                 .padding(.vertical, 10)
         }
         .background(.background.secondary, in: RoundedRectangle(cornerRadius: cornerRadius))
+        // Même contour pour toutes les cartes, seule l'intensité change : le bloc
+        // en évidence (ex. "Aujourd'hui") garde un contraste nettement plus fort
+        // pour ressortir parmi les autres.
         .overlay {
             RoundedRectangle(cornerRadius: cornerRadius)
-                .strokeBorder(isHighlighted ? Color.emphasis.opacity(0.6) : .clear, lineWidth: 1.5)
+                .strokeBorder(Color.emphasis.opacity(isHighlighted ? 0.6 : 0.15), lineWidth: 1.5)
         }
     }
 }
