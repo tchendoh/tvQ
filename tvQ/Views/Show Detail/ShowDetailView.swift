@@ -3,28 +3,48 @@ import SwiftUI
 struct ShowDetailView: View {
     @Environment(FollowedShowsStore.self) private var followedShowsStore
     @State private var viewModel: ShowDetailViewModel
+    /// Vrai une fois l'image d'en-tête sortie de l'écran : le titre réapparaît
+    /// alors, en petit, dans la barre de navigation (il est déjà affiché en gros
+    /// sur l'image tant qu'elle est visible).
+    @State private var isHeroScrolledAway = false
+
+    /// Hauteur de l'image d'en-tête.
+    private let heroHeight: CGFloat = 300
+
+    /// La série affichée. Peut changer pendant que la vue reste à l'écran (sheet
+    /// non modal) : le chargement suit via .task(id: tmdbID), plutôt que d'être
+    /// figé par le view model créé une seule fois dans l'init (un @State n'est
+    /// initialisé qu'à la première création de la vue).
+    let tmdbID: Int
 
     init(tmdbID: Int) {
+        self.tmdbID = tmdbID
         _viewModel = State(initialValue: ShowDetailViewModel(tmdbID: tmdbID))
     }
 
     var body: some View {
         Group {
+            // Le ProgressView est le cas par défaut, pas seulement quand isLoading
+            // est vrai : avant que .task ne démarre le chargement, aucune des
+            // conditions n'est remplie. Un Group vide ne produit aucune vue, et
+            // les modificateurs qui le suivent (.task, .navigationTitle,
+            // .toolbar) n'ont alors rien à quoi s'accrocher : le chargement ne
+            // démarrait jamais et le sheet restait vide.
             if let show = viewModel.show {
                 content(for: show)
-            } else if viewModel.isLoading {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let errorMessage = viewModel.errorMessage {
                 ContentUnavailableView(
                     "Error",
                     systemImage: "wifi.slash",
                     description: Text(errorMessage)
                 )
+            } else {
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .task { viewModel.load() }
-        .navigationTitle(viewModel.show?.title ?? "")
+        .task(id: tmdbID) { viewModel.load(tmdbID: tmdbID) }
+        .navigationTitle(isHeroScrolledAway ? (viewModel.show?.title ?? "") : "")
         .navigationBarTitleDisplayMode(.inline)
     }
 
@@ -35,9 +55,6 @@ struct ShowDetailView: View {
                 header(for: show)
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(show.title)
-                        .font(.title2.bold())
-
                     HStack(spacing: 8) {
                         Text(show.status.displayName)
                             .font(.caption.weight(.semibold))
@@ -102,7 +119,16 @@ struct ShowDetailView: View {
                     seasonsSection
                 }
             }
-            .padding(.vertical)
+            .padding(.bottom)
+        }
+        // L'image passe sous la barre de navigation, comme dans l'app TV et
+        // l'exemple Landmarks d'Apple : les boutons de la barre flottent en
+        // Liquid Glass par-dessus, au lieu d'un bandeau blanc au-dessus.
+        .ignoresSafeArea(edges: .top)
+        .onScrollGeometryChange(for: Bool.self) { geometry in
+            geometry.contentOffset.y + geometry.contentInsets.top > heroHeight - 80
+        } action: { _, scrolledAway in
+            isHeroScrolledAway = scrolledAway
         }
     }
 
@@ -144,24 +170,61 @@ struct ShowDetailView: View {
     }
 
     @ViewBuilder
+    /// En-tête pleine largeur : l'image, le titre en gros sur un dégradé, et le
+    /// badge de suivi.
     private func header(for show: Show) -> some View {
         RetryingAsyncImage(url: show.backdropURL ?? show.posterURL) { image in
             image.resizable().aspectRatio(contentMode: .fill)
         } placeholder: {
             Rectangle().fill(.secondary.opacity(0.2))
         }
-        .frame(height: 200)
+        // maxWidth : l'en-tête prend toute la largeur offerte.
+        // minWidth: 0 : indispensable. Sans minimum, le cadre garde la largeur
+        // que réclame l'image en .fill pour couvrir 300 pt de haut (~533 pt
+        // pour un backdrop 16:9), même dans un sheet plus étroit. L'en-tête
+        // débordait alors, et tout le VStack s'élargissait avec lui (textes
+        // coupés sur les bords). Même réglage que LandmarkDetailView d'Apple.
+        .frame(minWidth: 0, maxWidth: .infinity)
+        .frame(height: heroHeight)
         .clipped()
-        // Même badge que sur les cartes (ShowCardView), dans le coin de l'image
-        // d'entête. Hors de la barre d'outils : les éléments de barre sont
-        // hébergés par UIKit et reconstruits à chaque changement d'état, ce qui
-        // empêchait l'animation du symbole (transition + rebond) de se jouer.
-        .overlay(alignment: .topTrailing) {
-            FollowBadge(
-                isFollowed: followedShowsStore.isFollowing(show.id),
-                action: { followedShowsStore.toggle(showID: show.id) }
+        // Prolonge l'image, étirée et floutée, sous les barres latérales (ex.
+        // la barre verticale d'un sheet sur l'iPhone Duo) au lieu d'y laisser
+        // du blanc. Même technique que l'exemple Landmarks d'Apple, et au même
+        // endroit : avant les overlays, pour que seule l'image soit prolongée
+        // (pas le dégradé, le titre ni le badge).
+        .backgroundExtensionEffect()
+        // Dégradé sous le titre pour qu'il reste lisible sur n'importe quelle
+        // image.
+        .overlay {
+            LinearGradient(
+                colors: [.clear, .black.opacity(0.75)],
+                startPoint: .center,
+                endPoint: .bottom
             )
-            .padding(12)
+        }
+        .overlay(alignment: .bottomLeading) {
+            HStack(alignment: .bottom, spacing: 12) {
+                Text(show.title)
+                    .font(.largeTitle.bold())
+                    .foregroundStyle(.white)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.7)
+                    .shadow(radius: 4)
+
+                Spacer(minLength: 0)
+
+                // Même badge que sur les cartes (ShowCardView). Hors de la barre
+                // d'outils : les éléments de barre sont hébergés par UIKit et
+                // reconstruits à chaque changement d'état, ce qui empêchait
+                // l'animation du symbole (transition + rebond) de se jouer. En
+                // bas de l'image plutôt qu'en haut : le haut passe maintenant
+                // sous la barre de navigation.
+                FollowBadge(
+                    isFollowed: followedShowsStore.isFollowing(show.id),
+                    action: { followedShowsStore.toggle(showID: show.id) }
+                )
+            }
+            .padding()
         }
     }
 

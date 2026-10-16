@@ -12,7 +12,7 @@ final class ShowDetailViewModel {
     private(set) var isLoading = false
     private(set) var errorMessage: String?
 
-    let tmdbID: Int
+    private(set) var tmdbID: Int
 
     private let showRepository: ShowRepository
     private let scheduleRepository: ScheduleRepository
@@ -32,12 +32,32 @@ final class ShowDetailViewModel {
         episodesBySeason.keys.sorted()
     }
 
+    /// Passe à une autre série : annule le chargement en cours et repart d'un
+    /// état vide, puis charge. Appelée depuis .task(id: tmdbID) sur la vue,
+    /// donc à l'apparition ET chaque fois que la série affichée change (ex.
+    /// sheet non modal qui reste ouvert pendant qu'on touche une autre série).
+    func load(tmdbID newTMDBID: Int) {
+        if newTMDBID != tmdbID {
+            loadTask?.cancel()
+            tmdbID = newTMDBID
+            show = nil
+            episodesBySeason = [:]
+            watchAvailability = nil
+            errorMessage = nil
+            isLoading = false
+        }
+        load()
+    }
+
     /// Appelée depuis .task sur la vue. Charge la série puis ses épisodes ;
     /// un échec sur les épisodes n'empêche pas d'afficher les métadonnées déjà résolues.
     func load() {
         guard show == nil, !isLoading else { return }
 
         loadTask?.cancel()
+        // Copie locale : si la série change pendant le chargement, cette tâche
+        // (annulée) ne doit pas utiliser le nouvel identifiant.
+        let tmdbID = tmdbID
         loadTask = Task {
             isLoading = true
             errorMessage = nil
@@ -59,7 +79,9 @@ final class ShowDetailViewModel {
 
             // Best-effort, sans bloquer ni faire échouer l'affichage de la fiche :
             // un problème réseau ici ne doit pas cacher les métadonnées déjà chargées.
-            watchAvailability = await showRepository.getWatchAvailability(tmdbID: tmdbID)
+            let availability = await showRepository.getWatchAvailability(tmdbID: tmdbID)
+            guard !Task.isCancelled else { return }
+            watchAvailability = availability
         }
     }
 }

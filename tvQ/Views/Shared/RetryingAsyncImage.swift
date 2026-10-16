@@ -27,6 +27,17 @@ struct RetryingAsyncImage<Content: View, Placeholder: View>: View {
     @State private var image: UIImage?
     @State private var attempt = 0
     @State private var failed = false
+    /// URL de l'image actuellement affichée : sert à repartir de zéro quand
+    /// l'URL change alors que la vue reste à l'écran.
+    @State private var loadedURL: URL?
+
+    /// Identifiant de la tâche de chargement : l'URL ET la tentative. Avec la
+    /// tentative seule, un changement d'URL ne relançait rien et l'ancienne
+    /// image restait affichée.
+    private struct LoadKey: Equatable {
+        let url: URL?
+        let attempt: Int
+    }
 
     var body: some View {
         Group {
@@ -36,7 +47,11 @@ struct RetryingAsyncImage<Content: View, Placeholder: View>: View {
                 placeholder()
             }
         }
-        .task(id: attempt) {
+        .task(id: LoadKey(url: url, attempt: attempt)) {
+            if loadedURL != url {
+                image = nil
+                loadedURL = url
+            }
             guard image == nil else { return }
             await load()
         }
