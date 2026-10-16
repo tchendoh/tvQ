@@ -6,11 +6,20 @@ extension Color {
     /// quasi noir (#101010) en mode clair, quasi blanc en mode sombre, pour
     /// garder le même "genre" de contraste fort dans les deux thèmes.
     static var emphasis: Color {
-        Color(UIColor { traits in
-            traits.userInterfaceStyle == .dark
-                ? UIColor(white: 0.93, alpha: 1)
-                : UIColor(red: 0x10 / 255, green: 0x10 / 255, blue: 0x10 / 255, alpha: 1)
-        })
+        Color(UIColor(dynamicProvider: emphasisColor(for:)))
+    }
+
+    /// Résolution de la couleur selon le thème. Fonction nonisolated plutôt
+    /// qu'une closure : le projet isole tout au MainActor par défaut, et une
+    /// closure écrite ici le serait aussi. Or SwiftUI résout les couleurs
+    /// dynamiques hors du fil principal pendant certaines animations (ex.
+    /// l'effet de symbole de FollowIcon, rendu sur
+    /// com.apple.SwiftUI.AsyncRenderer) : le contrôle d'isolation de Swift 6
+    /// faisait alors planter l'app au toucher du bouton de suivi.
+    nonisolated private static func emphasisColor(for traits: UITraitCollection) -> UIColor {
+        traits.userInterfaceStyle == .dark
+            ? UIColor(white: 0.93, alpha: 1)
+            : UIColor(red: 0x10 / 255, green: 0x10 / 255, blue: 0x10 / 255, alpha: 1)
     }
 }
 

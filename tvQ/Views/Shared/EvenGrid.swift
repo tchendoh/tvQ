@@ -35,15 +35,23 @@ where Data.Element: Identifiable {
         Array(repeating: GridItem(.flexible(), spacing: spacing, alignment: .top), count: columnCount)
     }
 
+    nonisolated private static func width(of proxy: GeometryProxy) -> CGFloat {
+        proxy.size.width
+    }
+
     var body: some View {
         LazyVGrid(columns: columns, spacing: spacing) {
             ForEach(items) { item in
                 cell(item)
             }
         }
-        .onGeometryChange(for: CGFloat.self) { proxy in
-            proxy.size.width
-        } action: { newWidth in
+        // Référence à une fonction nonisolated plutôt qu'une closure : le projet
+        // isole tout au MainActor par défaut, donc une closure écrite ici serait
+        // isolée au MainActor. Or SwiftUI peut appeler la transformation hors
+        // du fil principal (ex. rendu asynchrone d'une animation) : le contrôle
+        // d'isolation de Swift 6 faisait alors planter l'app
+        // (_dispatch_assert_queue_fail sur com.apple.SwiftUI.AsyncRenderer).
+        .onGeometryChange(for: CGFloat.self, of: Self.width(of:)) { newWidth in
             availableWidth = newWidth
         }
     }

@@ -20,6 +20,11 @@ extension View {
         )) {
             ShowDetailSheet(tmdbID: tmdbID)
         }
+        // L'écran qui présente le sheet disparaît (changement d'onglet, écran
+        // poussé par-dessus comme les Réglages) : la fiche n'a plus de
+        // contexte, on la ferme. Chaque écran gère ainsi son propre sheet sans
+        // rien savoir des onglets.
+        .onDisappear { tmdbID.wrappedValue = nil }
     }
 }
 

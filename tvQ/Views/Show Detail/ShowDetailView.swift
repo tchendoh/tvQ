@@ -9,7 +9,8 @@ struct ShowDetailView: View {
     @State private var isHeroScrolledAway = false
 
     /// Hauteur de l'image d'en-tête.
-    private let heroHeight: CGFloat = 300
+    nonisolated private static let heroHeight: CGFloat = 300
+
 
     /// La série affichée. Peut changer pendant que la vue reste à l'écran (sheet
     /// non modal) : le chargement suit via .task(id: tmdbID), plutôt que d'être
@@ -125,11 +126,16 @@ struct ShowDetailView: View {
         // l'exemple Landmarks d'Apple : les boutons de la barre flottent en
         // Liquid Glass par-dessus, au lieu d'un bandeau blanc au-dessus.
         .ignoresSafeArea(edges: .top)
-        .onScrollGeometryChange(for: Bool.self) { geometry in
-            geometry.contentOffset.y + geometry.contentInsets.top > heroHeight - 80
-        } action: { _, scrolledAway in
+        // Fonction nonisolated plutôt qu'une closure : voir EvenGrid (la
+        // transformation peut être appelée hors du fil principal).
+        .onScrollGeometryChange(for: Bool.self, of: Self.isHeroScrolledAway(_:)) { _, scrolledAway in
             isHeroScrolledAway = scrolledAway
         }
+    }
+
+    /// Vrai une fois l'image d'en-tête presque sortie de l'écran.
+    nonisolated private static func isHeroScrolledAway(_ geometry: ScrollGeometry) -> Bool {
+        geometry.contentOffset.y + geometry.contentInsets.top > heroHeight - 80
     }
 
     // Texte seulement — pas les logos des diffuseurs/JustWatch, jugés pas assez
@@ -185,7 +191,7 @@ struct ShowDetailView: View {
         // débordait alors, et tout le VStack s'élargissait avec lui (textes
         // coupés sur les bords). Même réglage que LandmarkDetailView d'Apple.
         .frame(minWidth: 0, maxWidth: .infinity)
-        .frame(height: heroHeight)
+        .frame(height: Self.heroHeight)
         .clipped()
         // Prolonge l'image, étirée et floutée, sous les barres latérales (ex.
         // la barre verticale d'un sheet sur l'iPhone Duo) au lieu d'y laisser
