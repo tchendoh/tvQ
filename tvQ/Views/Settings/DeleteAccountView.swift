@@ -10,7 +10,7 @@ struct DeleteAccountView: View {
     @State private var viewModel: DeleteAccountViewModel
 
     @State private var password = ""
-    @State private var showingFinalConfirmation = false
+    @State private var isPresentingFinalConfirmation = false
 
     init(userID: String) {
         _viewModel = State(initialValue: DeleteAccountViewModel(userID: userID))
@@ -47,7 +47,7 @@ struct DeleteAccountView: View {
 
                     Section {
                         Button("Delete My Account", role: .destructive) {
-                            showingFinalConfirmation = true
+                            isPresentingFinalConfirmation = true
                         }
                         .disabled(password.isEmpty)
                     }
@@ -77,7 +77,7 @@ struct DeleteAccountView: View {
             }
             .confirmationDialog(
                 "Delete your account?",
-                isPresented: $showingFinalConfirmation,
+                isPresented: $isPresentingFinalConfirmation,
                 titleVisibility: .visible
             ) {
                 Button("Delete Account", role: .destructive) {

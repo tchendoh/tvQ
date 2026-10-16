@@ -16,7 +16,7 @@ struct SettingsView: View {
     private var watchProviderRegion: String = WatchProviderRegion.canada.rawValue
 
     @State private var didClearCache = false
-    @State private var showingDeleteAccount = false
+    @State private var isPresentingDeleteAccount = false
     @State private var signOutFailed = false
 
     var body: some View {
@@ -85,7 +85,7 @@ struct SettingsView: View {
 
             Section {
                 Button("Delete Account", role: .destructive) {
-                    showingDeleteAccount = true
+                    isPresentingDeleteAccount = true
                 }
             } footer: {
                 Text("Permanently deletes your account and the shows you follow.")
@@ -108,7 +108,7 @@ struct SettingsView: View {
             }
         }
         .navigationTitle("Settings")
-        .sheet(isPresented: $showingDeleteAccount) {
+        .sheet(isPresented: $isPresentingDeleteAccount) {
             if let user = session.currentUser {
                 DeleteAccountView(userID: user.id)
             }

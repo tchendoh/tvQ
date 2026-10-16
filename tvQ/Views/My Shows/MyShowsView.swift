@@ -22,10 +22,10 @@ struct MyShowsView: View {
                 } else {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 28) {
-                            showSection(title: "Running", shows: viewModel.currentShows)
-                            showSection(title: "Season ended", shows: viewModel.seasonEndedShows)
-                            showSection(title: "Coming soon", shows: viewModel.upcomingShows)
-                            showSection(title: "Ended", shows: viewModel.endedShows, showsUnfollowButton: true)
+                            section(title: "Running", shows: viewModel.currentShows)
+                            section(title: "Season ended", shows: viewModel.seasonEndedShows)
+                            section(title: "Coming soon", shows: viewModel.upcomingShows)
+                            section(title: "Ended", shows: viewModel.endedShows, isUnfollowButtonVisible: true)
                         }
                         .padding(.vertical, 20)
                     }
@@ -43,10 +43,10 @@ struct MyShowsView: View {
     }
 
     @ViewBuilder
-    private func showSection(
+    private func section(
         title: LocalizedStringKey,
         shows: [Show],
-        showsUnfollowButton: Bool = false
+        isUnfollowButtonVisible: Bool = false
     ) -> some View {
         if !shows.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
@@ -60,8 +60,8 @@ struct MyShowsView: View {
                             ShowCardView(
                                 title: show.title,
                                 posterURL: show.posterURL,
-                                isFollowed: showsUnfollowButton ? true : nil,
-                                onToggleFollow: showsUnfollowButton
+                                isFollowed: isUnfollowButtonVisible ? true : nil,
+                                onToggleFollow: isUnfollowButtonVisible
                                     ? { followedShowsStore.toggle(showID: show.id) }
                                     : nil
                             )

@@ -51,7 +51,7 @@ struct SearchView: View {
             }
             .alert(
                 "Error",
-                isPresented: isShowingError,
+                isPresented: isPresentingError,
                 presenting: viewModel.errorMessage
             ) { _ in
                 Button("OK") { viewModel.dismissError() }
@@ -71,7 +71,7 @@ struct SearchView: View {
 
     // Un vrai Binding, pas .constant() : fermer l'alerte doit pouvoir réinitialiser
     // errorMessage, sinon SwiftUI la considère encore "présentée" indéfiniment.
-    private var isShowingError: Binding<Bool> {
+    private var isPresentingError: Binding<Bool> {
         Binding(
             get: { viewModel.errorMessage != nil },
             set: { isPresented in
