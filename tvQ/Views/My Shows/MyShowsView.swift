@@ -54,28 +54,22 @@ struct MyShowsView: View {
                     .font(.title3.weight(.semibold))
                     .padding(.horizontal, 20)
 
-                LazyVGrid(columns: gridColumns, spacing: 24) {
-                    ForEach(shows) { show in
-                        NavigationLink(value: show) {
-                            ShowCardView(
-                                title: show.title,
-                                posterURL: show.posterURL,
-                                isFollowed: isUnfollowButtonVisible ? true : nil,
-                                onToggleFollow: isUnfollowButtonVisible
-                                    ? { followedShowsStore.toggle(showID: show.id) }
-                                    : nil
-                            )
-                        }
-                        .buttonStyle(.plain)
+                EvenGrid(items: shows, minimumWidth: cardMinimumWidth) { show in
+                    NavigationLink(value: show) {
+                        ShowCardView(
+                            title: show.title,
+                            posterURL: show.posterURL,
+                            isFollowed: isUnfollowButtonVisible ? true : nil,
+                            onToggleFollow: isUnfollowButtonVisible
+                                ? { followedShowsStore.toggle(showID: show.id) }
+                                : nil
+                        )
                     }
+                    .buttonStyle(.plain)
                 }
                 .padding(.horizontal, 20)
             }
         }
-    }
-
-    private var gridColumns: [GridItem] {
-        ShowCardView.gridColumns(minimumWidth: cardMinimumWidth)
     }
 }
 

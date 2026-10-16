@@ -20,19 +20,17 @@ struct SearchView: View {
                     ContentUnavailableView.search(text: viewModel.query)
                 } else {
                     ScrollView {
-                        LazyVGrid(columns: gridColumns, spacing: 24) {
-                            ForEach(viewModel.results) { summary in
-                                let showID = String(summary.tmdbID)
-                                NavigationLink(value: summary) {
-                                    ShowCardView(
-                                        title: summary.title,
-                                        posterURL: summary.posterURL,
-                                        isFollowed: followedShowsStore.isFollowing(showID),
-                                        onToggleFollow: { followedShowsStore.toggle(showID: showID) }
-                                    )
-                                }
-                                .buttonStyle(.plain)
+                        EvenGrid(items: viewModel.results, minimumWidth: cardMinimumWidth) { summary in
+                            let showID = String(summary.tmdbID)
+                            NavigationLink(value: summary) {
+                                ShowCardView(
+                                    title: summary.title,
+                                    posterURL: summary.posterURL,
+                                    isFollowed: followedShowsStore.isFollowing(showID),
+                                    onToggleFollow: { followedShowsStore.toggle(showID: showID) }
+                                )
                             }
+                            .buttonStyle(.plain)
                         }
                         .padding(20)
                     }
@@ -63,10 +61,6 @@ struct SearchView: View {
             }
             .settingsToolbarItem()
         }
-    }
-
-    private var gridColumns: [GridItem] {
-        ShowCardView.gridColumns(minimumWidth: cardMinimumWidth)
     }
 
     // Un vrai Binding, pas .constant() : fermer l'alerte doit pouvoir réinitialiser

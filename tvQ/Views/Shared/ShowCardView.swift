@@ -4,17 +4,9 @@ import SwiftUI
 /// séries (résultats de recherche, "Mes séries" plus tard). Pas de synopsis ici,
 /// volontairement : le détail a sa place dans ShowDetailView, pas dans une grille.
 struct ShowCardView: View {
-    /// Largeur minimale d'une carte, avant mise à l'échelle par Dynamic Type.
-    /// 150 donne 2 colonnes sur iPhone : des affiches assez grandes pour rester lisibles.
+    /// Largeur visée d'une carte, avant mise à l'échelle par Dynamic Type.
+    /// Sert à EvenGrid pour calculer le nombre de colonnes (150 donne 2 colonnes sur iPhone).
     static let baseMinimumWidth: CGFloat = 150
-
-    /// Colonnes adaptatives communes à toutes les grilles de séries : la grille
-    /// place autant de cartes que la largeur disponible le permet, entre la largeur
-    /// minimale et 4/3 de celle-ci. Seule dimension fixée en points : celle des
-    /// cartes elles-mêmes ; la structure (colonnes de navigation) relève du système.
-    static func gridColumns(minimumWidth: CGFloat) -> [GridItem] {
-        [GridItem(.adaptive(minimum: minimumWidth, maximum: minimumWidth * 4 / 3), spacing: 24)]
-    }
 
     let title: String
     let posterURL: URL?

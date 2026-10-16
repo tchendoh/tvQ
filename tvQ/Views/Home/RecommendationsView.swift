@@ -64,31 +64,25 @@ struct RecommendationsView: View {
                 }
                 .padding(.horizontal, 20)
 
-                LazyVGrid(columns: gridColumns, spacing: 24) {
-                    ForEach(shows) { summary in
-                        // Contrairement à My Shows (où unfollow retire la carte, ce
-                        // qui rendait un retour en arrière confus), ici la série
-                        // reste affichée qu'elle soit suivie ou non — le badge peut
-                        // donc rester tapable sans ce risque.
-                        let showID = String(summary.tmdbID)
-                        NavigationLink(value: summary) {
-                            ShowCardView(
-                                title: summary.title,
-                                posterURL: summary.posterURL,
-                                isFollowed: followedShowsStore.isFollowing(showID),
-                                onToggleFollow: { followedShowsStore.toggle(showID: showID) }
-                            )
-                        }
-                        .buttonStyle(.plain)
+                EvenGrid(items: shows, minimumWidth: cardMinimumWidth) { summary in
+                    // Contrairement à My Shows (où unfollow retire la carte, ce
+                    // qui rendait un retour en arrière confus), ici la série
+                    // reste affichée qu'elle soit suivie ou non — le badge peut
+                    // donc rester tapable sans ce risque.
+                    let showID = String(summary.tmdbID)
+                    NavigationLink(value: summary) {
+                        ShowCardView(
+                            title: summary.title,
+                            posterURL: summary.posterURL,
+                            isFollowed: followedShowsStore.isFollowing(showID),
+                            onToggleFollow: { followedShowsStore.toggle(showID: showID) }
+                        )
                     }
+                    .buttonStyle(.plain)
                 }
                 .padding(.horizontal, 20)
             }
         }
-    }
-
-    private var gridColumns: [GridItem] {
-        ShowCardView.gridColumns(minimumWidth: cardMinimumWidth)
     }
 }
 
