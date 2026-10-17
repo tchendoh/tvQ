@@ -43,7 +43,14 @@ final class FirestoreEpisodeCacheService {
         return Cached(value: entry.episodes, syncedAt: entry.syncedAt)
     }
 
+    /// Firestore refuse les documents de plus de 1 Mo, et les règles de sécurité
+    /// plafonnent à 2000 épisodes. Une émission quotidienne (ex. The Daily Show,
+    /// des milliers d'épisodes, 1,4 Mo) n'entre pas : on ne la partage pas, le
+    /// cache local et TMDB/TVmaze suffisent pour ces quelques séries.
+    static let maxSharedEpisodes = 1500
+
     func store(cacheKey: String, episodes: [Episode], syncedAt: Date = .now) async throws {
+        guard episodes.count <= Self.maxSharedEpisodes else { return }
         let entry = FirestoreEpisodeCacheEntry(episodes: episodes, syncedAt: syncedAt)
         try document(cacheKey: cacheKey).setData(from: entry)
     }
