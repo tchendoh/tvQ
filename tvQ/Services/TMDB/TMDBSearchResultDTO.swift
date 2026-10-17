@@ -9,11 +9,14 @@ struct TMDBSearchResultDTO: Codable {
     let overview: String
     let posterPath: String?
     let backdropPath: String?
+    /// Identifiants de genres TMDB. Optionnel par prudence : absent de certaines réponses.
+    let genreIDs: [Int]?
 
     enum CodingKeys: String, CodingKey {
         case id, name, overview
         case posterPath = "poster_path"
         case backdropPath = "backdrop_path"
+        case genreIDs = "genre_ids"
     }
 }
 
