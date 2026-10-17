@@ -3,6 +3,7 @@ import SwiftUI
 struct MainTabView: View {
     @Environment(FollowedShowsStore.self) private var followedShowsStore
     @Environment(ScheduleViewModel.self) private var scheduleViewModel
+    @Bindable private var notificationRouter = NotificationRouter.shared
 
     var body: some View {
         TabView {
@@ -36,6 +37,9 @@ struct MainTabView: View {
         .onContentLanguageChange {
             scheduleViewModel.load(showIDs: followedShowsStore.followedShowIDs)
         }
+        .schedulesEpisodeNotifications()
+        // Toucher une notification : fiche de la série par-dessus l'onglet courant.
+        .presentsShowDetailSheet(tmdbID: $notificationRouter.tmdbID)
         // Erreurs des séries suivies (chargement, follow/unfollow), communes à tous
         // les onglets : affichées ici une seule fois plutôt que dans chaque écran.
         .alert(

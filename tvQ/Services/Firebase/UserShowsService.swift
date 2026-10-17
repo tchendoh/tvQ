@@ -7,7 +7,10 @@ import FirebaseFirestore
 /// Structure : un seul document par utilisateur, avec un dictionnaire
 /// showID → date d'ajout :
 ///
-///     users/{userID} → { followedShows: { "1399": <Timestamp>, ... } }
+///     users/{userID} → { followedShows: { "1399": <Timestamp>, ... },
+///                        mutedShows: { "1399": true, ... } }
+///
+/// mutedShows : séries suivies dont les notifications sont coupées (cloche).
 ///
 /// Une seule lecture pour obtenir toute la liste, peu importe le nombre de séries
 /// (Firestore facture par document lu). La date d'ajout n'est pas encore affichée,
@@ -19,6 +22,7 @@ import FirebaseFirestore
 /// Elle est migrée automatiquement à la première lecture, puis supprimée.
 final class UserShowsService {
     private static let field = "followedShows"
+    private static let mutedField = "mutedShows"
     /// Présent (true) une fois l'ancienne structure migrée, ou d'emblée pour un
     /// nouveau compte. Tant qu'il est absent, chaque lecture tente la migration.
     private static let migratedField = "legacyMigrated"
@@ -37,16 +41,31 @@ final class UserShowsService {
         userDocument(userID: userID).collection("followedShows")
     }
 
-    func followedShowIDs(userID: String) async throws -> [String] {
+    struct FollowedShows {
+        let followedIDs: [String]
+        let mutedIDs: [String]
+    }
+
+    func followedShows(userID: String) async throws -> FollowedShows {
         let data = try await userDocument(userID: userID).getDocument().data() ?? [:]
         let followed = data[Self.field] as? [String: Any] ?? [:]
+        let muted = (data[Self.mutedField] as? [String: Any] ?? [:]).keys
         if data[Self.migratedField] as? Bool == true {
-            return Array(followed.keys)
+            return FollowedShows(followedIDs: Array(followed.keys), mutedIDs: Array(muted))
         }
         // Indicateur absent : nouveau compte, ou données encore dans l'ancienne
         // structure (un follow fait avant la migration, hors ligne par exemple,
         // peut déjà avoir créé le champ). migrateLegacy fusionne les deux.
-        return try await migrateLegacy(userID: userID, current: followed)
+        let ids = try await migrateLegacy(userID: userID, current: followed)
+        return FollowedShows(followedIDs: ids, mutedIDs: Array(muted))
+    }
+
+    func setNotificationsMuted(_ muted: Bool, showID: String, userID: String) async throws {
+        try await userDocument(userID: userID).setData(
+            // Annotation explicite : les deux branches n'ont pas le même type.
+            [Self.mutedField: [showID: muted ? true as Any : FieldValue.delete()]],
+            merge: true
+        )
     }
 
     func follow(showID: String, userID: String) async throws {

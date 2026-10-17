@@ -39,6 +39,8 @@ test('A lit et modifie son document users', async () => {
     { followedShows: { '94605': serverTimestamp() }, legacyMigrated: true }, { merge: true }));
   await assertSucceeds(setDoc(doc(alice(), 'users/alice'),
     { followedShows: { '94605': deleteField() } }, { merge: true }));
+  await assertSucceeds(setDoc(doc(alice(), 'users/alice'),
+    { mutedShows: { '1399': true } }, { merge: true }));
 });
 test('A supprime son document users (suppression de compte)', async () => {
   await assertSucceeds(deleteDoc(doc(alice(), 'users/alice')));
@@ -59,6 +61,7 @@ test('Document users mal formé refusé', async () => {
   await assertFails(setDoc(doc(alice(), 'users/alice'), { followedShows: {}, admin: true }, { merge: true }));
   await assertFails(setDoc(doc(alice(), 'users/alice'), { followedShows: ['1399'] }));
   await assertFails(setDoc(doc(alice(), 'users/alice'), { legacyMigrated: 'oui' }));
+  await assertFails(setDoc(doc(alice(), 'users/alice'), { mutedShows: ['1399'] }));
 });
 
 // Caches partagés

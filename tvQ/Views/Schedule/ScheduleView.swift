@@ -291,6 +291,10 @@ private struct ScheduleRow: View {
                 Text("Aired")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            } else {
+                // Agit sur toute la série : ses autres lignes changent aussi.
+                NotificationBell(showID: group.show.id)
+                    .padding(.top, -10)
             }
         }
         // Sans ça, avec .buttonStyle(.plain), seuls les pixels réellement dessinés

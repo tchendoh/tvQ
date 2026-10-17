@@ -226,6 +226,8 @@ struct ShowDetailView: View {
                 // l'animation du symbole (transition + rebond) de se jouer. En
                 // bas de l'image plutôt qu'en haut : le haut passe maintenant
                 // sous la barre de navigation.
+                NotificationBell(showID: show.id, style: .badge)
+
                 FollowBadge(
                     isFollowed: followedShowsStore.isFollowing(show.id),
                     action: { followedShowsStore.toggle(showID: show.id) }

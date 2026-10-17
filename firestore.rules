@@ -29,13 +29,16 @@ service cloud.firestore {
     }
 
     // ---- Données personnelles ----
-    // users/{userID} = { followedShows: { "<idTMDB>": <date d'ajout>, ... }, legacyMigrated: true }
+    // users/{userID} = { followedShows: { "<idTMDB>": <date d'ajout>, ... },
+    //                   mutedShows: { "<idTMDB>": true, ... }, legacyMigrated: true }
     // Un seul document par utilisateur : une lecture pour toute la liste.
     function validUserDoc() {
       let data = request.resource.data;
-      return data.keys().hasOnly(['followedShows', 'legacyMigrated'])
+      return data.keys().hasOnly(['followedShows', 'mutedShows', 'legacyMigrated'])
           && (!('followedShows' in data) || (data.followedShows is map
                                             && data.followedShows.size() <= 2000))
+          && (!('mutedShows' in data) || (data.mutedShows is map
+                                         && data.mutedShows.size() <= 2000))
           && (!('legacyMigrated' in data) || data.legacyMigrated is bool);
     }
 

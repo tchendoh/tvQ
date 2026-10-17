@@ -15,6 +15,18 @@ struct SettingsView: View {
     @AppStorage(AppSettings.Keys.watchProviderRegion)
     private var watchProviderRegion: String = WatchProviderRegion.canada.rawValue
 
+    @AppStorage(AppSettings.Keys.notificationsEnabled)
+    private var notificationsEnabled = false
+
+    @AppStorage(AppSettings.Keys.notificationTiming)
+    private var notificationTiming: NotificationTiming = .atAirTime
+
+    @AppStorage(AppSettings.Keys.notificationMorningMinutes)
+    private var morningMinutes = AppSettings.defaultMorningMinutes
+
+    @Environment(\.openURL) private var openURL
+    private let notificationScheduler = NotificationScheduler.shared
+
     @State private var didClearCache = false
     @State private var isPresentingDeleteAccount = false
     @State private var signOutFailed = false
@@ -66,6 +78,8 @@ struct SettingsView: View {
             } footer: {
                 Text("Used to show which services carry a show in your country.")
             }
+
+            notificationsSection
 
             Section {
                 NavigationLink("About") {
@@ -131,6 +145,73 @@ struct SettingsView: View {
         .alert("Sign out failed.", isPresented: $signOutFailed) {
             Button("OK", role: .cancel) {}
         }
+    }
+
+    // MARK: - Notifications
+
+    /// Permission refusée dans iOS : tvQ ne peut pas la redemander, seulement
+    /// envoyer vers les Réglages.
+    private var isDeniedBySystem: Bool {
+        notificationScheduler.authorizationStatus == .denied
+    }
+
+    @ViewBuilder
+    private var notificationsSection: some View {
+        Section {
+            Toggle("New episodes", isOn: Binding(
+                get: { notificationsEnabled && !isDeniedBySystem },
+                set: { isOn in
+                    guard isOn else {
+                        notificationsEnabled = false
+                        return
+                    }
+                    Task {
+                        notificationsEnabled = await notificationScheduler.requestAuthorization()
+                    }
+                }
+            ))
+            .disabled(isDeniedBySystem)
+
+            if notificationsEnabled && !isDeniedBySystem {
+                Picker("Timing", selection: $notificationTiming) {
+                    Text("10 min before").tag(NotificationTiming.tenMinutesBefore)
+                    Text("At air time").tag(NotificationTiming.atAirTime)
+                    Text("10 min after it ends").tag(NotificationTiming.tenMinutesAfterEnd)
+                }
+                DatePicker("Morning time", selection: morningTime, displayedComponents: .hourAndMinute)
+            }
+
+            if isDeniedBySystem {
+                Button("Open iOS Settings") {
+                    if let url = URL(string: UIApplication.openNotificationSettingsURLString) {
+                        openURL(url)
+                    }
+                }
+            }
+        } header: {
+            Text("Notifications")
+        } footer: {
+            if isDeniedBySystem {
+                Text("Notifications are turned off for tvQ in iOS Settings.")
+            } else {
+                Text("Episodes without a known time, and those released overnight, are announced at the morning time. Use the bell in Schedule to mute a show.")
+            }
+        }
+    }
+
+    /// L'heure du matin est stockée en minutes depuis minuit ; DatePicker veut une Date.
+    private var morningTime: Binding<Date> {
+        Binding(
+            get: {
+                Calendar.current.date(
+                    bySettingHour: morningMinutes / 60, minute: morningMinutes % 60, second: 0, of: .now
+                ) ?? .now
+            },
+            set: { date in
+                let parts = Calendar.current.dateComponents([.hour, .minute], from: date)
+                morningMinutes = (parts.hour ?? 9) * 60 + (parts.minute ?? 0)
+            }
+        )
     }
 
     private func clearLocalCache() {

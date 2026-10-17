@@ -77,6 +77,10 @@ enum AppSettings {
         static let appearance = "settings.appearance"
         static let useOriginalLanguage = "settings.useOriginalLanguage"
         static let watchProviderRegion = "settings.watchProviderRegion"
+        static let notificationsEnabled = "settings.notificationsEnabled"
+        static let notificationTiming = "settings.notificationTiming"
+        /// Minutes depuis minuit (540 = 9 h).
+        static let notificationMorningMinutes = "settings.notificationMorningMinutes"
     }
 
     /// Lu par TMDBService à l'initialisation — voir son paramètre `language`.
@@ -108,6 +112,8 @@ enum AppSettings {
     /// "original" plutôt que le code réel de la langue d'origine (ex. "ja") :
     /// ce code n'est connu qu'après une première résolution de la série, donc
     /// pas disponible au moment de construire la clé pour le tout premier appel.
+    static let defaultMorningMinutes = 9 * 60
+
     static var cacheLanguageKey: String {
         useOriginalLanguage ? "original" : contentLanguage
     }

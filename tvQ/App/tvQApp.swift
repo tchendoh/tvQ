@@ -8,6 +8,7 @@
 import SwiftUI
 import FirebaseCore
 import FirebaseAppCheck
+import UserNotifications
 
 /// App Check : Firestore n'accepte que les requêtes venant de la vraie app tvQ.
 /// - Release (vrais appareils) : App Attest, attestation signée par Apple.
@@ -41,7 +42,29 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         // Doit précéder FirebaseApp.configure().
         AppCheck.setAppCheckProviderFactory(TvQAppCheckProviderFactory())
         FirebaseApp.configure()
+        // Tôt, pour recevoir aussi le toucher qui a lancé l'app.
+        UNUserNotificationCenter.current().delegate = self
         return true
+    }
+}
+
+extension AppDelegate: UNUserNotificationCenterDelegate {
+    /// App au premier plan : afficher quand même la notification.
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification
+    ) async -> UNNotificationPresentationOptions {
+        [.banner, .list, .sound]
+    }
+
+    /// Toucher : ouvrir la fiche de la série.
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse
+    ) async {
+        guard let tmdbID = response.notification.request.content.userInfo[NotificationRouter.tmdbIDKey] as? Int
+        else { return }
+        await MainActor.run { NotificationRouter.shared.tmdbID = tmdbID }
     }
 }
 

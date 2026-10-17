@@ -34,6 +34,9 @@ struct RootView: View {
             if newID == nil {
                 followedShowsStore.clear()
                 scheduleViewModel.clear()
+                // MainTabView disparaît avec la session : on ne peut pas compter
+                // sur sa synchronisation pour retirer les notifications du compte.
+                Task { await NotificationScheduler.shared.removeAll() }
             }
         }
     }

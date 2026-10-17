@@ -7,6 +7,8 @@ import Observation
 @Observable
 final class FollowedShowsStore {
     private(set) var followedShowIDs: Set<String> = []
+    /// Séries suivies dont les notifications sont coupées (cloche).
+    private(set) var mutedShowIDs: Set<String> = []
     private(set) var isLoading = false
     private(set) var errorMessage: String?
 
@@ -38,11 +40,12 @@ final class FollowedShowsStore {
             defer { isLoading = false }
 
             do {
-                let ids = try await userShowsService.followedShowIDs(userID: userID)
+                let followed = try await userShowsService.followedShows(userID: userID)
                 // Déconnexion (ou changement de compte) survenue pendant l'appel :
                 // ne pas repeupler le store avec les séries de l'ancien compte.
                 guard self.userID == userID else { return }
-                followedShowIDs = Set(ids)
+                followedShowIDs = Set(followed.followedIDs)
+                mutedShowIDs = Set(followed.mutedIDs)
             } catch {
                 errorMessage = FirestoreQuota.message(
                     for: error,
@@ -57,8 +60,44 @@ final class FollowedShowsStore {
     /// sinon les séries de l'ancien compte au suivant.
     func clear() {
         followedShowIDs = []
+        mutedShowIDs = []
         errorMessage = nil
         userID = nil
+    }
+
+    func areNotificationsMuted(_ showID: String) -> Bool {
+        mutedShowIDs.contains(showID)
+    }
+
+    /// Cloche d'une série. Optimiste comme toggle(showID:) : l'UI réagit tout de
+    /// suite, on revient en arrière si l'écriture échoue.
+    func toggleNotifications(showID: String) {
+        guard let userID else { return }
+        let wasMuted = areNotificationsMuted(showID)
+        if wasMuted {
+            mutedShowIDs.remove(showID)
+        } else {
+            mutedShowIDs.insert(showID)
+        }
+
+        Task {
+            do {
+                try await userShowsService.setNotificationsMuted(!wasMuted, showID: showID, userID: userID)
+            } catch {
+                #if DEBUG
+                print("[tvQ] setNotificationsMuted a échoué : \(error)")
+                #endif
+                if wasMuted {
+                    mutedShowIDs.insert(showID)
+                } else {
+                    mutedShowIDs.remove(showID)
+                }
+                errorMessage = FirestoreQuota.message(
+                    for: error,
+                    fallback: String(localized: "Couldn't update notifications for this show. Try again.")
+                )
+            }
+        }
     }
 
     /// Appelée quand l'alerte d'erreur est fermée (voir MainTabView).
