@@ -15,6 +15,13 @@ import SwiftUI
 /// Reste lazy : le body est une LazyVGrid, et seule la largeur proposée par le
 /// conteneur est mesurée (pas le contenu), donc aucune cellule n'est créée
 /// d'avance.
+/// Hors de EvenGrid exprès : une fonction globale nonisolated est Sendable, alors
+/// qu'une méthode statique de EvenGrid ne l'est pas (le type contient la closure
+/// `cell`, non Sendable). onGeometryChange exige une transformation @Sendable.
+nonisolated private func evenGridWidth(of proxy: GeometryProxy) -> CGFloat {
+    proxy.size.width
+}
+
 struct EvenGrid<Data: RandomAccessCollection, Cell: View>: View
 where Data.Element: Identifiable {
     let items: Data
@@ -35,9 +42,6 @@ where Data.Element: Identifiable {
         Array(repeating: GridItem(.flexible(), spacing: spacing, alignment: .top), count: columnCount)
     }
 
-    nonisolated private static func width(of proxy: GeometryProxy) -> CGFloat {
-        proxy.size.width
-    }
 
     var body: some View {
         LazyVGrid(columns: columns, spacing: spacing) {
@@ -45,13 +49,7 @@ where Data.Element: Identifiable {
                 cell(item)
             }
         }
-        // Référence à une fonction nonisolated plutôt qu'une closure : le projet
-        // isole tout au MainActor par défaut, donc une closure écrite ici serait
-        // isolée au MainActor. Or SwiftUI peut appeler la transformation hors
-        // du fil principal (ex. rendu asynchrone d'une animation) : le contrôle
-        // d'isolation de Swift 6 faisait alors planter l'app
-        // (_dispatch_assert_queue_fail sur com.apple.SwiftUI.AsyncRenderer).
-        .onGeometryChange(for: CGFloat.self, of: Self.width(of:)) { newWidth in
+        .onGeometryChange(for: CGFloat.self, of: evenGridWidth(of:)) { newWidth in
             availableWidth = newWidth
         }
     }
