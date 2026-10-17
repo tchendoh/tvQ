@@ -106,6 +106,21 @@ struct SettingsView: View {
                     Text("Forces shows and episodes to reload from scratch on next view. Useful for testing.")
                 }
             }
+
+            // Test de la chaîne Crashlytics (plantage → envoi → dSYM → rapport lisible).
+            // Lancer l'app SANS le débogueur, appuyer, puis rouvrir l'app pour envoyer
+            // le rapport. Pour un rapport lisible, tester en Release (le dSYM est vide
+            // en Debug à cause de ENABLE_DEBUG_DYLIB) en retirant temporairement le
+            // #if DEBUG. Absent des builds Release tel quel.
+            #if DEBUG
+            Section {
+                Button("Test Crashlytics", role: .destructive) {
+                    fatalError("Test Crashlytics")
+                }
+            } footer: {
+                Text("Debug only. Crashes the app on purpose to test crash reporting.")
+            }
+            #endif
         }
         .navigationTitle("Settings")
         .sheet(isPresented: $isPresentingDeleteAccount) {

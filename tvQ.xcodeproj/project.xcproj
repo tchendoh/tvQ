@@ -80,6 +80,26 @@
         "compile-sources",
         "frameworks",
         "resources",
+        {
+          "kind": "script",
+          "name": "Tchend : Upload dSYM to Crashlytics",
+          "log-environment-variables": true,
+          "input-paths": [
+            "${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}",
+            "${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Resources/DWARF/${PRODUCT_NAME}",
+            "${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Info.plist",
+            "$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GoogleService-Info.plist",
+            "$(TARGET_BUILD_DIR)/$(EXECUTABLE_PATH)",
+            "$(TARGET_BUILD_DIR)/$(EXECUTABLE_FOLDER_PATH)/$(PRODUCT_NAME).debug.dylib",
+          ],
+          "run-on-every-build": true,
+          "shell": "/bin/sh",
+          "script": [
+            "# Type a script or drag a script file from your workspace to insert its path.",
+            "\"${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run\"",
+            "",
+          ],
+        },
       ],
       "package-product-members": [
         {
@@ -228,8 +248,7 @@
     "CLANG_WARN_UNREACHABLE_CODE": "YES",
     "CLANG_WARN__DUPLICATE_METHOD_MATCH": "YES",
     "COPY_PHASE_STRIP": "NO",
-    "DEBUG_INFORMATION_FORMAT[config=Debug]": "dwarf",
-    "DEBUG_INFORMATION_FORMAT[config=Release]": "dwarf-with-dsym",
+    "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
     "DEVELOPMENT_TEAM": "T8DKX94TR7",
     "ENABLE_NS_ASSERTIONS[config=Release]": "NO",
     "ENABLE_STRICT_OBJC_MSGSEND": "YES",
