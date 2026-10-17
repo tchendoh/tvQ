@@ -10,8 +10,9 @@ struct TVmazeEpisodeDTO: Codable {
     let airdate: String?  // "YYYY-MM-DD"
     let airtime: String?  // "HH:mm", heure locale au réseau de diffusion
     let airstamp: String? // ISO8601 complet avec timezone, ex: "2026-07-15T20:00:00-04:00"
+    let runtime: Int?     // minutes
 
     enum CodingKeys: String, CodingKey {
-        case id, name, season, number, airdate, airtime, airstamp
+        case id, name, season, number, airdate, airtime, airstamp, runtime
     }
 }

@@ -27,7 +27,8 @@ enum EpisodeMapper {
                 ShowMapper.imageBaseURL.appendingPathComponent($0)
             },
             airDate: tvmazeStamp ?? tmdbDate,
-            hasPreciseTime: tvmazeStamp != nil
+            hasPreciseTime: tvmazeStamp != nil,
+            runtimeMinutes: tvmaze?.runtime ?? tmdb.runtime
         )
     }
 }

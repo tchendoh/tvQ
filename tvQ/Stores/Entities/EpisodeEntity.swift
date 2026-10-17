@@ -25,6 +25,8 @@ nonisolated final class EpisodeEntity {
     var stillImageURL: URL?
     var airDate: Date?
     var hasPreciseTime: Bool
+    /// Optionnel : ajouté après coup, migration légère de SwiftData.
+    var runtimeMinutes: Int?
 
     init(cacheKey: String, episode: Episode) {
         self.uid = "\(cacheKey)|\(episode.id)"
@@ -38,6 +40,7 @@ nonisolated final class EpisodeEntity {
         self.stillImageURL = episode.stillImageURL
         self.airDate = episode.airDate
         self.hasPreciseTime = episode.hasPreciseTime
+        self.runtimeMinutes = episode.runtimeMinutes
     }
 
     func toDomain() -> Episode {
@@ -50,7 +53,8 @@ nonisolated final class EpisodeEntity {
             overview: overview,
             stillImageURL: stillImageURL,
             airDate: airDate,
-            hasPreciseTime: hasPreciseTime
+            hasPreciseTime: hasPreciseTime,
+            runtimeMinutes: runtimeMinutes
         )
     }
 }

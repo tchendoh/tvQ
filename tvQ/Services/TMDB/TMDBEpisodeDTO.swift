@@ -10,9 +10,10 @@ struct TMDBEpisodeDTO: Codable {
     let episodeNumber: Int
     let airDate: String? // format "YYYY-MM-DD", date seule — pas d'heure côté TMDB
     let stillPath: String?
+    let runtime: Int? // minutes
 
     enum CodingKeys: String, CodingKey {
-        case id, name, overview
+        case id, name, overview, runtime
         case seasonNumber = "season_number"
         case episodeNumber = "episode_number"
         case airDate = "air_date"

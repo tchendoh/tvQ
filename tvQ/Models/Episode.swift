@@ -20,4 +20,32 @@ nonisolated struct Episode: Identifiable, Equatable, Hashable, Codable {
     /// true si `airDate` porte une heure fiable (source TVmaze), false si c'est
     /// une date seule (TMDB) dont l'heure n'a aucune signification.
     let hasPreciseTime: Bool
+
+    /// Durée en minutes (TVmaze, sinon TMDB). nil si inconnue, ou dans une copie
+    /// en cache antérieure à l'ajout de ce champ : sert à notifier après la fin.
+    let runtimeMinutes: Int?
+
+    init(
+        id: String,
+        showID: String,
+        seasonNumber: Int,
+        episodeNumber: Int,
+        title: String,
+        overview: String,
+        stillImageURL: URL?,
+        airDate: Date?,
+        hasPreciseTime: Bool,
+        runtimeMinutes: Int? = nil
+    ) {
+        self.id = id
+        self.showID = showID
+        self.seasonNumber = seasonNumber
+        self.episodeNumber = episodeNumber
+        self.title = title
+        self.overview = overview
+        self.stillImageURL = stillImageURL
+        self.airDate = airDate
+        self.hasPreciseTime = hasPreciseTime
+        self.runtimeMinutes = runtimeMinutes
+    }
 }
