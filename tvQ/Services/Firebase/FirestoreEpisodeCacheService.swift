@@ -28,7 +28,15 @@ final class FirestoreEpisodeCacheService {
     /// nil si absent ou dans un format illisible (ancienne version de l'app, par exemple) :
     /// dans les deux cas le repository retombe sur TMDB/TVmaze et réécrit le document.
     func episodes(cacheKey: String) async throws -> Cached<[Episode]>? {
-        let snapshot = try await document(cacheKey: cacheKey).getDocument()
+        let snapshot: DocumentSnapshot
+        do {
+            snapshot = try await document(cacheKey: cacheKey).getDocument()
+        } catch {
+            // Le repository ignore les erreurs de cache (try?) : sans ceci, un
+            // dépassement de quota passerait inaperçu.
+            FirestoreQuota.recordIfExceeded(error)
+            throw error
+        }
         guard snapshot.exists, let entry = try? snapshot.data(as: FirestoreEpisodeCacheEntry.self) else {
             return nil
         }

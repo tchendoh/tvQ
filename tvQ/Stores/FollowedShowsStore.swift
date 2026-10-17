@@ -44,7 +44,10 @@ final class FollowedShowsStore {
                 guard self.userID == userID else { return }
                 followedShowIDs = Set(ids)
             } catch {
-                errorMessage = String(localized: "Couldn't load your followed shows.")
+                errorMessage = FirestoreQuota.message(
+                    for: error,
+                    fallback: String(localized: "Couldn't load your followed shows.")
+                )
             }
         }
     }
@@ -56,6 +59,11 @@ final class FollowedShowsStore {
         followedShowIDs = []
         errorMessage = nil
         userID = nil
+    }
+
+    /// Appelée quand l'alerte d'erreur est fermée (voir MainTabView).
+    func dismissError() {
+        errorMessage = nil
     }
 
     /// Bascule optimiste : l'UI réagit immédiatement (voir ShowCardView), on revert
@@ -84,7 +92,10 @@ final class FollowedShowsStore {
                 } else {
                     followedShowIDs.remove(showID)
                 }
-                errorMessage = String(localized: "Couldn't update follow status. Try again.")
+                errorMessage = FirestoreQuota.message(
+                    for: error,
+                    fallback: String(localized: "Couldn't update follow status. Try again.")
+                )
             }
         }
     }
