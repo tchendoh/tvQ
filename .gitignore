@@ -127,3 +127,7 @@ Config/Secrets.generated.swift
 
 # Firebase — clés/identifiants de projet, ne jamais commiter
 GoogleService-Info.plist
+
+# Tests des règles Firestore
+firestore-tests/node_modules/
+firestore-debug.log

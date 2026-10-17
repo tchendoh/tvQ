@@ -1,0 +1,75 @@
+rules_version = '2';
+
+// Règles de sécurité de tvQ (projet-tvq).
+// Déployer avec : firebase deploy --only firestore:rules
+// Tester avec : cd firestore-tests && npm install && npm test
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userID) {
+      return signedIn() && request.auth.uid == userID;
+    }
+
+    // Clé de cache : "{idTMDB}_{langue}", ex. "1399_fr-CA" ou "1399_original".
+    function validCacheKey(key) {
+      return key.matches('^[0-9]{1,10}_[A-Za-z0-9-]{1,20}$');
+    }
+
+    // Un document de cache : exactement {payload, syncedAt}, syncedAt pas dans le futur.
+    function validCacheEntry(payloadField) {
+      let data = request.resource.data;
+      return data.keys().hasOnly([payloadField, 'syncedAt'])
+          && data.keys().hasAll([payloadField, 'syncedAt'])
+          && data.syncedAt is timestamp
+          && data.syncedAt <= request.time + duration.value(5, 'm');
+    }
+
+    // ---- Données personnelles ----
+    // Le document users/{userID} n'est jamais écrit par l'app, seulement supprimé
+    // (suppression de compte). Il reste permis au propriétaire pour la suite.
+    match /users/{userID} {
+      allow read, delete: if isOwner(userID);
+      allow create, update: if isOwner(userID)
+                            && request.resource.data.size() < 50;
+
+      match /followedShows/{showID} {
+        allow read, delete: if isOwner(userID);
+        // Follow : un seul champ, followedAt = FieldValue.serverTimestamp().
+        allow create, update: if isOwner(userID)
+                              && showID.matches('^[0-9]{1,10}$')
+                              && request.resource.data.keys().hasOnly(['followedAt'])
+                              && request.resource.data.followedAt == request.time;
+      }
+    }
+
+    // ---- Caches partagés (contenu TMDB, aucune donnée personnelle) ----
+    // Lecture et écriture par tout utilisateur connecté, forme validée, jamais de suppression.
+    // Risque résiduel accepté : un utilisateur malveillant peut écrire un contenu faux
+    // mais bien formé. Solution définitive : écriture par Cloud Function seulement.
+    match /showsCache/{cacheKey} {
+      allow read: if signedIn();
+      allow create, update: if signedIn()
+                            && validCacheKey(cacheKey)
+                            && validCacheEntry('episodes')
+                            && request.resource.data.episodes is list
+                            && request.resource.data.episodes.size() <= 2000;
+    }
+
+    match /showMetadataCache/{cacheKey} {
+      allow read: if signedIn();
+      allow create, update: if signedIn()
+                            && validCacheKey(cacheKey)
+                            && validCacheEntry('show')
+                            && request.resource.data.show is map;
+    }
+
+    // ---- Tout le reste : refusé ----
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
