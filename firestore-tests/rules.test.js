@@ -4,7 +4,7 @@ import {
   initializeTestEnvironment, assertSucceeds, assertFails,
 } from '@firebase/rules-unit-testing';
 import {
-  doc, getDoc, setDoc, deleteDoc, serverTimestamp, Timestamp,
+  doc, getDoc, setDoc, deleteDoc, deleteField, serverTimestamp, Timestamp,
 } from 'firebase/firestore';
 
 let env;
@@ -21,6 +21,7 @@ beforeEach(async () => {
   await env.clearFirestore();
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
+    await setDoc(doc(db, 'users/alice'), { followedShows: { '1399': Timestamp.now() }, legacyMigrated: true });
     await setDoc(doc(db, 'users/alice/followedShows/1399'), { followedAt: Timestamp.now() });
     await setDoc(doc(db, 'showsCache/1399_fr-CA'), { episodes: [], syncedAt: Timestamp.now() });
     await setDoc(doc(db, 'showMetadataCache/1399_fr-CA'), { show: { id: 1399 }, syncedAt: Timestamp.now() });
@@ -32,24 +33,32 @@ const bob = () => env.authenticatedContext('bob').firestore();
 const anon = () => env.unauthenticatedContext().firestore();
 
 // Données personnelles
-test('A lit, suit et ne suit plus ses séries', async () => {
-  await assertSucceeds(getDoc(doc(alice(), 'users/alice/followedShows/1399')));
-  await assertSucceeds(setDoc(doc(alice(), 'users/alice/followedShows/94605'), { followedAt: serverTimestamp() }));
-  await assertSucceeds(deleteDoc(doc(alice(), 'users/alice/followedShows/1399')));
+test('A lit et modifie son document users', async () => {
+  await assertSucceeds(getDoc(doc(alice(), 'users/alice')));
+  await assertSucceeds(setDoc(doc(alice(), 'users/alice'),
+    { followedShows: { '94605': serverTimestamp() }, legacyMigrated: true }, { merge: true }));
+  await assertSucceeds(setDoc(doc(alice(), 'users/alice'),
+    { followedShows: { '94605': deleteField() } }, { merge: true }));
 });
 test('A supprime son document users (suppression de compte)', async () => {
   await assertSucceeds(deleteDoc(doc(alice(), 'users/alice')));
 });
-test('B ne peut ni lire ni écrire ni supprimer les données de A', async () => {
-  await assertFails(getDoc(doc(bob(), 'users/alice/followedShows/1399')));
-  await assertFails(setDoc(doc(bob(), 'users/alice/followedShows/1'), { followedAt: serverTimestamp() }));
-  await assertFails(deleteDoc(doc(bob(), 'users/alice/followedShows/1399')));
-  await assertFails(deleteDoc(doc(bob(), 'users/alice')));
+test('A lit et supprime son ancienne sous-collection, sans y écrire', async () => {
+  await assertSucceeds(getDoc(doc(alice(), 'users/alice/followedShows/1399')));
+  await assertSucceeds(deleteDoc(doc(alice(), 'users/alice/followedShows/1399')));
+  await assertFails(setDoc(doc(alice(), 'users/alice/followedShows/1'), { followedAt: serverTimestamp() }));
 });
-test('Follow mal formé refusé', async () => {
-  await assertFails(setDoc(doc(alice(), 'users/alice/followedShows/1'), { followedAt: Timestamp.fromDate(new Date(2000, 0, 1)) }));
-  await assertFails(setDoc(doc(alice(), 'users/alice/followedShows/1'), { followedAt: serverTimestamp(), extra: 'x' }));
-  await assertFails(setDoc(doc(alice(), 'users/alice/followedShows/abc'), { followedAt: serverTimestamp() }));
+test('B ne peut ni lire ni écrire ni supprimer les données de A', async () => {
+  await assertFails(getDoc(doc(bob(), 'users/alice')));
+  await assertFails(setDoc(doc(bob(), 'users/alice'), { followedShows: {} }, { merge: true }));
+  await assertFails(deleteDoc(doc(bob(), 'users/alice')));
+  await assertFails(getDoc(doc(bob(), 'users/alice/followedShows/1399')));
+  await assertFails(deleteDoc(doc(bob(), 'users/alice/followedShows/1399')));
+});
+test('Document users mal formé refusé', async () => {
+  await assertFails(setDoc(doc(alice(), 'users/alice'), { followedShows: {}, admin: true }, { merge: true }));
+  await assertFails(setDoc(doc(alice(), 'users/alice'), { followedShows: ['1399'] }));
+  await assertFails(setDoc(doc(alice(), 'users/alice'), { legacyMigrated: 'oui' }));
 });
 
 // Caches partagés
@@ -75,7 +84,7 @@ test('Personne ne supprime un cache', async () => {
 
 // Visiteur non connecté et collections inconnues
 test('Visiteur non connecté ne peut rien faire', async () => {
-  await assertFails(getDoc(doc(anon(), 'users/alice/followedShows/1399')));
+  await assertFails(getDoc(doc(anon(), 'users/alice')));
   await assertFails(getDoc(doc(anon(), 'showsCache/1399_fr-CA')));
   await assertFails(setDoc(doc(anon(), 'showsCache/1_fr'), { episodes: [], syncedAt: Timestamp.now() }));
 });

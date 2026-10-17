@@ -29,20 +29,25 @@ service cloud.firestore {
     }
 
     // ---- Données personnelles ----
-    // Le document users/{userID} n'est jamais écrit par l'app, seulement supprimé
-    // (suppression de compte). Il reste permis au propriétaire pour la suite.
+    // users/{userID} = { followedShows: { "<idTMDB>": <date d'ajout>, ... }, legacyMigrated: true }
+    // Un seul document par utilisateur : une lecture pour toute la liste.
+    function validUserDoc() {
+      let data = request.resource.data;
+      return data.keys().hasOnly(['followedShows', 'legacyMigrated'])
+          && (!('followedShows' in data) || (data.followedShows is map
+                                            && data.followedShows.size() <= 2000))
+          && (!('legacyMigrated' in data) || data.legacyMigrated is bool);
+    }
+
     match /users/{userID} {
       allow read, delete: if isOwner(userID);
-      allow create, update: if isOwner(userID)
-                            && request.resource.data.size() < 50;
+      allow create, update: if isOwner(userID) && validUserDoc();
 
+      // Ancienne structure (un document par série), remplacée en octobre 2026.
+      // Encore lisible et supprimable par son propriétaire, le temps que l'app
+      // la migre ; plus aucune écriture.
       match /followedShows/{showID} {
         allow read, delete: if isOwner(userID);
-        // Follow : un seul champ, followedAt = FieldValue.serverTimestamp().
-        allow create, update: if isOwner(userID)
-                              && showID.matches('^[0-9]{1,10}$')
-                              && request.resource.data.keys().hasOnly(['followedAt'])
-                              && request.resource.data.followedAt == request.time;
       }
     }
 
