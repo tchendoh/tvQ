@@ -46,6 +46,7 @@ struct RecommendationsView: View {
             }
         }
         .task { viewModel.load() }
+        .onContentLanguageChange { viewModel.load() }
         .presentsShowDetailSheet(tmdbID: $selectedTMDBID)
     }
 

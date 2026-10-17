@@ -38,6 +38,9 @@ struct MyShowsView: View {
             .task(id: followedShowsStore.followedShowIDs) {
                 viewModel.load(showIDs: followedShowsStore.followedShowIDs)
             }
+            .onContentLanguageChange {
+                viewModel.load(showIDs: followedShowsStore.followedShowIDs, reloadAll: true)
+            }
         }
     }
 

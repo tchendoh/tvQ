@@ -49,6 +49,18 @@ final class ShowDetailViewModel {
         load()
     }
 
+    /// Recharge la série affichée depuis zéro (changement de langue de contenu).
+    /// Les diffuseurs (watchAvailability) dépendent du pays, pas de la langue :
+    /// on les garde.
+    func reload() {
+        loadTask?.cancel()
+        show = nil
+        episodesBySeason = [:]
+        errorMessage = nil
+        isLoading = false
+        load()
+    }
+
     /// Appelée depuis .task sur la vue. Charge la série puis ses épisodes ;
     /// un échec sur les épisodes n'empêche pas d'afficher les métadonnées déjà résolues.
     func load() {

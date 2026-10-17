@@ -43,6 +43,8 @@ struct SearchView: View {
             .onChange(of: viewModel.query) {
                 viewModel.search()
             }
+            // Relance la recherche en cours dans la nouvelle langue.
+            .onContentLanguageChange { viewModel.search() }
             .overlay(alignment: .top) {
                 if viewModel.isLoading {
                     ProgressView()

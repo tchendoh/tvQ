@@ -45,6 +45,7 @@ struct ShowDetailView: View {
             }
         }
         .task(id: tmdbID) { viewModel.load(tmdbID: tmdbID) }
+        .onContentLanguageChange { viewModel.reload() }
         .navigationTitle(isHeroScrolledAway ? (viewModel.show?.title ?? "") : "")
         .navigationBarTitleDisplayMode(.inline)
     }

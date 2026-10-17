@@ -55,7 +55,11 @@ final class MyShowsViewModel {
 
     /// Appelée depuis .task(id: followedShowsStore.followedShowIDs) — se relance
     /// automatiquement à chaque follow/unfollow.
-    func load(showIDs: Set<String>) {
+    ///
+    /// reloadAll : re-résout toutes les séries plutôt que seulement les nouvelles
+    /// (changement de langue de contenu). Les cartes déjà affichées restent visibles
+    /// jusqu'à ce que les nouvelles les remplacent d'un coup.
+    func load(showIDs: Set<String>, reloadAll: Bool = false) {
         loadTask?.cancel()
 
         guard !showIDs.isEmpty else {
@@ -76,7 +80,7 @@ final class MyShowsViewModel {
 
         // On ne va chercher que ce qui manque encore à l'affichage (nouveaux follows).
         let currentIDs = Set(shows.map(\.id))
-        let missingIDs = showIDs.subtracting(currentIDs)
+        let missingIDs = reloadAll ? showIDs : showIDs.subtracting(currentIDs)
 
         guard !missingIDs.isEmpty else {
             refreshUpcomingStatus()
@@ -106,7 +110,7 @@ final class MyShowsViewModel {
                     return newShows
                 }
                 if Task.isCancelled { return }
-                shows = (shows + resolved).sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+                shows = ((reloadAll ? [] : shows) + resolved).sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
                 refreshUpcomingStatus()
             } catch {
                 if !Task.isCancelled {

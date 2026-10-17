@@ -46,7 +46,7 @@ struct SettingsView: View {
             } header: {
                 Text("Content Language")
             } footer: {
-                Text("Affects show titles, descriptions, and episode info from TMDB. Restart the app for already-loaded screens to refresh.")
+                Text("Affects show titles, descriptions, and episode info from TMDB.")
             }
 
             Section {

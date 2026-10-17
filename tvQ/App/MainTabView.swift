@@ -32,6 +32,24 @@ struct MainTabView: View {
         .task(id: followedShowsStore.followedShowIDs) {
             scheduleViewModel.load(showIDs: followedShowsStore.followedShowIDs)
         }
+        // load() recharge tout l'horaire : suffit pour passer à la nouvelle langue.
+        .onContentLanguageChange {
+            scheduleViewModel.load(showIDs: followedShowsStore.followedShowIDs)
+        }
+        // Erreurs des séries suivies (chargement, follow/unfollow), communes à tous
+        // les onglets : affichées ici une seule fois plutôt que dans chaque écran.
+        .alert(
+            "Error",
+            isPresented: Binding(
+                get: { followedShowsStore.errorMessage != nil },
+                set: { if !$0 { followedShowsStore.dismissError() } }
+            ),
+            presenting: followedShowsStore.errorMessage
+        ) { _ in
+            Button("OK") { followedShowsStore.dismissError() }
+        } message: { message in
+            Text(message)
+        }
     }
 }
 
