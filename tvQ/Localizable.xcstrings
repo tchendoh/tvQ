@@ -1,6 +1,16 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Couldn't load this season. Try again." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de charger cette saison. Réessayer."
+          }
+        }
+      }
+    },
     "%@ “%@” just finished airing." : {
       "localizations" : {
         "fr" : {

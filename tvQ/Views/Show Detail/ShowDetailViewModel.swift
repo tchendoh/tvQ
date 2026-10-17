@@ -8,6 +8,10 @@ import Observation
 final class ShowDetailViewModel {
     private(set) var show: Show?
     private(set) var episodesBySeason: [Int: [Episode]] = [:]
+    /// Saisons anciennes en cours de chargement (voir loadSeason).
+    private(set) var loadingSeasons: Set<Int> = []
+    /// Saisons anciennes dont le chargement a échoué : on affiche un message.
+    private(set) var failedSeasons: Set<Int> = []
     private(set) var watchAvailability: WatchAvailability?
     private(set) var isLoading = false
     private(set) var errorMessage: String?
@@ -28,8 +32,33 @@ final class ShowDetailViewModel {
         self.scheduleRepository = scheduleRepository
     }
 
+    /// Toutes les saisons de la série, même celles pas encore chargées : seules les
+    /// plus récentes arrivent avec la fiche (ScheduleRepository.recentSeasonCount).
+    /// De la plus récente à la plus ancienne : c'est la saison en cours qu'on cherche.
     var sortedSeasonNumbers: [Int] {
-        episodesBySeason.keys.sorted()
+        let count = show?.numberOfSeasons ?? 0
+        let all = count > 0 ? Set(1...count) : []
+        return all.union(episodesBySeason.keys).sorted(by: >)
+    }
+
+    /// Ouverture d'une saison ancienne dans la fiche : chargée à ce moment-là,
+    /// gardée en mémoire tant que la fiche est ouverte.
+    func loadSeason(_ season: Int) {
+        guard let show, episodesBySeason[season] == nil, !loadingSeasons.contains(season) else { return }
+        loadingSeasons.insert(season)
+        failedSeasons.remove(season)
+        let tmdbID = tmdbID
+        Task {
+            defer { loadingSeasons.remove(season) }
+            do {
+                let episodes = try await scheduleRepository.fetchOlderSeason(season, of: show)
+                guard self.tmdbID == tmdbID else { return }
+                episodesBySeason[season] = episodes
+            } catch {
+                guard self.tmdbID == tmdbID else { return }
+                failedSeasons.insert(season)
+            }
+        }
     }
 
     /// Passe à une autre série : annule le chargement en cours et repart d'un
@@ -42,6 +71,8 @@ final class ShowDetailViewModel {
             tmdbID = newTMDBID
             show = nil
             episodesBySeason = [:]
+            loadingSeasons = []
+            failedSeasons = []
             watchAvailability = nil
             errorMessage = nil
             isLoading = false
@@ -56,6 +87,8 @@ final class ShowDetailViewModel {
         loadTask?.cancel()
         show = nil
         episodesBySeason = [:]
+        loadingSeasons = []
+        failedSeasons = []
         errorMessage = nil
         isLoading = false
         load()

@@ -244,17 +244,30 @@ struct ShowDetailView: View {
                 .padding(.horizontal)
 
             ForEach(viewModel.sortedSeasonNumbers, id: \.self) { seasonNumber in
-                if let episodes = viewModel.episodesBySeason[seasonNumber] {
-                    DisclosureGroup("Season \(seasonNumber)") {
+                DisclosureGroup("Season \(seasonNumber)") {
+                    if let episodes = viewModel.episodesBySeason[seasonNumber] {
                         VStack(alignment: .leading, spacing: 0) {
                             ForEach(episodes.sorted(by: { $0.episodeNumber < $1.episodeNumber })) { episode in
                                 EpisodeRow(episode: episode)
                                 Divider()
                             }
                         }
+                    } else if viewModel.failedSeasons.contains(seasonNumber) {
+                        Button("Couldn't load this season. Try again.") {
+                            viewModel.loadSeason(seasonNumber)
+                        }
+                        .font(.subheadline)
+                        .padding(.vertical, 8)
+                    } else {
+                        // Saison ancienne : le contenu n'apparaît qu'à l'ouverture,
+                        // c'est donc là qu'on la charge.
+                        ProgressView()
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                            .task { viewModel.loadSeason(seasonNumber) }
                     }
-                    .padding(.horizontal)
                 }
+                .padding(.horizontal)
             }
         }
     }

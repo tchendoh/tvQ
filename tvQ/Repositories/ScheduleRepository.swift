@@ -110,11 +110,23 @@ final class ScheduleRepository {
         // Même logique que ShowRepository.getShow pour la langue d'origine.
         let episodeLanguage = AppSettings.useOriginalLanguage ? show.originalLanguage : nil
 
-        // TMDB : un appel par saison, il n'y a pas d'endpoint "tous les épisodes" en un coup.
-        var tmdbEpisodes: [TMDBEpisodeDTO] = []
-        for season in 1...max(show.numberOfSeasons, 1) {
-            let episodes = try await tmdbService.fetchEpisodes(seriesID: show.tmdbID, season: season, language: episodeLanguage)
-            tmdbEpisodes.append(contentsOf: episodes)
+        // TMDB : un appel par saison (pas d'endpoint "tous les épisodes"), lancés en
+        // parallèle. Seulement les saisons récentes : l'horaire et les notifications
+        // n'ont besoin que de la saison en cours, et la fiche charge les plus
+        // anciennes à leur ouverture (fetchOlderSeason).
+        let seasons = Self.recentSeasons(of: show)
+        let tmdbEpisodes = try await withThrowingTaskGroup(of: [TMDBEpisodeDTO].self) { group in
+            for season in seasons {
+                group.addTask {
+                    try await self.fetchTMDBSeason(seriesID: show.tmdbID, season: season, language: episodeLanguage)
+                }
+            }
+            var all: [TMDBEpisodeDTO] = []
+            for try await episodes in group {
+                all.append(contentsOf: episodes)
+            }
+            // Les saisons arrivent dans le désordre : on rétablit l'ordre.
+            return all.sorted { ($0.seasonNumber, $0.episodeNumber) < ($1.seasonNumber, $1.episodeNumber) }
         }
 
         // TVmaze : un seul appel retourne tous les épisodes de toutes les saisons.
@@ -136,6 +148,29 @@ final class ScheduleRepository {
             let key = EpisodeKey(season: tmdbEpisode.seasonNumber, number: tmdbEpisode.episodeNumber)
             return EpisodeMapper.map(tmdb: tmdbEpisode, tvmaze: tvmazeByKey[key], showID: show.id)
         }
+    }
+
+    /// Saisons chargées et mises en cache pour chaque série : la saison en cours, la
+    /// précédente (rattrapage) et une de marge. Évite de charger les 36 saisons des
+    /// Simpson, ou les centaines d'épisodes d'une quotidienne.
+    static let recentSeasonCount = 3
+
+    static func recentSeasons(of show: Show) -> [Int] {
+        let last = max(show.numberOfSeasons, 1)
+        return Array(max(1, last - recentSeasonCount + 1)...last)
+    }
+
+    /// Saison plus ancienne, à la demande (fiche, ouverture d'une saison). Sans cache
+    /// ni TVmaze : saison terminée, rarement consultée, et son heure exacte de
+    /// diffusion n'intéresse plus personne.
+    func fetchOlderSeason(_ season: Int, of show: Show) async throws -> [Episode] {
+        let episodeLanguage = AppSettings.useOriginalLanguage ? show.originalLanguage : nil
+        return try await fetchTMDBSeason(seriesID: show.tmdbID, season: season, language: episodeLanguage)
+            .map { EpisodeMapper.map(tmdb: $0, tvmaze: nil, showID: show.id) }
+    }
+
+    private func fetchTMDBSeason(seriesID: Int, season: Int, language: String?) async throws -> [TMDBEpisodeDTO] {
+        try await tmdbService.fetchEpisodes(seriesID: seriesID, season: season, language: language)
     }
 
     // MARK: - Horaire "à venir"
