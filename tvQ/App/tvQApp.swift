@@ -7,12 +7,39 @@
 
 import SwiftUI
 import FirebaseCore
+import FirebaseAppCheck
+
+/// App Check : Firestore n'accepte que les requêtes venant de la vraie app tvQ.
+/// - Release (vrais appareils) : App Attest, attestation signée par Apple.
+/// - Debug (simulateur compris, qui ne peut pas faire d'App Attest) : fournisseur de
+///   débogage, avec un jeton fixe tiré de Secrets.xcconfig (hors Git) et enregistré
+///   dans la console Firebase. Le même jeton sert pour tous les simulateurs.
+///
+/// nonisolated : Firebase peut appeler la fabrique hors du fil principal.
+nonisolated final class TvQAppCheckProviderFactory: NSObject, AppCheckProviderFactory {
+    func createProvider(with app: FirebaseApp) -> AppCheckProvider? {
+        #if DEBUG
+        return AppCheckDebugProvider(app: app)
+        #else
+        return AppAttestProvider(app: app)
+        #endif
+    }
+}
 
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
+        #if DEBUG
+        // Clé lue par AppCheckDebugProvider. Sans elle, le SDK génère un jeton
+        // aléatoire par simulateur, à réenregistrer dans la console à chaque fois.
+        if !Secrets.appCheckDebugToken.isEmpty {
+            UserDefaults.standard.set(Secrets.appCheckDebugToken, forKey: "FIRAAppCheckDebugToken")
+        }
+        #endif
+        // Doit précéder FirebaseApp.configure().
+        AppCheck.setAppCheckProviderFactory(TvQAppCheckProviderFactory())
         FirebaseApp.configure()
         return true
     }

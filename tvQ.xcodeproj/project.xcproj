@@ -72,6 +72,7 @@
             "// Ne JAMAIS éditer à la main ni commiter — voir .gitignore.",
             "enum Secrets {",
             "    static let tmdbAPIKey = \"${TMDB_API_KEY}\"",
+            "    static let appCheckDebugToken = \"${APP_CHECK_DEBUG_TOKEN}\"",
             "}",
             "EOF",
             "",
@@ -103,6 +104,10 @@
       ],
       "package-product-members": [
         {
+          "package": "firebase-ios-sdk",
+          "product-name": "FirebaseAppCheck",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
           "package": "firebase-ios-sdk",
           "product-name": "FirebaseAuth",
           "build-phase": { "build-phase": "frameworks" },
