@@ -1,11 +1,14 @@
 {
-  "fill" : "system-dark",
+  "fill" : {
+    "solid" : "display-p3:0.06275,0.06275,0.06275,1.00000"
+  },
   "groups" : [
     {
       "layers" : [
         {
-          "glass" : true,
-          "image-name" : "Group 3.png",
+          "blend-mode" : "normal",
+          "fill" : "none",
+          "image-name" : "Frame 1 (15).png",
           "name" : "tvQ"
         }
       ],
@@ -15,7 +18,7 @@
       },
       "translucency" : {
         "enabled" : true,
-        "value" : 0.5
+        "value" : 0.3
       }
     }
   ],
