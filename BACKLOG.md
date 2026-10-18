@@ -91,7 +91,7 @@ Contexte : `Config/Secrets.xcconfig` alimente `Config/Secrets.generated.swift`, 
 
 Retailles trouvées en parcourant le projet. Rien de bloquant.
 
-- [ ] **Tests de gabarit Xcode** : `tvQTests.swift`, `tvQUITests.swift` et `tvQUITestsLaunchTests.swift` sont des squelettes générés. Les vrais tests sont `CachePolicyTests` et `LocalStoresTests`.
+- [x] **Tests de gabarit Xcode** (2026-10-18) : squelettes supprimés ; seul `LaunchPerformanceTests` reste dans `tvQUITests` pour mesurer le lancement (8,5 s en moyenne au simulateur le 2026-10-18, à vérifier sur appareil avec Instruments).
 - [ ] **`ContentView.swift`** : simple enveloppe autour de `RootView`, encore instanciée par `tvQApp`. Vérifier si elle sert à quelque chose, sinon lancer `RootView` directement.
 - [ ] **`AccentColor`** : la couleur n'est référencée nulle part dans le code (utilisée implicitement par `Color.accentColor` et le réglage de build, donc ne pas la supprimer sans vérifier).
 - [x] **`.claude/`** : ajouté au `.gitignore` le 2026-10-18 (contient seulement `settings.local.json`, réglages locaux).
