@@ -76,9 +76,10 @@ Swift Testing, with an in-memory SwiftData database:
 Requirements: Xcode 27, iOS 27.2.
 
 1. Clone the repository and open `tvQ.xcodeproj`. Swift Package Manager dependencies (Firebase) resolve on the first build.
-2. Copy `Config/Secrets.xcconfig.template` to `Config/Secrets.xcconfig` and add a free [TMDB](https://www.themoviedb.org/settings/api) API read access token.
+2. Copy `Config/Secrets.xcconfig.template` to `Config/Secrets.xcconfig` and add an App Check debug token (`uuidgen`).
 3. Add your own Firebase `GoogleService-Info.plist` to the `tvQ/` folder, with Sign in with Apple and Firestore enabled.
-4. Build and run.
+4. In Firebase Remote Config, create a `tmdb_token` string parameter holding a free [TMDB](https://www.themoviedb.org/settings/api) API read access token, then publish. The token is never compiled into the app, so it can be rotated from the console without a new build.
+5. Build and run.
 
 Both files are excluded from the repository on purpose.
 

@@ -1,11 +1,16 @@
 import Foundation
 
-/// Point d'accès unique aux clés d'API. La vraie valeur vit dans Config/Secrets.xcconfig
-/// (jamais commité), et une phase de build ("Générer Secrets.generated.swift") régénère
-/// Config/Secrets.generated.swift à chaque compilation à partir de cette variable —
-/// voir cette phase dans Build Phases si vous voulez en revoir le script.
+/// Point d'accès unique aux clés d'API.
+/// Le jeton TMDB n'est plus compilé dans l'app : il vient de Firebase Remote Config
+/// (clé `tmdb_token`), ce qui permet une rotation depuis la console sans nouveau build.
+/// Voir TMDBToken.
 enum APIConfig {
-    static var tmdbAPIKey: String {
-        Secrets.tmdbAPIKey
+    static func tmdbAPIKey() async throws -> String {
+        try await TMDBToken.shared.value()
+    }
+
+    /// Après un refus du jeton par TMDB : nouveau jeton, ou nil s'il n'a pas changé.
+    static func refreshTMDBAPIKey(rejected: String) async throws -> String? {
+        try await TMDBToken.shared.refreshAfterRejection(of: rejected)
     }
 }

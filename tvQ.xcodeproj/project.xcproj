@@ -61,17 +61,11 @@
           "shell": "/bin/sh",
           "script": [
             "set -e",
-            "if [ -z \"${TMDB_API_KEY}\" ]; then",
-            "  echo \"error: TMDB_API_KEY est vide dans l'environnement du script. Variables TMDB visibles :\"",
-            "  env | grep -i tmdb || echo \"(aucune)\"",
-            "  exit 1",
-            "fi",
             "mkdir -p \"${SRCROOT}/Config\"",
             "cat > \"${SRCROOT}/Config/Secrets.generated.swift\" <<EOF",
             "// Fichier généré automatiquement à la compilation depuis Config/Secrets.xcconfig.",
             "// Ne JAMAIS éditer à la main ni commiter — voir .gitignore.",
             "enum Secrets {",
-            "    static let tmdbAPIKey = \"${TMDB_API_KEY}\"",
             "    static let appCheckDebugToken = \"${APP_CHECK_DEBUG_TOKEN}\"",
             "}",
             "EOF",
@@ -122,6 +116,10 @@
         }, {
           "package": "firebase-ios-sdk",
           "product-name": "FirebaseFirestore",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "firebase-ios-sdk",
+          "product-name": "FirebaseRemoteConfig",
           "build-phase": { "build-phase": "frameworks" },
         },
       ],

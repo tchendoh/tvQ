@@ -25,9 +25,23 @@ struct TMDBService {
 
     /// Toutes les requêtes TMDB passent par ici : ajoute l'en-tête d'authentification
     /// puis délègue à NetworkService. Le type décodé est déduit de l'appelant.
+    /// Jeton refusé (401, ex. après une rotation dans Remote Config) : on va chercher
+    /// la valeur actuelle et on réessaie une fois, sans attendre un relancement.
     private func get<T: Decodable>(_ url: URL) async throws -> T {
+        let token = try await APIConfig.tmdbAPIKey()
+        do {
+            return try await send(url, token: token)
+        } catch NetworkError.httpStatus(401) {
+            guard let fresh = try await APIConfig.refreshTMDBAPIKey(rejected: token) else {
+                throw NetworkError.httpStatus(401)
+            }
+            return try await send(url, token: fresh)
+        }
+    }
+
+    private func send<T: Decodable>(_ url: URL, token: String) async throws -> T {
         var request = URLRequest(url: url)
-        request.setValue("Bearer \(APIConfig.tmdbAPIKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         return try await networkService.fetch(request, as: T.self)
     }
 

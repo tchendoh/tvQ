@@ -76,9 +76,10 @@ Swift Testing, avec une base SwiftData en mémoire :
 Prérequis : Xcode 27, iOS 27.2.
 
 1. Cloner le dépôt et ouvrir `tvQ.xcodeproj`. Les dépendances Swift Package Manager (Firebase) se résolvent au premier build.
-2. Copier `Config/Secrets.xcconfig.template` en `Config/Secrets.xcconfig` et y ajouter un jeton d'accès en lecture [TMDB](https://www.themoviedb.org/settings/api) (gratuit).
+2. Copier `Config/Secrets.xcconfig.template` en `Config/Secrets.xcconfig` et y ajouter un jeton de débogage App Check (`uuidgen`).
 3. Ajouter votre propre `GoogleService-Info.plist` de Firebase dans le dossier `tvQ/`, avec Sign in with Apple et Firestore activés.
-4. Compiler et lancer.
+4. Dans Firebase Remote Config, créer un paramètre de type chaîne `tmdb_token` contenant un jeton d'accès en lecture [TMDB](https://www.themoviedb.org/settings/api) (gratuit), puis publier. Le jeton n'est jamais compilé dans l'app : on peut le changer depuis la console sans nouveau build.
+5. Compiler et lancer.
 
 Ces deux fichiers sont volontairement exclus du dépôt.
 

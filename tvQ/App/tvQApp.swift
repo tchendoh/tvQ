@@ -42,6 +42,8 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         // Doit précéder FirebaseApp.configure().
         AppCheck.setAppCheckProviderFactory(TvQAppCheckProviderFactory())
         FirebaseApp.configure()
+        // Lance tout de suite le chargement du jeton TMDB (voir TMDBToken).
+        Task { await TMDBToken.shared.prefetch() }
         // Tôt, pour recevoir aussi le toucher qui a lancé l'app.
         UNUserNotificationCenter.current().delegate = self
         return true
