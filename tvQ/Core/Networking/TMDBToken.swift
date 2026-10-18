@@ -51,7 +51,7 @@ actor TMDBToken {
     enum TokenError: LocalizedError {
         case missing
         var errorDescription: String? {
-            String(localized: "Configuration TMDB indisponible. Réessayez plus tard.")
+            String(localized: "TMDB configuration is unavailable. Try again later.")
         }
     }
 
