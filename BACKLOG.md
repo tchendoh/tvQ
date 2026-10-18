@@ -45,6 +45,12 @@ Choses identifiées en cours de route, volontairement mises de côté pour reste
 
 Ce qui doit être réglé avant de distribuer l'app à des amis, puis au public. Rien ci-dessous n'est commencé, sauf mention contraire.
 
+### Temps de lancement (à faire au moment de préparer une release)
+
+- [ ] **Mesurer en conditions réelles** : `testLaunchPerformance` donne 8,5 s en moyenne (2026-10-18), mais en Debug, au simulateur et sous automatisation XCTest, donc probablement très gonflé. Mesurer avec Instruments (Product > Profile, gabarit App Launch, build Release) sur l'iPhone 11, sinon au simulateur en Release. Cible Apple : premier affichage en moins de 400 ms ; jusqu'à 1 s reste acceptable avec Firebase ; au-delà de 2 s, corriger.
+- [ ] **Si c'est lent, chercher la cause** : suspects dans l'ordre `FirebaseApp.configure()` et Crashlytics, `Firestore.firestore()` appelé tôt par la création de `FollowedShowsStore` et des repositories dans `RootView`, puis l'ouverture du conteneur SwiftData. Au besoin, ajouter des marqueurs `os_signpost` pour chronométrer chaque étape.
+- [ ] **Après TestFlight** : suivre les temps réels des testeurs dans Xcode > Window > Organizer > Launch Time.
+
 ### Règles de sécurité Firestore
 
 Contexte : `GoogleService-Info.plist` est embarqué dans l'app, donc n'importe qui peut interroger le projet Firebase. Seules les règles de sécurité protègent les données.
