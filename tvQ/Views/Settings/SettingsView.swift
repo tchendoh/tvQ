@@ -181,6 +181,12 @@ struct SettingsView: View {
                 DatePicker("Morning time", selection: morningTime, displayedComponents: .hourAndMinute)
             }
 
+            #if DEBUG
+            // Toujours visible en Debug, même notifications désactivées : la page
+            // montre justement la permission et l'absence de notifications.
+            debugNotificationButtons
+            #endif
+
             if isDeniedBySystem {
                 Button("Open iOS Settings") {
                     if let url = URL(string: UIApplication.openNotificationSettingsURLString) {
@@ -198,6 +204,16 @@ struct SettingsView: View {
             }
         }
     }
+
+    #if DEBUG
+    /// Page de débogage des notifications (Debug seulement, textes non traduits).
+    private var debugNotificationButtons: some View {
+        let label: String = "Scheduled notifications (debug)"
+        return NavigationLink(label) {
+            NotificationsDebugView()
+        }
+    }
+    #endif
 
     /// L'heure du matin est stockée en minutes depuis minuit ; DatePicker veut une Date.
     private var morningTime: Binding<Date> {

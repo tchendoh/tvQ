@@ -16,12 +16,17 @@ final class FollowedShowsStore {
     private let showRepository: ShowRepository
     private let scheduleRepository: ScheduleRepository
     private var userID: String?
+    /// Appelé après un suivi réussi : propose les notifications (voir
+    /// NotificationScheduler.offerAfterFollow). Remplaçable dans les tests.
+    private let offerNotifications: () async -> Void
 
     init(
         userShowsService: any UserShowsServicing = UserShowsService(),
         showRepository: ShowRepository = .shared,
-        scheduleRepository: ScheduleRepository = .shared
+        scheduleRepository: ScheduleRepository = .shared,
+        offerNotifications: @escaping () async -> Void = { await NotificationScheduler.shared.offerAfterFollow() }
     ) {
+        self.offerNotifications = offerNotifications
         self.userShowsService = userShowsService
         self.showRepository = showRepository
         self.scheduleRepository = scheduleRepository
@@ -124,6 +129,7 @@ final class FollowedShowsStore {
                 } else {
                     try await userShowsService.follow(showID: showID, userID: userID)
                     prefetchContent(showID: showID)
+                    await offerNotifications()
                 }
             } catch {
                 if wasFollowing {

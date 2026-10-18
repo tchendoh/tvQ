@@ -47,6 +47,79 @@ final class NotificationScheduler {
         }
     }
 
+    /// Premier suivi d'une série : le moment naturel pour proposer les notifications,
+    /// plutôt qu'au lancement. Ne demande que si iOS n'a jamais posé la question ;
+    /// une réponse positive active aussi le réglage de tvQ.
+    func offerAfterFollow() async {
+        await refreshAuthorizationStatus()
+        guard authorizationStatus == .notDetermined else { return }
+        if await requestAuthorization() {
+            UserDefaults.standard.set(true, forKey: AppSettings.Keys.notificationsEnabled)
+        }
+    }
+
+    #if DEBUG
+    /// Notification de test dans quelques secondes, pour vérifier l'affichage et le
+    /// toucher (ouverture de la fiche) sans attendre un vrai soir de diffusion.
+    /// Identifiant hors du préfixe "tvq-" : un nouveau plan ne l'efface pas.
+    func scheduleTestNotification(tmdbID: Int?, title: String, in seconds: TimeInterval = 10) async {
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = "Test notification from tvQ (Debug)."
+        content.sound = .default
+        if let tmdbID {
+            content.userInfo = [NotificationRouter.tmdbIDKey: tmdbID]
+        }
+        let request = UNNotificationRequest(
+            identifier: "debug-test",
+            content: content,
+            trigger: UNTimeIntervalNotificationTrigger(timeInterval: seconds, repeats: false)
+        )
+        try? await center.add(request)
+    }
+
+    /// Une notification en attente, telle qu'iOS la voit.
+    struct PendingInfo: Identifiable {
+        let id: String
+        let title: String
+        let body: String
+        let fireDate: Date?
+        /// true : instant absolu (heure TVmaze) ; false : heure locale flottante (matin).
+        let isExact: Bool
+        let tmdbID: Int?
+    }
+
+    /// Notifications de tvQ en attente (et celle de test), triées par date.
+    func pendingInfo() async -> [PendingInfo] {
+        await center.pendingNotificationRequests()
+            .filter { $0.identifier.hasPrefix(Self.idPrefix) || $0.identifier == "debug-test" }
+            .map { request in
+                let fireDate: Date?
+                let isExact: Bool
+                switch request.trigger {
+                case let trigger as UNTimeIntervalNotificationTrigger:
+                    fireDate = trigger.nextTriggerDate()
+                    isExact = true
+                case let trigger as UNCalendarNotificationTrigger:
+                    fireDate = trigger.nextTriggerDate()
+                    isExact = false
+                default:
+                    fireDate = nil
+                    isExact = false
+                }
+                return PendingInfo(
+                    id: request.identifier,
+                    title: request.content.title,
+                    body: request.content.body,
+                    fireDate: fireDate,
+                    isExact: isExact,
+                    tmdbID: request.content.userInfo[NotificationRouter.tmdbIDKey] as? Int
+                )
+            }
+            .sorted { ($0.fireDate ?? .distantFuture) < ($1.fireDate ?? .distantFuture) }
+    }
+    #endif
+
     func removeAll() async {
         let ids = await center.pendingNotificationRequests()
             .map(\.identifier)

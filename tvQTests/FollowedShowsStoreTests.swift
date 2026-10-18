@@ -5,6 +5,12 @@ import Foundation
 @MainActor
 struct FollowedShowsStoreTests {
     private let service = FakeUserShows()
+    private let offers = OfferCounter()
+
+    @MainActor
+    final class OfferCounter {
+        var count = 0
+    }
 
     /// Repositories branchés sur des doublures : le préchargement après un suivi ne
     /// touche ni le réseau ni Firestore.
@@ -25,7 +31,8 @@ struct FollowedShowsStoreTests {
                 tvmazeService: tvmaze,
                 episodeStore: EpisodeStore(modelContainer: LocalDatabase.makeContainer(inMemory: true)),
                 sharedCache: FakeSharedEpisodeCache()
-            )
+            ),
+            offerNotifications: { [offers] in offers.count += 1 }
         )
     }
 
@@ -133,5 +140,33 @@ struct FollowedShowsStoreTests {
 
         #expect(!store.isFollowing("42"))
         #expect(service.followCalls.isEmpty && service.muteCalls.isEmpty)
+    }
+
+    // MARK: - Proposition des notifications
+
+    @Test func successfulFollowOffersNotifications() async {
+        let store = makeStore()
+        store.load(userID: "A")
+        #expect(await loaded(store))
+
+        store.toggle(showID: "42")
+
+        #expect(await eventually { offers.count == 1 })
+    }
+
+    @Test func unfollowAndFailedFollowDoNotOfferNotifications() async throws {
+        service.followed = ["1"]
+        let store = makeStore()
+        store.load(userID: "A")
+        #expect(await loaded(store))
+
+        store.toggle(showID: "1")   // ne plus suivre
+        #expect(await eventually { service.unfollowCalls == ["1"] })
+        service.shouldFail = true
+        store.toggle(showID: "42")  // suivi refusé par Firestore
+        #expect(await eventually { !store.isFollowing("42") })
+        try await Task.sleep(for: .milliseconds(50))
+
+        #expect(offers.count == 0)
     }
 }
