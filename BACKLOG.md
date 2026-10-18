@@ -94,7 +94,7 @@ Retailles trouvées en parcourant le projet. Rien de bloquant.
 - [ ] **Tests de gabarit Xcode** : `tvQTests.swift`, `tvQUITests.swift` et `tvQUITestsLaunchTests.swift` sont des squelettes générés. Les vrais tests sont `CachePolicyTests` et `LocalStoresTests`.
 - [ ] **`ContentView.swift`** : simple enveloppe autour de `RootView`, encore instanciée par `tvQApp`. Vérifier si elle sert à quelque chose, sinon lancer `RootView` directement.
 - [ ] **`AccentColor`** : la couleur n'est référencée nulle part dans le code (utilisée implicitement par `Color.accentColor` et le réglage de build, donc ne pas la supprimer sans vérifier).
-- [ ] **`.claude/`** : dossier non suivi par Git; l'ajouter au `.gitignore` ou le commiter.
+- [x] **`.claude/`** : ajouté au `.gitignore` le 2026-10-18 (contient seulement `settings.local.json`, réglages locaux).
 - [ ] **`build/`** : 2,3 Go, ignoré par Git. Peut être supprimé pour récupérer de l'espace, Xcode le recrée.
 - [ ] **Jeton TMDB** : confirmé le 2026-09-20 que `Config/Secrets.generated.swift` est ignoré par Git; reste à vérifier l'historique (voir « Avant TestFlight »).
 
