@@ -12,13 +12,13 @@ final class FollowedShowsStore {
     private(set) var isLoading = false
     private(set) var errorMessage: String?
 
-    private let userShowsService: UserShowsService
+    private let userShowsService: any UserShowsServicing
     private let showRepository: ShowRepository
     private let scheduleRepository: ScheduleRepository
     private var userID: String?
 
     init(
-        userShowsService: UserShowsService = UserShowsService(),
+        userShowsService: any UserShowsServicing = UserShowsService(),
         showRepository: ShowRepository = .shared,
         scheduleRepository: ScheduleRepository = .shared
     ) {

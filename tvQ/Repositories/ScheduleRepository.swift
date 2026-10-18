@@ -15,20 +15,20 @@ final class ScheduleRepository {
     /// pour injecter une autre instance dans les tests.
     static let shared = ScheduleRepository()
 
-    private let tmdbService: TMDBService
-    private let tvmazeService: TVmazeService
+    private let tmdbService: any TMDBFetching
+    private let tvmazeService: any TVmazeFetching
     private let episodeStore: EpisodeStore
-    private let sharedCache: FirestoreEpisodeCacheService
+    private let sharedCache: any SharedEpisodeCaching
 
     /// Résolutions distantes déjà en cours, par clé de cache : deux écrans qui demandent
     /// la même série en même temps partagent un seul appel au lieu de le doubler.
     private var inFlight: [String: Task<[Episode], Error>] = [:]
 
     init(
-        tmdbService: TMDBService = TMDBService(),
-        tvmazeService: TVmazeService = TVmazeService(),
+        tmdbService: any TMDBFetching = TMDBService(),
+        tvmazeService: any TVmazeFetching = TVmazeService(),
         episodeStore: EpisodeStore = .shared,
-        sharedCache: FirestoreEpisodeCacheService = FirestoreEpisodeCacheService()
+        sharedCache: any SharedEpisodeCaching = FirestoreEpisodeCacheService()
     ) {
         self.tmdbService = tmdbService
         self.tvmazeService = tvmazeService

@@ -15,22 +15,22 @@ final class ShowRepository {
     /// pour injecter une autre instance dans les tests.
     static let shared = ShowRepository()
 
-    private let tmdbService: TMDBService
-    private let tvmazeService: TVmazeService
+    private let tmdbService: any TMDBFetching
+    private let tvmazeService: any TVmazeFetching
     private let showStore: ShowStore
     private let watchAvailabilityStore: WatchAvailabilityStore
-    private let sharedCache: FirestoreShowCacheService
+    private let sharedCache: any SharedShowCaching
 
     /// Résolutions distantes déjà en cours, par clé de cache : deux écrans qui demandent
     /// la même série en même temps partagent un seul appel au lieu de le doubler.
     private var inFlight: [String: Task<Show, Error>] = [:]
 
     init(
-        tmdbService: TMDBService = TMDBService(),
-        tvmazeService: TVmazeService = TVmazeService(),
+        tmdbService: any TMDBFetching = TMDBService(),
+        tvmazeService: any TVmazeFetching = TVmazeService(),
         showStore: ShowStore = .shared,
         watchAvailabilityStore: WatchAvailabilityStore = .shared,
-        sharedCache: FirestoreShowCacheService = FirestoreShowCacheService()
+        sharedCache: any SharedShowCaching = FirestoreShowCacheService()
     ) {
         self.tmdbService = tmdbService
         self.tvmazeService = tvmazeService
@@ -65,7 +65,7 @@ final class ShowRepository {
     /// classées comme fiction et restent.
     private static let excludedRecommendationGenres: Set<Int> = [10767, 10763]
 
-    private static func isRecommendable(_ dto: TMDBSearchResultDTO) -> Bool {
+    static func isRecommendable(_ dto: TMDBSearchResultDTO) -> Bool {
         excludedRecommendationGenres.isDisjoint(with: dto.genreIDs ?? [])
     }
 
