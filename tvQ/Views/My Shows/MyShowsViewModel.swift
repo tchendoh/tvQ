@@ -1,19 +1,71 @@
 import Foundation
 import Observation
 
-/// Résout les Show complets à partir des IDs suivis (FollowedShowsStore).
-/// Ne connaît que ShowRepository : aucune référence à Firestore ici.
+/// Résout les Show complets à partir des IDs suivis (FollowedShowsStore), et lit
+/// en local l'épisode le plus proche de chaque série (tri et affichage en liste).
+/// Aucune référence à Firestore ici.
 @Observable
 final class MyShowsViewModel {
     private(set) var shows: [Show] = []
     private(set) var isLoading = false
     private(set) var errorMessage: String?
 
+    /// Épisode le plus proche d'aujourd'hui pour chaque série (sorti dans les 7
+    /// derniers jours ou à venir), par showID. Lu dans la base locale seulement :
+    /// l'horaire (Schedule) se charge de la tenir à jour.
+    private(set) var nearestEpisodes: [String: Episode] = [:]
+
+    enum SortOrder: String {
+        /// Séries dont un épisode vient de sortir ou sort bientôt d'abord.
+        case recent
+        case title
+    }
+
     private let showRepository: ShowRepository
+    private let scheduleRepository: ScheduleRepository
     private var loadTask: Task<Void, Never>?
 
-    init(showRepository: ShowRepository = .shared) {
+    init(
+        showRepository: ShowRepository = .shared,
+        scheduleRepository: ScheduleRepository = .shared
+    ) {
         self.showRepository = showRepository
+        self.scheduleRepository = scheduleRepository
+    }
+
+    /// Les séries sont déjà triées par titre ; le tri « récent » met devant celles
+    /// qui ont un épisode proche, de la plus proche à la moins proche.
+    func sorted(_ shows: [Show], by order: SortOrder, now: Date = .now) -> [Show] {
+        guard order == .recent else { return shows }
+        func distance(_ show: Show) -> TimeInterval {
+            guard let date = nearestEpisodes[show.id]?.airDate else { return .infinity }
+            return abs(date.timeIntervalSince(now))
+        }
+        // Tri stable : à distance égale (ou sans épisode), l'ordre par titre reste.
+        return shows.enumerated()
+            .sorted { (distance($0.element), $0.offset) < (distance($1.element), $1.offset) }
+            .map(\.element)
+    }
+
+    /// Relit en local l'épisode le plus proche de chaque série. Sans réseau : appelé
+    /// au chargement et à chaque changement de la base locale (LocalDataVersion).
+    func refreshNearestEpisodes() async {
+        let candidates = shows.filter { $0.status != .ended }
+        guard let episodes = try? await scheduleRepository.localUpcomingEpisodes(for: candidates) else { return }
+        nearestEpisodes = Self.nearest(in: episodes, now: .now)
+    }
+
+    static func nearest(in episodes: [Episode], now: Date) -> [String: Episode] {
+        var result: [String: Episode] = [:]
+        for episode in episodes {
+            guard let date = episode.airDate else { continue }
+            if let current = result[episode.showID]?.airDate,
+               abs(current.timeIntervalSince(now)) <= abs(date.timeIntervalSince(now)) {
+                continue
+            }
+            result[episode.showID] = episode
+        }
+        return result
     }
 
     /// Deux groupes seulement : les statuts « en cours », « entre deux saisons » ou
@@ -55,7 +107,10 @@ final class MyShowsViewModel {
         let currentIDs = Set(shows.map(\.id))
         let missingIDs = reloadAll ? showIDs : showIDs.subtracting(currentIDs)
 
-        guard !missingIDs.isEmpty else { return }
+        guard !missingIDs.isEmpty else {
+            Task { await refreshNearestEpisodes() }
+            return
+        }
 
         loadTask = Task {
             isLoading = true
@@ -81,6 +136,7 @@ final class MyShowsViewModel {
                 }
                 if Task.isCancelled { return }
                 shows = ((reloadAll ? [] : shows) + resolved).sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+                await refreshNearestEpisodes()
             } catch {
                 if !Task.isCancelled {
                     errorMessage = String(localized: "Couldn't load your shows. Check your connection and try again.")
