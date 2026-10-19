@@ -68,10 +68,7 @@ final class ShowRepository {
     /// candidat (téléréalité chez TMDB) demandent leur fiche, en parallèle et par les
     /// caches ; une fiche introuvable garde la série (dans le doute, on montre).
     private func recommendations(from results: [TMDBSearchResultDTO]) async -> [ShowSummary] {
-        // TMDB renvoie parfois deux fois la même série dans une liste : deux cellules
-        // avec le même identifiant dérèglent la grille.
-        var seen: Set<Int> = []
-        let byGenre = results.filter(Self.isRecommendable).filter { seen.insert($0.id).inserted }
+        let byGenre = results.filter(Self.isRecommendable)
         let candidateIDs = byGenre
             .filter { ($0.genreIDs ?? []).contains(AppRules.Recommendations.gameShowCandidateGenre) }
             .map(\.id)
