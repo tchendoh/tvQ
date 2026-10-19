@@ -29,11 +29,6 @@ where Data.Element: Identifiable {
     /// tiennent ; la largeur réelle s'ajuste ensuite pour remplir la ligne.
     let minimumWidth: CGFloat
     var spacing: CGFloat = 24
-    /// false : toutes les cellules sont créées d'avance (pas de LazyVGrid). Pour une
-    /// page qui empile plusieurs grilles (Home) : une grille paresseuse estime la
-    /// hauteur des rangées pas encore créées et corrige en y revenant, ce qui faisait
-    /// sauter la page à la frontière des sections (iPhone Duo, 4 colonnes).
-    var isLazy = true
     @ViewBuilder var cell: (Data.Element) -> Cell
 
     @State private var availableWidth: CGFloat = 0
@@ -49,43 +44,13 @@ where Data.Element: Identifiable {
 
 
     var body: some View {
-        grid
-            .onGeometryChange(for: CGFloat.self, of: evenGridWidth(of:)) { newWidth in
-                availableWidth = newWidth
+        LazyVGrid(columns: columns, spacing: spacing) {
+            ForEach(items) { item in
+                cell(item)
             }
-    }
-
-    @ViewBuilder
-    private var grid: some View {
-        if isLazy {
-            LazyVGrid(columns: columns, spacing: spacing) {
-                ForEach(items) { item in
-                    cell(item)
-                }
-            }
-        } else {
-            // Mêmes colonnes égales que la LazyVGrid, mais rangée par rangée. Chaque
-            // cellule reçoit sa largeur exacte : une dernière rangée incomplète reste
-            // alignée à gauche.
-            let count = columnCount
-            let cellWidth = max(0, (availableWidth - spacing * CGFloat(count - 1)) / CGFloat(count))
-            let all = Array(items)
-            let rows = stride(from: 0, to: all.count, by: count).map { Array(all[$0..<min($0 + count, all.count)]) }
-            VStack(alignment: .leading, spacing: spacing) {
-                ForEach(rows.indices, id: \.self) { index in
-                    HStack(alignment: .top, spacing: spacing) {
-                        ForEach(rows[index]) { item in
-                            cell(item)
-                                .frame(width: cellWidth)
-                        }
-                    }
-                }
-            }
-            // minWidth: 0 indispensable : sans minimum, le cadre adopte la largeur du
-            // contenu quand elle dépasse la place offerte. Comme cette largeur sert à
-            // calculer celle des cartes, une mesure trop grande (rotation de l'écran)
-            // se confirmait elle-même et la grille débordait de l'écran.
-            .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
+        }
+        .onGeometryChange(for: CGFloat.self, of: evenGridWidth(of:)) { newWidth in
+            availableWidth = newWidth
         }
     }
 }

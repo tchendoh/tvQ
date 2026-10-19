@@ -67,8 +67,7 @@ struct RecommendationsView: View {
                 }
                 .padding(.horizontal, 20)
 
-                // Non paresseuse : voir EvenGrid.isLazy (saut entre les sections).
-                EvenGrid(items: shows, minimumWidth: cardMinimumWidth, isLazy: false) { summary in
+                EvenGrid(items: shows, minimumWidth: cardMinimumWidth) { summary in
                     // Contrairement à My Shows (où unfollow retire la carte, ce
                     // qui rendait un retour en arrière confus), ici la série
                     // reste affichée qu'elle soit suivie ou non — le badge peut
