@@ -141,8 +141,6 @@ final class AuthService {
             return .other
         }
     }
-
-    @MainActor
     func reauthenticate(password: String) async throws {
         guard let user = Auth.auth().currentUser, let email = user.email else {
             throw AuthServiceError.noCurrentUser
@@ -154,8 +152,6 @@ final class AuthService {
             throw AuthServiceError.translated(error)
         }
     }
-
-    @MainActor
     func reauthenticateWithApple(idToken: String, rawNonce: String) async throws {
         guard let user = Auth.auth().currentUser else {
             throw AuthServiceError.noCurrentUser
@@ -171,12 +167,9 @@ final class AuthService {
     /// Apple exige de révoquer le jeton Sign in with Apple quand un compte créé
     /// avec Apple est supprimé. `authorizationCode` vient de la re-authentification
     /// Apple qui précède (à usage unique, valable peu de temps).
-    @MainActor
     func revokeAppleToken(authorizationCode: String) async throws {
         try await Auth.auth().revokeToken(withAuthorizationCode: authorizationCode)
     }
-
-    @MainActor
     func deleteCurrentUser() async throws {
         guard let user = Auth.auth().currentUser else {
             throw AuthServiceError.noCurrentUser

@@ -7,7 +7,6 @@ import Observation
 /// `currentUser` ne vient que du flux `authStateChanges` de Firebase : connexion,
 /// déconnexion et suppression de compte le mettent à jour d'elles-mêmes, sans que
 /// personne n'ait à l'assigner.
-@MainActor
 @Observable
 final class SessionStore {
     private(set) var currentUser: AppUser?

@@ -96,7 +96,7 @@ struct TMDBService {
 
     /// `watch_region` est ignoré par TMDB sur cet endpoint précis : la réponse
     /// contient déjà toutes les régions, filtrées côté appelant (voir
-    /// WatchProvidersMapper). Pas de paramètre `language` non plus — les noms
+    /// WatchAvailabilityMapper). Pas de paramètre `language` non plus — les noms
     /// de diffuseurs (`provider_name`) ne sont pas localisés par TMDB.
     func fetchWatchProviders(seriesID: Int) async throws -> TMDBWatchProvidersDTO {
         let url = baseURL.appendingPathComponent("tv/\(seriesID)/watch/providers")

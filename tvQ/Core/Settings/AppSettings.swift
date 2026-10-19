@@ -16,7 +16,7 @@ enum ContentLanguage: String, CaseIterable, Identifiable {
 }
 
 /// Code pays ISO 3166-1 utilisé pour filtrer les diffuseurs retournés par
-/// `TMDBService.fetchWatchProviders` (voir WatchProvidersMapper) — TMDB renvoie
+/// `TMDBService.fetchWatchProviders` (voir WatchAvailabilityMapper) — TMDB renvoie
 /// toutes les régions d'un coup, ce setting sert seulement à choisir laquelle
 /// afficher. Liste volontairement courte (marchés les plus probables pour les
 /// utilisateurs de tvQ) plutôt que la liste complète des ~60 pays TMDB.
@@ -89,7 +89,7 @@ enum AppSettings {
         UserDefaults.standard.string(forKey: Keys.contentLanguage) ?? ContentLanguage.english.rawValue
     }
 
-    /// Lu par WatchProvidersMapper pour choisir la région à afficher dans la
+    /// Lu par WatchAvailabilityMapper pour choisir la région à afficher dans la
     /// section "Regarder sur" de ShowDetailView. Par défaut le Canada — la
     /// majorité des utilisateurs actuels de tvQ y sont.
     static var watchProviderRegion: String {

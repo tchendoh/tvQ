@@ -8,7 +8,6 @@ import UIKit
 /// apparaître 15 min avant le début, même app fermée. Sans serveur, l'app ne
 /// peut pas les terminer à heure fixe : elles passent à « Terminé » d'elles-mêmes
 /// (staleDate), et l'app les retire à sa prochaine ouverture.
-@MainActor
 final class LiveActivityScheduler {
     static let shared = LiveActivityScheduler()
 
@@ -179,7 +178,6 @@ final class LiveActivityScheduler {
 /// Prépare l'image de fond d'une activité dans l'App Group : réduite (ActivityKit
 /// refuse une image plus grande que la présentation). La couleur, elle, vient
 /// déjà de la série (Show.dominantColor).
-@MainActor
 enum ActivityArtwork {
 
     /// Largeur en pixels : un peu plus que la largeur de l'écran verrouillé en points.

@@ -7,7 +7,6 @@ import AuthenticationServices
 ///
 /// Au succès, rien à faire ici : SessionStore reçoit le nouvel utilisateur par le
 /// flux Firebase, et RootView remplace LoginView par l'app.
-@MainActor
 @Observable
 final class LoginViewModel {
     enum Mode {

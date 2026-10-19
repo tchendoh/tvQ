@@ -93,7 +93,8 @@ struct FollowBadge: View {
 
     private var icon: some View {
         FollowIcon(isFollowing: isFollowed)
-            .font(.system(size: 18, weight: .bold))
+            // Suit Dynamic Type (l'ancienne taille fixe de 18 pt ne bougeait pas).
+            .font(.headline.weight(.bold))
     }
 }
 

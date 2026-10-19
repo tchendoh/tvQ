@@ -6,7 +6,6 @@ import AuthenticationServices
 ///
 /// Au succès, Firebase signale la déconnexion : SessionStore passe à nil et RootView
 /// ramène l'app à LoginView, ce qui ferme aussi cette feuille.
-@MainActor
 @Observable
 final class DeleteAccountViewModel {
     private(set) var isDeleting = false
