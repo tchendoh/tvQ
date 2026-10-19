@@ -72,7 +72,7 @@ nonisolated struct LiveActivityPlanner: Sendable {
                 tmdbID: first.show.tmdbID,
                 showTitle: first.show.title,
                 network: first.show.network,
-                episodeCode: String(format: "S%02dE%02d", first.episode.seasonNumber, first.episode.episodeNumber),
+                episodeCode: first.episode.code,
                 episodeTitle: first.episode.title,
                 backdropURL: first.show.backdropURL,
                 color: first.show.dominantColor,

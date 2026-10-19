@@ -198,7 +198,7 @@ nonisolated struct NotificationPlanner: Sendable {
 
     private func body(for episodes: [Episode], isMorning: Bool) -> String {
         let first = episodes[0]
-        let code = String(format: "S%02dE%02d", first.seasonNumber, first.episodeNumber)
+        let code = first.code
 
         if episodes.count > 1 {
             let count = episodes.count

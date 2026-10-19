@@ -108,7 +108,7 @@ struct ScheduleView: View {
     /// une fois la mise en page stabilisée.
     private func scrollToTodayAfterLayout(using proxy: ScrollViewProxy) {
         scrollToToday(using: proxy)
-        Task { @MainActor in
+        Task {
             try? await Task.sleep(for: .milliseconds(250))
             scrollToToday(using: proxy)
         }
@@ -274,7 +274,7 @@ private struct ScheduleRow: View {
                     ForEach(group.episodeNumbers, id: \.self) { episodeNumber in
                         HStack(spacing: 8) {
                             EpisodeTag(
-                                text: String(format: "S%02dE%02d", group.seasonNumber, episodeNumber),
+                                text: Episode.code(season: group.seasonNumber, episode: episodeNumber),
                                 style: .episode
                             )
                             if episodeNumber == 1 {

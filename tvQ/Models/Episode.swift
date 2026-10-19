@@ -49,3 +49,17 @@ nonisolated struct Episode: Identifiable, Equatable, Hashable, Codable {
         self.runtimeMinutes = runtimeMinutes
     }
 }
+
+// nonisolated : sans lui, l'extension hérite de l'isolation MainActor par défaut du
+// projet, et les planificateurs (nonisolated) ne pourraient pas lire `code`.
+nonisolated extension Episode {
+    /// « S02E04 » : le seul endroit où ce format est défini (Schedule, notifications,
+    /// Live Activity).
+    var code: String {
+        Self.code(season: seasonNumber, episode: episodeNumber)
+    }
+
+    static func code(season: Int, episode: Int) -> String {
+        String(format: "S%02dE%02d", season, episode)
+    }
+}

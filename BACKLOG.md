@@ -113,27 +113,27 @@ Contexte : `Config/Secrets.xcconfig` alimente `Config/Secrets.generated.swift`, 
 Retailles trouvées en parcourant le projet. Rien de bloquant.
 
 - [x] **Tests de gabarit Xcode** (2026-10-18) : squelettes supprimés ; seul `LaunchPerformanceTests` reste dans `tvQUITests` pour mesurer le lancement (8,5 s en moyenne au simulateur le 2026-10-18, à vérifier sur appareil avec Instruments).
-- [ ] **`ContentView.swift`** : simple enveloppe autour de `RootView`, encore instanciée par `tvQApp`. Vérifier si elle sert à quelque chose, sinon lancer `RootView` directement.
-- [ ] **`AccentColor`** : la couleur n'est référencée nulle part dans le code (utilisée implicitement par `Color.accentColor` et le réglage de build, donc ne pas la supprimer sans vérifier).
+- [x] **`ContentView.swift`** : gardé volontairement (2026-10-19), c'est le point d'entrée qu'on cherche en ouvrant le projet.
+- [x] **`AccentColor`** : vérifié le 2026-10-19, déjà au rose du logo (232, 61, 158) et utilisée comme teinte de l'app par le réglage de build. À garder.
 - [x] **`.claude/`** : ajouté au `.gitignore` le 2026-10-18 (contient seulement `settings.local.json`, réglages locaux).
 - [x] **`build/`** : supprimé le 2026-10-18 (2,3 Go, abandonné depuis le 2026-08-01 ; Xcode compile dans DerivedData).
-- [ ] **Jeton TMDB** : confirmé le 2026-09-20 que `Config/Secrets.generated.swift` est ignoré par Git; reste à vérifier l'historique (voir « Avant TestFlight »).
+- [x] **Jeton TMDB** : confirmé le 2026-09-20 que `Config/Secrets.generated.swift` est ignoré par Git ; historique vérifié le 2026-10-17 (voir « Avant TestFlight »).
 
 ### Revue du code du 2026-10-18
 
 Duplication :
 - [ ] **Téléchargement d'images écrit trois fois** : `RetryingAsyncImage`, `ShowColorExtractor` et `ActivityArtwork` (« ImageCache, sinon URLSession, puis stockage »). `ActivityArtwork` ne remet même pas l'image dans `ImageCache`. Un seul `ImageLoader.image(for:)` les remplacerait.
-- [ ] **Code d'épisode `S%02dE%02d` formaté à trois endroits** : `NotificationPlanner`, `LiveActivityPlanner` et `ScheduleView`. Une propriété `Episode.code` suffirait, et éviterait que l'un des trois change sans les autres.
+- [x] **Code d'épisode `S%02dE%02d` formaté à trois endroits** : fait le 2026-10-19, `Episode.code` et `Episode.code(season:episode:)`.
 
 Façons de faire un peu datées :
 - [x] **`print` encadré de `#if DEBUG`** : fait le 2026-10-19. `Log` (`Core/Logging/Log.swift`) : catégories `network`, `data`, `notifications` ; les erreurs vont aussi dans le fil d'Ariane Crashlytics (`report: true` pour une erreur non fatale).
 - [ ] **`Task.sleep(250 ms)` de `scrollToTodayAfterLayout`** (`ScheduleView`) : contournement pour rejouer le défilement après la mise en page. Depuis iOS 18, `ScrollPosition` avec `.scrollPosition($position)`, ou `onScrollGeometryChange`, permet de viser un élément sans deviner un délai. À retester à la main (arrivée sur Schedule).
-- [ ] **`DateFormatter` et `ISO8601DateFormatter` dans `EpisodeMapper`** : remplacer par `Date.ISO8601FormatStyle` et `Date(_:strategy:)`, des valeurs `Sendable`, plus simples en Swift 6. Les tests de `EpisodeMapperTests` couvrent déjà le cas délicat (date seule en UTC).
-- [ ] **`.font(.system(size: 16/18))`** : `NotificationBell` réglé le 2026-10-19 (`.callout`) ; reste `ShowCardView`. Tailles fixes qui ne suivent pas Dynamic Type.
-- [ ] **`@MainActor` explicites redondants** sur `SessionStore`, `LoginViewModel`, `DeleteAccountViewModel` et `LiveActivityScheduler`, et `Task { @MainActor in` dans `ScheduleView` : le projet isole déjà tout au `MainActor` par défaut (vestiges d'avant ce réglage). Sans danger, mais ils laissent croire que les autres types ne sont pas isolés.
+- [x] **`DateFormatter` et `ISO8601DateFormatter` dans `EpisodeMapper`** : fait le 2026-10-19, `Date.ISO8601FormatStyle` (date seule en UTC, et horodatage TVmaze avec décalage).
+- [x] **`.font(.system(size: 16/18))`** : fait le 2026-10-19 (`NotificationBell` en `.callout`, `ShowCardView` en `.headline`).
+- [x] **`@MainActor` explicites redondants** : retirés le 2026-10-19 (`SessionStore`, `LoginViewModel`, `DeleteAccountViewModel`, `LiveActivityScheduler`, `ActivityArtwork`, méthodes d'`AuthService`, `Task { @MainActor in` de `ScheduleView`).
 
 Commentaires périmés :
-- [ ] **`WatchProvidersMapper`** mentionné dans `AppSettings` (deux fois) et dans `TMDBService`, alors que la classe s'appelle `WatchAvailabilityMapper`.
+- [x] **`WatchProvidersMapper`** : commentaires corrigés le 2026-10-19 (`WatchAvailabilityMapper`).
 
 ## Divers
 
