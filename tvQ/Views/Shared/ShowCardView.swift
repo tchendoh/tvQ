@@ -22,17 +22,25 @@ struct ShowCardView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            RetryingAsyncImage(url: posterURL) { image in
-                image.resizable().aspectRatio(contentMode: .fill)
-            } placeholder: {
-                ZStack {
-                    Rectangle().fill(.secondary.opacity(0.15))
-                    Image(systemName: "tv")
-                        .foregroundStyle(.secondary)
+            // Le cadre 2:3 est un Color.clear : sa taille ne dépend que de la largeur
+            // de la cellule. L'affiche le remplit en surimpression, rognée. Avant,
+            // .aspectRatio s'appliquait à l'image elle-même, qui gardait sa propre
+            // taille en .fill : une affiche qui n'est pas exactement en 2:3 rendait
+            // la carte plus large que sa colonne.
+            Color.clear
+                .aspectRatio(2 / 3, contentMode: .fit)
+                .overlay {
+                    RetryingAsyncImage(url: posterURL) { image in
+                        image.resizable().aspectRatio(contentMode: .fill)
+                    } placeholder: {
+                        ZStack {
+                            Rectangle().fill(.secondary.opacity(0.15))
+                            Image(systemName: "tv")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 }
-            }
-            .aspectRatio(2 / 3, contentMode: .fill)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
             .shadow(color: .black.opacity(0.18), radius: 6, x: 0, y: 3)
             .overlay(alignment: .topTrailing) {
                 if let isFollowed {
