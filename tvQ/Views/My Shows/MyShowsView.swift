@@ -98,23 +98,22 @@ struct MyShowsView: View {
                     isEndedExpanded.toggle()
                 }
 
+                // Juste sous l'en-tête, même section repliée : on encourage le ménage
+                // des séries terminées, qui n'auront plus d'épisode. Pas pendant une
+                // recherche : « toutes » ne voudrait dire que les séries filtrées.
+                if !isSearching {
+                    Button(role: .destructive) {
+                        isConfirmingUnfollowEnded = true
+                    } label: {
+                        Label("Unfollow all ended shows", systemImage: "minus.circle")
+                            .font(.callout.weight(.semibold))
+                    }
+                    .buttonStyle(.bordered)
+                    .padding(.horizontal, 20)
+                }
+
                 if isExpanded {
                     grid(shows: shows, isUnfollowButtonVisible: true)
-
-                    // Pas pendant une recherche : « tout » ne voudrait dire que les
-                    // séries filtrées, ce qui prêterait à confusion.
-                    if !isSearching {
-                        Button(role: .destructive) {
-                            isConfirmingUnfollowEnded = true
-                        } label: {
-                            Label("Unfollow all ended shows", systemImage: "minus.circle")
-                                .font(.callout.weight(.semibold))
-                        }
-                        .buttonStyle(.bordered)
-                        .frame(maxWidth: .infinity)
-                        .padding(.horizontal, 20)
-                        .padding(.top, 4)
-                    }
                 }
             }
             .confirmationDialog(
@@ -128,7 +127,7 @@ struct MyShowsView: View {
                     Text("Unfollow all")
                 }
             } message: {
-                Text("They will no longer appear in My Shows. You can follow them again from Search.")
+                Text("These shows won't have new episodes. You can follow them again anytime from Search.")
             }
         }
     }

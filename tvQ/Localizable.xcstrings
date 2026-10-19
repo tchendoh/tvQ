@@ -1647,12 +1647,12 @@
         }
       }
     },
-    "They will no longer appear in My Shows. You can follow them again from Search." : {
+    "These shows won't have new episodes. You can follow them again anytime from Search." : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Elles n'apparaîtront plus dans Mes séries. Vous pourrez les suivre de nouveau depuis la recherche."
+            "value" : "Ces séries n'auront plus de nouveaux épisodes. Vous pourrez les suivre de nouveau en tout temps depuis la recherche."
           }
         }
       }
