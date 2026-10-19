@@ -12,6 +12,9 @@ struct ScheduleView: View {
     /// Vrai tant que la liste doit rester sur "Aujourd'hui" pendant la mise en page ;
     /// faux dès que l'utilisateur fait défiler lui-même.
     @State private var isAnchoredToToday = true
+    /// Vrai entre un deuxième toucher sur l'onglet et la fin du défilement d'iOS
+    /// vers le haut (voir onScrollPhaseChange).
+    @State private var returnsToTodayWhenIdle = false
 
     var body: some View {
         NavigationStack {
@@ -91,6 +94,21 @@ struct ScheduleView: View {
                         .onScrollPhaseChange { _, phase in
                             if phase == .interacting {
                                 isAnchoredToToday = false
+                            }
+                            // Après un deuxième toucher sur l'onglet : iOS fait remonter
+                            // la liste tout en haut. Une fois ce défilement terminé, on
+                            // la ramène sur « Aujourd'hui ».
+                            if phase == .idle, returnsToTodayWhenIdle {
+                                returnsToTodayWhenIdle = false
+                                withAnimation {
+                                    scrollToToday()
+                                }
+                            }
+                        }
+                        .onChange(of: viewModel.scrollToTodayRequests) {
+                            returnsToTodayWhenIdle = true
+                            withAnimation {
+                                scrollToToday()
                             }
                         }
                         // Le cache peut retarder la prise en compte d'un nouvel épisode ou d'un cache vidé

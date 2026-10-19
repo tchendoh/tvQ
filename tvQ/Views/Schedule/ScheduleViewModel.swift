@@ -19,6 +19,13 @@ final class ScheduleViewModel {
     private(set) var items: [ScheduleItem] = []
     private(set) var isLoading = false
     private(set) var errorMessage: String?
+    /// Augmente quand l'utilisateur touche de nouveau l'onglet Schedule déjà actif
+    /// (voir MainTabView) : ScheduleView revient alors sur « Aujourd'hui ».
+    private(set) var scrollToTodayRequests = 0
+
+    func requestScrollToToday() {
+        scrollToTodayRequests += 1
+    }
 
 
     private let showRepository: ShowRepository

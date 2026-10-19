@@ -5,27 +5,52 @@ struct MainTabView: View {
     @Environment(ScheduleViewModel.self) private var scheduleViewModel
     @Bindable private var notificationRouter = NotificationRouter.shared
 
+    private enum AppTab {
+        case home, schedule, myShows, search
+    }
+
+    @State private var selectedTab: AppTab = .home
+
+    /// Le setter est appelé même quand on touche l'onglet déjà actif : c'est ce qui
+    /// permet de reconnaître un deuxième toucher sur Schedule. iOS remonte alors la
+    /// liste tout en haut ; on la ramène plutôt sur « Aujourd'hui ».
+    private var tabSelection: Binding<AppTab> {
+        Binding(
+            get: { selectedTab },
+            set: { tab in
+                if tab == .schedule, selectedTab == .schedule {
+                    scheduleViewModel.requestScrollToToday()
+                }
+                selectedTab = tab
+            }
+        )
+    }
+
     var body: some View {
-        TabView {
+        TabView(selection: tabSelection) {
             HomeView()
                 .tabItem {
                     Label("Home", systemImage: "flame")
                 }
+                .tag(AppTab.home)
 
             ScheduleView()
                 .tabItem {
                     Label("Schedule", systemImage: "calendar")
                 }
+                .tag(AppTab.schedule)
 
             MyShowsView()
                 .tabItem {
                     Label("My Shows", systemImage: "tv")
                 }
+                .tag(AppTab.myShows)
 
             SearchView()
                 .tabItem {
                     Label("Search", systemImage: "magnifyingglass")
                 }
+                .tag(AppTab.search)
         }
         /// Préchargement de l'horaire au lancement : un TabView n'évalue un onglet
         /// qu'à sa première apparition, donc le déclencheur vit ici plutôt que
