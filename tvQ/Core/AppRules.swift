@@ -21,6 +21,16 @@ nonisolated enum AppRules {
         /// suivre. Les quotidiennes de fiction (ex. Antigang) sont classées comme
         /// fiction et restent. La téléréalité (10764) reste aussi, volontairement.
         static let excludedGenres: Set<Int> = [10767, 10763]
+
+        /// Jeux télévisés quotidiens (Jeopardy!, La Roue de fortune) : écartés aussi,
+        /// mais pas la téléréalité, où TMDB les range. Seuls les résultats de ce genre
+        /// TMDB sont vérifiés (une fiche à charger chacun).
+        static let gameShowCandidateGenre = 10764
+        /// Le type TVmaze tranche quand il est connu.
+        static let gameShowType = "Game Show"
+        /// Sinon, repli sur TMDB : plus de 120 épisodes dans une saison récente. Les
+        /// jeux en ont 150 et plus ; Survivor Québec, quotidien lui aussi, environ 67.
+        static let gameShowMinSeasonEpisodes = 120
     }
 
     // MARK: - Horaire (Schedule)

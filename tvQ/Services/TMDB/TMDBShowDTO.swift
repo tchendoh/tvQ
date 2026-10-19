@@ -18,13 +18,27 @@ struct TMDBShowDTO: Codable {
     /// sert à re-fetcher dans la langue d'origine si l'utilisateur le préfère.
     let originalLanguage: String
 
+    /// Résumé de chaque saison (nombre d'épisodes) : sert à repérer les jeux
+    /// quotidiens quand TVmaze ne connaît pas la série (voir AppRules).
+    var seasons: [TMDBSeasonSummaryDTO]? = nil
+
     enum CodingKeys: String, CodingKey {
-        case id, name, overview, genres, networks, status
+        case id, name, overview, genres, networks, status, seasons
         case posterPath = "poster_path"
         case backdropPath = "backdrop_path"
         case numberOfSeasons = "number_of_seasons"
         case externalIDs = "external_ids"
         case originalLanguage = "original_language"
+    }
+}
+
+struct TMDBSeasonSummaryDTO: Codable {
+    let seasonNumber: Int
+    let episodeCount: Int
+
+    enum CodingKeys: String, CodingKey {
+        case seasonNumber = "season_number"
+        case episodeCount = "episode_count"
     }
 }
 

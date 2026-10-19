@@ -8,8 +8,10 @@ struct TVmazeShowDTO: Codable {
     let id: Int
     let name: String
     let status: String // "Running", "Ended", "To Be Determined", etc.
+    /// Format de l'émission : "Scripted", "Reality", "Game Show", "Talk Show"…
+    var type: String? = nil
 
     enum CodingKeys: String, CodingKey {
-        case id, name, status
+        case id, name, status, type
     }
 }

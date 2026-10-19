@@ -43,6 +43,13 @@ nonisolated struct Show: Identifiable, Equatable, Hashable, Codable {
     /// la Live Activity). nil si l'image n'a qu'une couleur, ou pas encore calculée.
     var accentColor: ShowColor? = nil
 
+    /// Format selon TVmaze ("Scripted", "Reality", "Game Show"…), nil si TVmaze ne
+    /// connaît pas la série. Sert à écarter les jeux quotidiens de Home.
+    var tvmazeType: String? = nil
+    /// Épisodes de la saison régulière la plus fournie parmi les deux dernières
+    /// (TMDB). Repli quand le type TVmaze manque.
+    var recentSeasonEpisodeCount: Int? = nil
+
     /// Applique les couleurs calculées (voir ShowColorExtractor).
     mutating func apply(_ palette: ShowPalette?) {
         dominantColor = palette?.dominant

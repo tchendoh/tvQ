@@ -7,7 +7,7 @@ enum ShowMapper {
     static let imageBaseURL = URL(string: "https://image.tmdb.org/t/p/w500")!
 
     static func map(tmdb: TMDBShowDTO, tvmaze: TVmazeShowDTO?) -> Show {
-        Show(
+        var show = Show(
             tmdbID: tmdb.id,
             imdbID: tmdb.externalIDs?.imdbID,
             tvmazeID: tvmaze?.id,
@@ -21,6 +21,19 @@ enum ShowMapper {
             numberOfSeasons: tmdb.numberOfSeasons,
             originalLanguage: tmdb.originalLanguage
         )
+        show.tvmazeType = tvmaze?.type
+        show.recentSeasonEpisodeCount = recentSeasonEpisodeCount(tmdb.seasons)
+        return show
+    }
+
+    /// Saison la plus fournie parmi les deux dernières saisons régulières (sans la
+    /// saison 0, celle des épisodes spéciaux). Les deux, parce qu'en début de saison
+    /// TMDB n'en liste encore qu'une partie.
+    static func recentSeasonEpisodeCount(_ seasons: [TMDBSeasonSummaryDTO]?) -> Int? {
+        let regular = (seasons ?? [])
+            .filter { $0.seasonNumber > 0 }
+            .sorted { $0.seasonNumber > $1.seasonNumber }
+        return regular.prefix(2).map(\.episodeCount).max()
     }
 
     /// TVmaze est mis à jour plus rapidement sur les changements de statut (retour de saison,

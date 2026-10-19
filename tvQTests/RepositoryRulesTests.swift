@@ -102,3 +102,40 @@ struct SmallHelpersTests {
         #expect(!FirestoreQuota.isExceeded(NSError(domain: NSURLErrorDomain, code: 8)))
     }
 }
+
+/// Jeux quotidiens écartés de Home (voir AppRules.Recommendations).
+@MainActor
+struct GameShowRuleTests {
+    private func show(type: String?, episodes: Int?) -> Show {
+        var show = Show(tmdbID: 1, imdbID: nil, tvmazeID: nil, title: "", overview: "", posterURL: nil,
+                        backdropURL: nil, genres: [], network: nil, status: .running, numberOfSeasons: 1,
+                        originalLanguage: "en")
+        show.tvmazeType = type
+        show.recentSeasonEpisodeCount = episodes
+        return show
+    }
+
+    @Test func tvmazeTypeDecidesWhenKnown() {
+        #expect(ShowRepository.isGameShow(show(type: "Game Show", episodes: 10)))
+        // Survivor Québec : téléréalité quotidienne, mais pas un jeu.
+        #expect(!ShowRepository.isGameShow(show(type: "Reality", episodes: 190)))
+    }
+
+    @Test func tmdbEpisodeCountIsTheFallback() {
+        #expect(ShowRepository.isGameShow(show(type: nil, episodes: 190)))
+        #expect(!ShowRepository.isGameShow(show(type: nil, episodes: 67)))
+        #expect(!ShowRepository.isGameShow(show(type: nil, episodes: nil)))
+    }
+
+    @Test func recentSeasonCountIgnoresSpecialsAndTakesTheFullerOfTheLastTwo() {
+        let seasons = [
+            TMDBSeasonSummaryDTO(seasonNumber: 0, episodeCount: 500),
+            TMDBSeasonSummaryDTO(seasonNumber: 40, episodeCount: 230),
+            TMDBSeasonSummaryDTO(seasonNumber: 41, episodeCount: 190),
+            TMDBSeasonSummaryDTO(seasonNumber: 42, episodeCount: 20),   // saison qui commence
+        ]
+        #expect(ShowMapper.recentSeasonEpisodeCount(seasons) == 190)
+        #expect(ShowMapper.recentSeasonEpisodeCount(nil) == nil)
+    }
+}
+

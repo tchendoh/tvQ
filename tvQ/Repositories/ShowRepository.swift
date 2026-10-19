@@ -53,15 +53,50 @@ final class ShowRepository {
     }
 
     func trendingShows() async throws -> [ShowSummary] {
-        try await tmdbService.fetchTrendingTV().filter(Self.isRecommendable).map(mapToSummary)
+        try await recommendations(from: tmdbService.fetchTrendingTV())
     }
 
     func onTheAirShows() async throws -> [ShowSummary] {
-        try await tmdbService.fetchOnTheAirTV().filter(Self.isRecommendable).map(mapToSummary)
+        try await recommendations(from: tmdbService.fetchOnTheAirTV())
     }
 
     func airingTodayShows() async throws -> [ShowSummary] {
-        try await tmdbService.fetchAiringTodayTV().filter(Self.isRecommendable).map(mapToSummary)
+        try await recommendations(from: tmdbService.fetchAiringTodayTV())
+    }
+
+    /// Filtre par genre, puis écarte les jeux quotidiens. Seuls les résultats du genre
+    /// candidat (téléréalité chez TMDB) demandent leur fiche, en parallèle et par les
+    /// caches ; une fiche introuvable garde la série (dans le doute, on montre).
+    private func recommendations(from results: [TMDBSearchResultDTO]) async -> [ShowSummary] {
+        let byGenre = results.filter(Self.isRecommendable)
+        let candidateIDs = byGenre
+            .filter { ($0.genreIDs ?? []).contains(AppRules.Recommendations.gameShowCandidateGenre) }
+            .map(\.id)
+
+        let gameShowIDs: Set<Int> = await withTaskGroup(of: Int?.self) { group in
+            for id in candidateIDs {
+                group.addTask {
+                    guard let show = try? await self.getShow(tmdbID: id) else { return nil }
+                    return Self.isGameShow(show) ? id : nil
+                }
+            }
+            var ids: Set<Int> = []
+            for await id in group {
+                if let id { ids.insert(id) }
+            }
+            return ids
+        }
+        return byGenre.filter { !gameShowIDs.contains($0.id) }.map(mapToSummary)
+    }
+
+    /// Jeu quotidien : type TVmaze « Game Show » ; sans TVmaze, une saison récente de
+    /// plus de 120 épisodes chez TMDB. Voir AppRules.Recommendations.
+    nonisolated static func isGameShow(_ show: Show) -> Bool {
+        if let type = show.tvmazeType {
+            return type == AppRules.Recommendations.gameShowType
+        }
+        guard let count = show.recentSeasonEpisodeCount else { return false }
+        return count > AppRules.Recommendations.gameShowMinSeasonEpisodes
     }
 
     /// Genres écartés de Home : voir AppRules.Recommendations.
