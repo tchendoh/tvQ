@@ -9,6 +9,7 @@ struct MyShowsView: View {
     /// Section « Ended » repliée par défaut : ce sont les séries qu'on consulte le
     /// moins. Le choix est retenu d'un lancement à l'autre.
     @AppStorage("myShows.isEndedExpanded") private var isEndedExpanded = false
+    @AppStorage("myShows.isOngoingExpanded") private var isOngoingExpanded = true
     /// Confirmation avant de retirer toutes les séries terminées.
     @State private var isConfirmingUnfollowEnded = false
     @AppStorage("myShows.sortOrder") private var sortOrder: MyShowsViewModel.SortOrder = .recent
@@ -39,7 +40,7 @@ struct MyShowsView: View {
                 } else {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 28) {
-                            section(title: Text("Ongoing"), shows: viewModel.sorted(filtered(viewModel.ongoingShows), by: sortOrder))
+                            ongoingSection
                             endedSection
                         }
                         .padding(.vertical, 20)
@@ -93,27 +94,9 @@ struct MyShowsView: View {
         if !shows.isEmpty {
             let isExpanded = isEndedExpanded || isSearching
             VStack(alignment: .leading, spacing: 12) {
-                Button {
-                    withAnimation(.snappy) { isEndedExpanded.toggle() }
-                } label: {
-                    HStack(spacing: 8) {
-                        Text("Ended")
-                            .font(.title3.weight(.semibold))
-                        Text(verbatim: "\(shows.count)")
-                            .font(.title3)
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.callout.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                            .rotationEffect(.degrees(isExpanded ? 90 : 0))
-                    }
-                    .contentShape(Rectangle())
+                SectionHeader(title: Text("Ended"), count: shows.count, isExpanded: isExpanded, isEnabled: !isSearching) {
+                    isEndedExpanded.toggle()
                 }
-                .buttonStyle(.plain)
-                .disabled(isSearching)
-                .padding(.horizontal, 20)
-                .accessibilityHint(isExpanded ? Text("Collapses the section.") : Text("Expands the section."))
 
                 if isExpanded {
                     grid(shows: shows, isUnfollowButtonVisible: true)
@@ -150,15 +133,19 @@ struct MyShowsView: View {
         }
     }
 
+    /// Dépliée par défaut ; la replier donne accès d'un coup aux séries terminées.
     @ViewBuilder
-    private func section(title: Text, shows: [Show]) -> some View {
+    private var ongoingSection: some View {
+        let shows = viewModel.sorted(filtered(viewModel.ongoingShows), by: sortOrder)
         if !shows.isEmpty {
+            let isExpanded = isOngoingExpanded || isSearching
             VStack(alignment: .leading, spacing: 12) {
-                title
-                    .font(.title3.weight(.semibold))
-                    .padding(.horizontal, 20)
-
-                grid(shows: shows, isUnfollowButtonVisible: false)
+                SectionHeader(title: Text("Ongoing"), count: shows.count, isExpanded: isExpanded, isEnabled: !isSearching) {
+                    isOngoingExpanded.toggle()
+                }
+                if isExpanded {
+                    grid(shows: shows, isUnfollowButtonVisible: false)
+                }
             }
         }
     }
@@ -235,6 +222,40 @@ struct MyShowsView: View {
             .buttonStyle(.plain)
         }
         .padding(.horizontal, 20)
+    }
+}
+
+/// En-tête de section repliable : titre, nombre de séries et chevron qui pivote.
+/// Inactif pendant une recherche, où les sections restent dépliées.
+private struct SectionHeader: View {
+    let title: Text
+    let count: Int
+    let isExpanded: Bool
+    let isEnabled: Bool
+    let toggle: () -> Void
+
+    var body: some View {
+        Button {
+            withAnimation(.snappy) { toggle() }
+        } label: {
+            HStack(spacing: 8) {
+                title
+                    .font(.title3.weight(.semibold))
+                Text(verbatim: "\(count)")
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.callout.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .rotationEffect(.degrees(isExpanded ? 90 : 0))
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!isEnabled)
+        .padding(.horizontal, 20)
+        .accessibilityHint(isExpanded ? Text("Collapses the section.") : Text("Expands the section."))
     }
 }
 
