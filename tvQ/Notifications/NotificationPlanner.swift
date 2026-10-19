@@ -58,11 +58,20 @@ nonisolated struct NotificationPlanner: Sendable {
     /// Durée supposée quand ni l'épisode ni les autres épisodes de la série ne la donnent.
     static let defaultRuntimeMinutes = 60
 
-    func plan(items: [Item], mutedShowIDs: Set<String>, now: Date) -> [PlannedNotification] {
+    /// `liveActivityEpisodeIDs` : épisodes déjà annoncés par une Live Activity
+    /// (voir LiveActivityPlanner). Leur notification « commence » serait un doublon,
+    /// ce qu'Apple déconseille ; celle « après la fin » dit autre chose et reste.
+    func plan(
+        items: [Item],
+        mutedShowIDs: Set<String>,
+        now: Date,
+        liveActivityEpisodeIDs: Set<String> = []
+    ) -> [PlannedNotification] {
         var groups: [String: (first: Slot, items: [Item])] = [:]
-        let typicalRuntimes = typicalRuntimeByShow(items)
+        let typicalRuntimes = Self.typicalRuntimeByShow(items)
+        let coveredByLiveActivity = timing == .tenMinutesAfterEnd ? [] : liveActivityEpisodeIDs
 
-        for item in items {
+        for item in items where !coveredByLiveActivity.contains(item.episode.id) {
             let runtime = item.episode.runtimeMinutes
                 ?? typicalRuntimes[item.show.id]
                 ?? Self.defaultRuntimeMinutes
@@ -102,7 +111,7 @@ nonisolated struct NotificationPlanner: Sendable {
 
     /// Durée médiane connue des épisodes de chaque série : repli pour un épisode
     /// dont la durée n'est pas encore publiée.
-    private func typicalRuntimeByShow(_ items: [Item]) -> [String: Int] {
+    static func typicalRuntimeByShow(_ items: [Item]) -> [String: Int] {
         Dictionary(grouping: items.compactMap { item in
             item.episode.runtimeMinutes.map { (item.show.id, $0) }
         }, by: \.0).mapValues { pairs in

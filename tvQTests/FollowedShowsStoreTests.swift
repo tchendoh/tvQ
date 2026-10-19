@@ -24,7 +24,8 @@ struct FollowedShowsStoreTests {
                 tvmazeService: tvmaze,
                 showStore: ShowStore(modelContainer: LocalDatabase.makeContainer(inMemory: true)),
                 watchAvailabilityStore: WatchAvailabilityStore(modelContainer: LocalDatabase.makeContainer(inMemory: true)),
-                sharedCache: FakeSharedShowCache()
+                sharedCache: FakeSharedShowCache(),
+                colorExtractor: FakeColorExtractor()
             ),
             scheduleRepository: ScheduleRepository(
                 tmdbService: tmdb,

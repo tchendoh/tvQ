@@ -20,18 +20,24 @@ final class ShowRepository {
     private let showStore: ShowStore
     private let watchAvailabilityStore: WatchAvailabilityStore
     private let sharedCache: any SharedShowCaching
+    private let colorExtractor: any ShowColorExtracting
 
     /// Résolutions distantes déjà en cours, par clé de cache : deux écrans qui demandent
     /// la même série en même temps partagent un seul appel au lieu de le doubler.
     private var inFlight: [String: Task<Show, Error>] = [:]
+    /// Séries dont la couleur manquante a déjà été cherchée pendant ce lancement :
+    /// une image introuvable ne doit pas relancer le calcul à chaque lecture.
+    private var colorBackfillAttempted: Set<String> = []
 
     init(
         tmdbService: any TMDBFetching = TMDBService(),
         tvmazeService: any TVmazeFetching = TVmazeService(),
         showStore: ShowStore = .shared,
         watchAvailabilityStore: WatchAvailabilityStore = .shared,
-        sharedCache: any SharedShowCaching = FirestoreShowCacheService()
+        sharedCache: any SharedShowCaching = FirestoreShowCacheService(),
+        colorExtractor: any ShowColorExtracting = ShowColorExtractor()
     ) {
+        self.colorExtractor = colorExtractor
         self.tmdbService = tmdbService
         self.tvmazeService = tvmazeService
         self.showStore = showStore
@@ -88,12 +94,29 @@ final class ShowRepository {
         if let local = try? await showStore.entry(cacheKey: cacheKey) {
             let isEnded = local.value.status == .ended
             if !CachePolicy.local.isFresh(syncedAt: local.syncedAt, isEnded: isEnded) {
-                Task { _ = try? await self.resolveRemotely(tmdbID: tmdbID, cacheKey: cacheKey) }
+                Task {
+                    do {
+                        _ = try await self.resolveRemotely(tmdbID: tmdbID, cacheKey: cacheKey)
+                    } catch {
+                        // Hors ligne, par exemple : la copie périmée reste en place.
+                        Log.network.info("Rafraîchissement de la série \(cacheKey) échoué : \(error)")
+                    }
+                }
+            } else {
+                backfillColorIfNeeded(local, cacheKey: cacheKey)
             }
             return local.value
         }
 
         return try await resolveRemotely(tmdbID: tmdbID, cacheKey: cacheKey)
+    }
+
+    /// Copie locale seulement : aucun réseau, aucun rafraîchissement. Sert à relire
+    /// l'écran après un changement de la base locale (voir LocalDataVersion) ; nil si
+    /// la série n'a encore jamais été synchronisée sur cet appareil.
+    func localShow(tmdbID: Int) async -> Show? {
+        let cacheKey = "\(tmdbID)_\(AppSettings.cacheLanguageKey)"
+        return try? await showStore.entry(cacheKey: cacheKey)?.value
     }
 
     /// Copie partagée puis TMDB/TVmaze, avec écriture dans les deux copies.
@@ -113,6 +136,7 @@ final class ShowRepository {
            CachePolicy.shared.isFresh(syncedAt: shared.syncedAt, isEnded: shared.value.status == .ended) {
             // On garde la date d'origine : une copie déjà vieille ne redevient pas "fraîche".
             try? await showStore.save(shared.value, cacheKey: cacheKey, syncedAt: shared.syncedAt)
+            backfillColorIfNeeded(shared, cacheKey: cacheKey)
             return shared.value
         }
 
@@ -122,7 +146,11 @@ final class ShowRepository {
         // Écriture best-effort dans la copie partagée : un échec (hors ligne, règles
         // Firestore) ne doit pas empêcher de retourner le résultat à l'utilisateur.
         try? await sharedCache.store(cacheKey: cacheKey, show: show, syncedAt: now)
-        try? await showStore.save(show, cacheKey: cacheKey, syncedAt: now)
+        do {
+            try await showStore.save(show, cacheKey: cacheKey, syncedAt: now)
+        } catch {
+            Log.data.error("Sauvegarde locale de la série \(cacheKey) échouée", error, report: true)
+        }
         return show
     }
 
@@ -144,7 +172,37 @@ final class ShowRepository {
             tvmazeShow = try await tvmazeService.lookupShow(imdbID: imdbID)
         }
 
-        return ShowMapper.map(tmdb: tmdbShow, tvmaze: tvmazeShow)
+        var show = ShowMapper.map(tmdb: tmdbShow, tvmaze: tvmazeShow)
+        // Une fois par résolution distante (au plus toutes les 12-24 h), puis gardée
+        // dans les deux copies : les écrans et la Live Activity ne la recalculent pas.
+        if let url = show.colorSourceURL {
+            show.apply(await colorExtractor.palette(for: url))
+        }
+        return show
+    }
+
+    // MARK: - Couleur dominante
+
+    /// Copie en cache sans couleur (antérieure à son ajout, ou image indisponible à
+    /// l'époque) : la calcule en arrière-plan et met à jour les deux copies, sans
+    /// toucher à leur date de synchronisation. Utile surtout pour les séries
+    /// terminées, dont la copie ne se rafraîchit jamais.
+    private func backfillColorIfNeeded(_ cached: Cached<Show>, cacheKey: String) {
+        // Sans accent : copie antérieure à son ajout, ou image d'une seule couleur.
+        // Dans ce dernier cas le calcul redonne le même résultat et rien n'est écrit.
+        guard cached.value.dominantColor == nil || cached.value.accentColor == nil,
+              let url = cached.value.colorSourceURL,
+              !colorBackfillAttempted.contains(cacheKey)
+        else { return }
+        colorBackfillAttempted.insert(cacheKey)
+        Task {
+            guard let palette = await colorExtractor.palette(for: url) else { return }
+            var show = cached.value
+            show.apply(palette)
+            guard show != cached.value else { return }
+            try? await showStore.save(show, cacheKey: cacheKey, syncedAt: cached.syncedAt)
+            try? await sharedCache.store(cacheKey: cacheKey, show: show, syncedAt: cached.syncedAt)
+        }
     }
 
     // MARK: - Où regarder

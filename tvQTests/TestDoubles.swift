@@ -225,3 +225,17 @@ final class FakeTokenSource: TMDBTokenSource, @unchecked Sendable {
         }
     }
 }
+
+// MARK: - Couleur dominante
+
+@MainActor
+final class FakeColorExtractor: ShowColorExtracting {
+    var color: ShowColor? = ShowColor(red: 0.2, green: 0.4, blue: 0.6)
+    var accent: ShowColor? = ShowColor(red: 1.0, green: 0.7, blue: 0.2)
+    private(set) var requestedURLs: [URL] = []
+
+    func palette(for imageURL: URL) async -> ShowPalette? {
+        requestedURLs.append(imageURL)
+        return color.map { ShowPalette(dominant: $0, accent: accent) }
+    }
+}

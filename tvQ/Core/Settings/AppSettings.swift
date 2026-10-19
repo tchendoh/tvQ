@@ -81,6 +81,7 @@ enum AppSettings {
         static let notificationTiming = "settings.notificationTiming"
         /// Minutes depuis minuit (540 = 9 h).
         static let notificationMorningMinutes = "settings.notificationMorningMinutes"
+        static let liveActivitiesEnabled = "settings.liveActivitiesEnabled"
     }
 
     /// Lu par TMDBService à l'initialisation — voir son paramètre `language`.

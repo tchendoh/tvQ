@@ -11,6 +11,7 @@ struct RepositoryTests {
     private let tmdb = FakeTMDB()
     private let tvmaze = FakeTVmaze()
     private let sharedShows = FakeSharedShowCache()
+    private let colors = FakeColorExtractor()
     private let sharedEpisodes = FakeSharedEpisodeCache()
     private let showStore = ShowStore(modelContainer: LocalDatabase.makeContainer(inMemory: true))
     private let episodeStore = EpisodeStore(modelContainer: LocalDatabase.makeContainer(inMemory: true))
@@ -25,7 +26,8 @@ struct RepositoryTests {
             tvmazeService: tvmaze,
             showStore: showStore,
             watchAvailabilityStore: watchStore,
-            sharedCache: sharedShows
+            sharedCache: sharedShows,
+            colorExtractor: colors
         )
     }
 
@@ -40,9 +42,10 @@ struct RepositoryTests {
 
     private func key(_ id: Int) -> String { "\(id)_\(AppSettings.cacheLanguageKey)" }
 
-    private func dto(id: Int = 100, status: String = "Returning Series", imdbID: String? = "tt100", language: String = "en") -> TMDBShowDTO {
+    private func dto(id: Int = 100, status: String = "Returning Series", imdbID: String? = "tt100",
+                     language: String = "en", backdropPath: String? = nil) -> TMDBShowDTO {
         TMDBShowDTO(
-            id: id, name: "Série \(id)", overview: "", posterPath: nil, backdropPath: nil,
+            id: id, name: "Série \(id)", overview: "", posterPath: nil, backdropPath: backdropPath,
             genres: [], networks: [], status: status, numberOfSeasons: 2,
             externalIDs: TMDBExternalIDsDTO(imdbID: imdbID, tvdbID: nil), originalLanguage: language
         )
@@ -167,6 +170,55 @@ struct RepositoryTests {
         _ = try await showRepository().getShow(tmdbID: 100)
 
         #expect(tmdb.showDetailsCalls.count == 1)
+    }
+
+    // MARK: - Couleur dominante
+
+    @Test func fetchedShowGetsItsColorAndKeepsItInBothCopies() async throws {
+        tmdb.shows[100] = dto(id: 100, backdropPath: "/fond.jpg")
+
+        let show = try await showRepository().getShow(tmdbID: 100)
+
+        #expect(show.dominantColor == colors.color)
+        #expect(show.accentColor == colors.accent)
+        #expect(colors.requestedURLs.map(\.lastPathComponent) == ["fond.jpg"])
+        #expect(try await showStore.entry(cacheKey: key(100))?.value.dominantColor == colors.color)
+        #expect(sharedShows.entries[key(100)]?.value.dominantColor == colors.color)
+    }
+
+    @Test func showWithoutImageHasNoColorAndNoRequest() async throws {
+        tmdb.shows[100] = dto(id: 100)
+
+        let show = try await showRepository().getShow(tmdbID: 100)
+
+        #expect(show.dominantColor == nil)
+        #expect(colors.requestedURLs.isEmpty)
+    }
+
+    /// Ancienne copie sans couleur (série terminée, jamais rafraîchie) : la couleur
+    /// est ajoutée en arrière-plan, sans rajeunir la copie.
+    @Test func cachedShowWithoutColorIsBackfilledKeepingItsDate() async throws {
+        let oldDate = now.addingTimeInterval(-90 * 86_400)
+        let old = Show(tmdbID: 100, imdbID: nil, tvmazeID: nil, title: "Ancienne", overview: "",
+                       posterURL: nil, backdropURL: URL(string: "https://image.tmdb.org/t/p/w500/fond.jpg"),
+                       genres: [], network: nil, status: .ended, numberOfSeasons: 1, originalLanguage: "en")
+        try await showStore.save(old, cacheKey: key(100), syncedAt: oldDate)
+        let repository = showRepository()
+
+        let result = try await repository.getShow(tmdbID: 100)
+        #expect(result.dominantColor == nil)   // tout de suite, sans attendre
+
+        #expect(await eventually {
+            (try? await showStore.entry(cacheKey: key(100)))?.value.dominantColor == colors.color
+        })
+        let local = try #require(try await showStore.entry(cacheKey: key(100)))
+        #expect(abs(local.syncedAt.timeIntervalSince(oldDate)) < 1)
+        #expect(tmdb.showDetailsCalls.isEmpty)
+
+        // Une seule tentative par lancement.
+        _ = try await repository.getShow(tmdbID: 100)
+        try await Task.sleep(for: .milliseconds(50))
+        #expect(colors.requestedURLs.count == 1)
     }
 
     // MARK: - Où regarder

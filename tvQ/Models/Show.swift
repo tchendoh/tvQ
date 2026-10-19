@@ -32,6 +32,22 @@ nonisolated struct Show: Identifiable, Equatable, Hashable, Codable {
     /// Code ISO de la langue d'origine de la série (ex. "en", "ja") — utilisé pour
     /// re-fetcher les épisodes dans cette langue si l'utilisateur le préfère.
     let originalLanguage: String
+
+    /// Couleur dominante de l'image de fond (ou de l'affiche), calculée une fois par
+    /// ShowRepository puis gardée avec la série dans toutes les copies (SwiftData,
+    /// Firestore). nil tant qu'elle n'est pas calculée, ou sans image.
+    /// `var` avec valeur par défaut : absente des anciennes copies en cache, qui
+    /// se décodent quand même (champ optionnel).
+    var dominantColor: ShowColor? = nil
+    /// Deuxième couleur de l'image, déjà rendue lisible sur fond sombre (détails de
+    /// la Live Activity). nil si l'image n'a qu'une couleur, ou pas encore calculée.
+    var accentColor: ShowColor? = nil
+
+    /// Applique les couleurs calculées (voir ShowColorExtractor).
+    mutating func apply(_ palette: ShowPalette?) {
+        dominantColor = palette?.dominant
+        accentColor = palette?.accent
+    }
 }
 
 nonisolated enum ShowStatus: Equatable, Hashable, Codable {
