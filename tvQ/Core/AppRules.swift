@@ -14,7 +14,7 @@ nonisolated enum AppRules {
 
     // MARK: - Recommandations (Home)
 
-    enum Recommendations {
+    nonisolated enum Recommendations {
         /// Genres TMDB écartés de Home : talk-shows (10767) et nouvelles (10763), des
         /// émissions quotidiennes qu'on ne « suit » pas comme une série. Seulement la
         /// mise en avant : la recherche les trouve toujours, et chacun peut les
@@ -35,7 +35,7 @@ nonisolated enum AppRules {
 
     // MARK: - Horaire (Schedule)
 
-    enum Schedule {
+    nonisolated enum Schedule {
         /// Saisons chargées et mises en cache pour chaque série : la saison en cours,
         /// la précédente (rattrapage) et une de marge. Évite de charger les 36 saisons
         /// des Simpson, ou les centaines d'épisodes d'une quotidienne.
@@ -49,7 +49,7 @@ nonisolated enum AppRules {
 
     // MARK: - Caches
 
-    enum Cache {
+    nonisolated enum Cache {
         /// Copie locale (SwiftData). Même durée que la copie partagée : la copie
         /// locale reprend la date d'origine de la copie Firestore, et une durée plus
         /// courte la rendait aussitôt périmée (relecture de Firestore à chaque
@@ -71,7 +71,7 @@ nonisolated enum AppRules {
 
     // MARK: - Séries suivies
 
-    enum Following {
+    nonisolated enum Following {
         /// Limite douce : au-delà, suivre une série affiche un message (ne plus
         /// suivre reste possible). L'app n'a pas été conçue pour charger l'horaire de
         /// plus de séries (appels TMDB et TVmaze, limite de débit de TVmaze).
@@ -81,7 +81,7 @@ nonisolated enum AppRules {
 
     // MARK: - Notifications
 
-    enum Notifications {
+    nonisolated enum Notifications {
         /// Horizon de programmation : au-delà, l'horaire aura été rechargé d'ici là.
         static let horizon: TimeInterval = 21 * 24 * 3600
         /// iOS garde au plus 64 notifications programmées par app : on garde une marge.
@@ -95,7 +95,7 @@ nonisolated enum AppRules {
 
     // MARK: - Live Activities
 
-    enum LiveActivity {
+    nonisolated enum LiveActivity {
         /// Apparition sur l'écran verrouillé avant le début de l'épisode.
         static let leadTime: TimeInterval = 15 * 60
         /// iOS limite le nombre d'activités simultanées, programmées comprises : on
@@ -109,7 +109,7 @@ nonisolated enum AppRules {
 
     // MARK: - Couleurs des séries
 
-    enum Colors {
+    nonisolated enum Colors {
         /// Part minimale de pixels pour qu'un groupe de teintes compte : 1 sur 20 (5 %).
         static let minShare = 20
         /// Écart minimal de teinte entre la dominante et l'accent : 2 groupes de 30°,
