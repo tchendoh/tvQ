@@ -20,12 +20,18 @@ enum NetworkError: Error {
 /// que les URLs et les en-têtes propres à leur API.
 struct NetworkService {
     func fetch<T: Decodable>(_ request: URLRequest, as type: T.Type) async throws -> T {
+        let host = request.url?.host() ?? "?"
+        let path = request.url?.path() ?? "?"
+        let start = ContinuousClock.now
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
 
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw NetworkError.invalidResponse
             }
+            let elapsed = start.duration(to: .now)
+            let size = ByteCountFormatter.string(fromByteCount: Int64(data.count), countStyle: .file)
+            Log.network.debug("\(host)\(path) \(httpResponse.statusCode) \(size) \(elapsed.formatted(.units(allowed: [.milliseconds])))")
             guard (200...299).contains(httpResponse.statusCode) else {
                 throw NetworkError.httpStatus(httpResponse.statusCode)
             }

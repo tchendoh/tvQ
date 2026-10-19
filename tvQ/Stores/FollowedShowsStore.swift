@@ -89,9 +89,7 @@ final class FollowedShowsStore {
             do {
                 try await userShowsService.setNotificationsMuted(!wasMuted, showID: showID, userID: userID)
             } catch {
-                #if DEBUG
-                print("[tvQ] setNotificationsMuted a échoué : \(error)")
-                #endif
+                Log.data.error("setNotificationsMuted a échoué", error)
                 if wasMuted {
                     mutedShowIDs.insert(showID)
                 } else {

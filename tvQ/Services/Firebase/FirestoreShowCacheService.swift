@@ -27,9 +27,13 @@ final class FirestoreShowCacheService {
             // Le repository ignore les erreurs de cache (try?) : sans ceci, un
             // dépassement de quota passerait inaperçu.
             FirestoreQuota.recordIfExceeded(error)
+            Log.data.error("Lecture showMetadataCache/\(cacheKey) échouée", error)
             throw error
         }
-        guard snapshot.exists, let entry = try? snapshot.data(as: FirestoreShowCacheEntry.self) else {
+        guard snapshot.exists else { return nil }
+        guard let entry = try? snapshot.data(as: FirestoreShowCacheEntry.self) else {
+            // Format d'une autre version de l'app : on retombe sur les API et on réécrit.
+            Log.data.notice("Document showMetadataCache/\(cacheKey) illisible, ignoré")
             return nil
         }
         return Cached(value: entry.show, syncedAt: entry.syncedAt)
@@ -37,7 +41,17 @@ final class FirestoreShowCacheService {
 
     func store(cacheKey: String, show: Show, syncedAt: Date = .now) async throws {
         let entry = FirestoreShowCacheEntry(show: show, syncedAt: syncedAt)
-        try document(cacheKey: cacheKey).setData(from: entry)
+        try document(cacheKey: cacheKey).setData(from: entry) { error in
+            Self.logWriteError(error, path: "showMetadataCache/\(cacheKey)")
+        }
+    }
+
+    /// L'écriture part sans attendre : le serveur répond plus tard (ou au retour du
+    /// réseau). Sans cette fonction de rappel, un refus des règles Firestore ou un
+    /// dépassement de quota passerait complètement inaperçu.
+    nonisolated static func logWriteError(_ error: Error?, path: String) {
+        guard let error else { return }
+        Log.data.error("Écriture \(path) refusée", error, report: true)
     }
 }
 

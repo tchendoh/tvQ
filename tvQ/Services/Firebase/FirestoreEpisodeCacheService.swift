@@ -35,9 +35,13 @@ final class FirestoreEpisodeCacheService {
             // Le repository ignore les erreurs de cache (try?) : sans ceci, un
             // dépassement de quota passerait inaperçu.
             FirestoreQuota.recordIfExceeded(error)
+            Log.data.error("Lecture showsCache/\(cacheKey) échouée", error)
             throw error
         }
-        guard snapshot.exists, let entry = try? snapshot.data(as: FirestoreEpisodeCacheEntry.self) else {
+        guard snapshot.exists else { return nil }
+        guard let entry = try? snapshot.data(as: FirestoreEpisodeCacheEntry.self) else {
+            // Format d'une autre version de l'app : on retombe sur les API et on réécrit.
+            Log.data.notice("Document showsCache/\(cacheKey) illisible, ignoré")
             return nil
         }
         return Cached(value: entry.episodes, syncedAt: entry.syncedAt)
@@ -50,9 +54,15 @@ final class FirestoreEpisodeCacheService {
     static let maxSharedEpisodes = 1500
 
     func store(cacheKey: String, episodes: [Episode], syncedAt: Date = .now) async throws {
-        guard episodes.count <= Self.maxSharedEpisodes else { return }
+        guard episodes.count <= Self.maxSharedEpisodes else {
+            Log.data.notice("\(cacheKey) : \(episodes.count) épisodes, trop pour le cache partagé")
+            return
+        }
         let entry = FirestoreEpisodeCacheEntry(episodes: episodes, syncedAt: syncedAt)
-        try document(cacheKey: cacheKey).setData(from: entry)
+        // Fonction de rappel : voir FirestoreShowCacheService.logWriteError.
+        try document(cacheKey: cacheKey).setData(from: entry) { error in
+            FirestoreShowCacheService.logWriteError(error, path: "showsCache/\(cacheKey)")
+        }
     }
 }
 
