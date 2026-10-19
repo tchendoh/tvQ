@@ -10,9 +10,14 @@ struct AboutView: View {
     var body: some View {
         Form {
             Section {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("tvQ")
-                        .font(.title2.bold())
+                VStack(alignment: .leading, spacing: 8) {
+                    // Icône de l'app exportée d'Icon Composer (variantes Default et Dark,
+                    // tvQlogo.icon) : à réexporter si l'icône change. Le .icon lui-même ne
+                    // peut pas s'afficher dans l'app, Xcode n'en fait qu'une icône système.
+                    Image("tvQAppIcon")
+                        .resizable()
+                        .frame(width: 64, height: 64)
+                        .accessibilityLabel(Text(verbatim: "tvQ"))
                     Text("Version \(appVersion)")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
@@ -84,8 +89,21 @@ struct AboutView: View {
                 Text("JustWatch")
             }
 
+            // Licence Apache 2.0 du SDK Firebase (Auth, Firestore, Crashlytics, App
+            // Check, Remote Config) : mention et lien vers le texte de la licence.
             Section {
-                if let url = URL(string: "mailto:tchendoh@gmail.com") {
+                Text("tvQ uses the Firebase SDK for iOS, licensed under the Apache License 2.0.")
+                    .font(.callout)
+                if let url = URL(string: "https://github.com/firebase/firebase-ios-sdk/blob/main/LICENSE") {
+                    Link("Apache License 2.0", destination: url)
+                        .font(.callout)
+                }
+            } header: {
+                Text("Open-source software")
+            }
+
+            Section {
+                if let url = URL(string: "mailto:eric.chandonnet.dev@gmail.com") {
                     Link("Contact", destination: url)
                 }
             } header: {

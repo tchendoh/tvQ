@@ -79,6 +79,9 @@ Contexte : `GoogleService-Info.plist` est embarqué dans l'app, donc n'importe q
 - [ ] **Manifeste de confidentialité** (`PrivacyInfo.xcprivacy`) : vérifier qu'il existe, sinon l'ajouter (obligatoire depuis 2024). Déclarer aussi dans App Store Connect la collecte de données de plantage et de diagnostic (Crashlytics).
 - [ ] **Jeton de débogage App Check** : l'enregistrer dans la console (App Check > Apps > Manage debug tokens) ; sinon « 403 App attestation failed » au lancement, sans conséquence tant que l'application des règles n'est pas activée.
 - [ ] **Avant de publier les nouvelles règles Firestore** : supprimer à la main le champ `legacyMigrated` du document `users/{userID}` (les règles le refusent maintenant).
+- [ ] **Politique de confidentialité** : obligatoire dans App Store Connect (compte Firebase, séries suivies, rapports Crashlytics). Page simple hébergée (GitHub Pages, par exemple), puis un lien dans About.
+- [ ] **Adresse de contact d'About** : c'est l'adresse Gmail personnelle ; prévoir une adresse dédiée à tvQ avant la publication.
+- [ ] **Licences** : About mentionne Firebase (Apache 2.0) avec un lien vers la licence (2026-10-19). Vérifier avant l'App Store s'il faut inclure le texte complet et les dépendances de Firebase (page « Acknowledgements »).
 - [ ] **Quotas et budget** : configurer une alerte de facturation dans Google Cloud pour éviter une mauvaise surprise si quelqu'un abuse des lectures (voir aussi l'idée `followedShows` en tableau plus haut).
 
 ### Jeton TMDB embarqué dans l'app
