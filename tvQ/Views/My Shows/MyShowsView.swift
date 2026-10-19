@@ -9,6 +9,8 @@ struct MyShowsView: View {
     /// Section « Ended » repliée par défaut : ce sont les séries qu'on consulte le
     /// moins. Le choix est retenu d'un lancement à l'autre.
     @AppStorage("myShows.isEndedExpanded") private var isEndedExpanded = false
+    /// Confirmation avant de retirer toutes les séries terminées.
+    @State private var isConfirmingUnfollowEnded = false
     @AppStorage("myShows.sortOrder") private var sortOrder: MyShowsViewModel.SortOrder = .recent
     @AppStorage("myShows.layout") private var layout: Layout = .grid
 
@@ -115,7 +117,35 @@ struct MyShowsView: View {
 
                 if isExpanded {
                     grid(shows: shows, isUnfollowButtonVisible: true)
+
+                    // Pas pendant une recherche : « tout » ne voudrait dire que les
+                    // séries filtrées, ce qui prêterait à confusion.
+                    if !isSearching {
+                        Button(role: .destructive) {
+                            isConfirmingUnfollowEnded = true
+                        } label: {
+                            Label("Unfollow all ended shows", systemImage: "minus.circle")
+                                .font(.callout.weight(.semibold))
+                        }
+                        .buttonStyle(.bordered)
+                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 4)
+                    }
                 }
+            }
+            .confirmationDialog(
+                Text("Unfollow \(shows.count) ended shows?"),
+                isPresented: $isConfirmingUnfollowEnded,
+                titleVisibility: .visible
+            ) {
+                Button(role: .destructive) {
+                    followedShowsStore.unfollow(showIDs: Set(shows.map(\.id)))
+                } label: {
+                    Text("Unfollow all")
+                }
+            } message: {
+                Text("They will no longer appear in My Shows. You can follow them again from Search.")
             }
         }
     }

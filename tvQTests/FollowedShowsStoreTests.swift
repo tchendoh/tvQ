@@ -109,6 +109,23 @@ struct FollowedShowsStoreTests {
         #expect(store.errorMessage == nil)
     }
 
+    @Test func unfollowManyIsOneWriteAndRollsBackOnFailure() async {
+        service.followed = ["1", "2", "3"]
+        service.muted = ["2"]
+        let store = makeStore()
+        store.load(userID: "A")
+        #expect(await loaded(store))
+
+        store.unfollow(showIDs: ["1", "2"])
+        #expect(store.followedShowIDs == ["3"])
+        #expect(!store.areNotificationsMuted("2"))
+        #expect(await eventually { service.bulkUnfollowCalls == [["1", "2"]] })
+
+        service.shouldFail = true
+        store.unfollow(showIDs: ["3"])
+        #expect(await eventually { store.followedShowIDs == ["3"] && store.errorMessage != nil })
+    }
+
     @Test func failedFollowIsRolledBack() async {
         let store = makeStore()
         store.load(userID: "A")

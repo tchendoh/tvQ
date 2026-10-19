@@ -46,6 +46,7 @@ protocol UserShowsServicing {
     func followedShows(userID: String) async throws -> UserShowsService.FollowedShows
     func follow(showID: String, userID: String) async throws
     func unfollow(showID: String, userID: String) async throws
+    func unfollow(showIDs: Set<String>, userID: String) async throws
     func setNotificationsMuted(_ muted: Bool, showID: String, userID: String) async throws
 }
 

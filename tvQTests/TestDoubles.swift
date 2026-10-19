@@ -162,6 +162,13 @@ final class FakeUserShows: UserShowsServicing {
         if shouldFail { throw FakeError() }
     }
 
+    private(set) var bulkUnfollowCalls: [Set<String>] = []
+
+    func unfollow(showIDs: Set<String>, userID: String) async throws {
+        bulkUnfollowCalls.append(showIDs)
+        if shouldFail { throw FakeError() }
+    }
+
     func setNotificationsMuted(_ muted: Bool, showID: String, userID: String) async throws {
         muteCalls.append((muted, showID))
         if shouldFail { throw FakeError() }

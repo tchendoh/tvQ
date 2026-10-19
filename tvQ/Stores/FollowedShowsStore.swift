@@ -154,6 +154,31 @@ final class FollowedShowsStore {
         }
     }
 
+    /// Ne plus suivre plusieurs séries d'un coup (séries terminées de My Shows), en
+    /// une seule écriture. Optimiste, comme toggle : rétabli si l'écriture échoue.
+    func unfollow(showIDs: Set<String>) {
+        guard let userID else { return }
+        let removed = showIDs.intersection(followedShowIDs)
+        guard !removed.isEmpty else { return }
+
+        followedShowIDs.subtract(removed)
+        let previouslyMuted = mutedShowIDs.intersection(removed)
+        mutedShowIDs.subtract(removed)
+
+        Task {
+            do {
+                try await userShowsService.unfollow(showIDs: removed, userID: userID)
+            } catch {
+                followedShowIDs.formUnion(removed)
+                mutedShowIDs.formUnion(previouslyMuted)
+                errorMessage = FirestoreQuota.message(
+                    for: error,
+                    fallback: String(localized: "Couldn't update follow status. Try again.")
+                )
+            }
+        }
+    }
+
     /// Réchauffe les caches (disque + Firestore partagé) dès le follow, plutôt que
     /// d'attendre l'ouverture de Schedule/My Shows/ShowDetailView — c'est ce qui
     /// rendait le premier passage sur Schedule si long (getShow + getEpisodes,

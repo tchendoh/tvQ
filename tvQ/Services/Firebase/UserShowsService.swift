@@ -65,6 +65,17 @@ final class UserShowsService {
         )
     }
 
+    /// Plusieurs séries d'un coup, en une seule écriture (bouton « Unfollow all » des
+    /// séries terminées). Retire aussi leurs cloches coupées, devenues inutiles.
+    func unfollow(showIDs: Set<String>, userID: String) async throws {
+        guard !showIDs.isEmpty else { return }
+        let deletions = Dictionary(uniqueKeysWithValues: showIDs.map { ($0, FieldValue.delete()) })
+        try await userDocument(userID: userID).setData(
+            [Self.field: deletions, Self.mutedField: deletions],
+            merge: true
+        )
+    }
+
     /// Supprime toutes les données Firestore de l'utilisateur (suppression de compte) :
     /// tout tient dans un seul document. À appeler *avant* de supprimer le compte Auth,
     /// tant que les règles de sécurité voient encore l'utilisateur comme authentifié.
