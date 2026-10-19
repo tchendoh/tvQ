@@ -30,7 +30,7 @@ A native iOS app built solo in Swift 6 and SwiftUI.
 | | |
 |---|---|
 | UI | SwiftUI, Observation (`@Observable`) |
-| Language | Swift 6 language mode, iOS 27.2 |
+| Language | Swift 6 language mode, iOS 27.0 |
 | Concurrency | `async`/`await`, actors, `@ModelActor`, task groups |
 | Local storage | SwiftData |
 | Backend | Firebase Auth (Sign in with Apple, email), Cloud Firestore, Remote Config, App Check, Crashlytics |
@@ -88,7 +88,7 @@ The Firestore security rules have their own tests in `firestore-tests/` (Firebas
 
 ## Getting started
 
-Requirements: Xcode 27, iOS 27.2.
+Requirements: Xcode 27, iOS 27.0.
 
 1. Clone the repository and open `tvQ.xcodeproj`. Swift Package Manager dependencies (Firebase) resolve on the first build.
 2. Copy `Config/Secrets.xcconfig.template` to `Config/Secrets.xcconfig` and add an App Check debug token (`uuidgen`).

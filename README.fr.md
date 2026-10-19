@@ -30,7 +30,7 @@ Une application iOS native, développée en solo en Swift 6 et SwiftUI.
 | | |
 |---|---|
 | Interface | SwiftUI, Observation (`@Observable`) |
-| Langage | mode Swift 6, iOS 27.2 |
+| Langage | mode Swift 6, iOS 27.0 |
 | Concurrence | `async`/`await`, actors, `@ModelActor`, groupes de tâches |
 | Stockage local | SwiftData |
 | Backend | Firebase Auth (Sign in with Apple, courriel), Cloud Firestore, Remote Config, App Check, Crashlytics |
@@ -88,7 +88,7 @@ Les règles de sécurité Firestore ont leurs propres tests dans `firestore-test
 
 ## Installation
 
-Prérequis : Xcode 27, iOS 27.2.
+Prérequis : Xcode 27, iOS 27.0.
 
 1. Cloner le dépôt et ouvrir `tvQ.xcodeproj`. Les dépendances Swift Package Manager (Firebase) se résolvent au premier build.
 2. Copier `Config/Secrets.xcconfig.template` en `Config/Secrets.xcconfig` et y ajouter un jeton de débogage App Check (`uuidgen`).
