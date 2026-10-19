@@ -23,9 +23,7 @@ struct MyShowsView: View {
                 } else {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 28) {
-                            section(title: "Running", shows: viewModel.currentShows)
-                            section(title: "Season ended", shows: viewModel.seasonEndedShows)
-                            section(title: "Coming soon", shows: viewModel.upcomingShows)
+                            section(title: "Ongoing", shows: viewModel.ongoingShows)
                             section(title: "Ended", shows: viewModel.endedShows, isUnfollowButtonVisible: true)
                         }
                         .padding(.vertical, 20)

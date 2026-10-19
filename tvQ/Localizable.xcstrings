@@ -1114,6 +1114,16 @@
         }
       }
     },
+    "Ongoing" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En cours"
+          }
+        }
+      }
+    },
     "Open iOS Settings" : {
       "localizations" : {
         "fr" : {
