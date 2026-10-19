@@ -103,6 +103,10 @@
         "frameworks",
         "resources",
         {
+          "kind": "copy",
+          "name": "Embed Foundation Extensions",
+          "bundle-base-path": "plugins-directory",
+        }, {
           "kind": "script",
           "name": "Tchend : Upload dSYM to Crashlytics",
           "log-environment-variables": true,
@@ -121,10 +125,6 @@
             "\"${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run\"",
             "",
           ],
-        }, {
-          "kind": "copy",
-          "name": "Embed Foundation Extensions",
-          "bundle-base-path": "plugins-directory",
         },
       ],
       "package-product-members": [
