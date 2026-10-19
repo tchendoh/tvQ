@@ -65,6 +65,10 @@ Les protocoles n'apparaissent que là où ils sont utiles : à la frontière ave
 - **La permission est demandée en contexte**, après le suivi d'une première série, jamais au lancement.
 - **`currentUser` a une source de vérité unique** : le flux d'authentification de Firebase. La connexion, la déconnexion et la suppression de compte mettent toute l'app à jour sans code supplémentaire.
 
+## Règles de l'app
+
+Tous les seuils, limites et durées dont l'app dépend (genres écartés de Home, saisons chargées pour l'horaire, durée des caches, limite douce de séries suivies, moments des notifications et des Live Activities, seuils des couleurs) sont dans un seul fichier, [`tvQ/Core/AppRules.swift`](tvQ/Core/AppRules.swift), chacun avec la raison de son choix. Les types qui les appliquent n'en gardent qu'un alias. Les plafonds côté serveur sont dans [`firestore.rules`](firestore.rules).
+
 ## Ce que j'ai appris
 
 - **Adapter l'architecture au projet.** J'ai commencé avec une Clean Architecture complète (couches Domain, Data et Presentation, un protocole par repository), puis je l'ai retirée : pour un seul développeur, elle ajoutait des intermédiaires sans ajouter de sécurité.

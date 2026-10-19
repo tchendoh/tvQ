@@ -41,12 +41,10 @@ nonisolated struct NotificationPlanner: Sendable {
         let show: Show
     }
 
-    /// Horizon de programmation : au-delà, l'horaire aura été rechargé d'ici là.
-    static let horizon: TimeInterval = 21 * 24 * 3600
-    /// iOS garde au plus 64 notifications programmées par app : on garde une marge.
-    static let maxCount = 60
-    /// Début de la plage de nuit (23 h). Elle se termine à l'heure du matin.
-    static let nightStartMinutes = 23 * 60
+    // Valeurs : voir AppRules.Notifications.
+    static let horizon = AppRules.Notifications.horizon
+    static let maxCount = AppRules.Notifications.maxCount
+    static let nightStartMinutes = AppRules.Notifications.nightStartMinutes
 
     var timing: NotificationTiming
     /// Minutes depuis minuit (540 = 9 h) : épisodes sans heure connue, et
@@ -55,8 +53,8 @@ nonisolated struct NotificationPlanner: Sendable {
     /// Calendrier de l'appareil (fuseau local). Injecté pour les tests.
     var calendar: Calendar = .current
 
-    /// Durée supposée quand ni l'épisode ni les autres épisodes de la série ne la donnent.
-    static let defaultRuntimeMinutes = 60
+    /// Durée supposée quand ni l'épisode ni la série ne la donnent (AppRules).
+    static let defaultRuntimeMinutes = AppRules.Notifications.defaultRuntimeMinutes
 
     /// `liveActivityEpisodeIDs` : épisodes déjà annoncés par une Live Activity
     /// (voir LiveActivityPlanner). Leur notification « commence » serait un doublon,

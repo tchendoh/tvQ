@@ -64,15 +64,9 @@ final class ShowRepository {
         try await tmdbService.fetchAiringTodayTV().filter(Self.isRecommendable).map(mapToSummary)
     }
 
-    /// Genres TMDB écartés des recommandations de Home : talk-shows (10767) et
-    /// nouvelles (10763), des émissions quotidiennes qu'on ne « suit » pas comme
-    /// une série. Seulement la mise en avant : la recherche les trouve toujours,
-    /// et chacun peut les suivre. Les quotidiennes de fiction (ex. Antigang) sont
-    /// classées comme fiction et restent.
-    private static let excludedRecommendationGenres: Set<Int> = [10767, 10763]
-
+    /// Genres écartés de Home : voir AppRules.Recommendations.
     static func isRecommendable(_ dto: TMDBSearchResultDTO) -> Bool {
-        excludedRecommendationGenres.isDisjoint(with: dto.genreIDs ?? [])
+        AppRules.Recommendations.excludedGenres.isDisjoint(with: dto.genreIDs ?? [])
     }
 
     private func mapToSummary(_ dto: TMDBSearchResultDTO) -> ShowSummary {

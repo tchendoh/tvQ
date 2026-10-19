@@ -11,17 +11,16 @@ import Foundation
 nonisolated struct CachePolicy: Sendable {
     let maxAge: TimeInterval
 
-    /// Copie locale, par appareil (SwiftData). Même durée que la copie partagée : la
-    /// copie locale reprend la date d'origine de la copie Firestore, et une durée plus
-    /// courte la rendait aussitôt périmée (relecture de Firestore à chaque chargement).
-    static let local = CachePolicy(maxAge: 60 * 60 * 24)
+    // Durées : voir AppRules.Cache.
 
-    /// Copie partagée entre tous les utilisateurs (Firestore) : elle absorbe la charge de
-    /// TMDB/TVmaze, donc une fraîcheur de 24 h suffit pour un horaire de diffusion.
-    static let shared = CachePolicy(maxAge: 60 * 60 * 24)
+    /// Copie locale, par appareil (SwiftData).
+    static let local = CachePolicy(maxAge: AppRules.Cache.localMaxAge)
 
-    /// Disponibilité de visionnement : les diffuseurs d'une série changent rarement.
-    static let watchAvailability = CachePolicy(maxAge: 60 * 60 * 72)
+    /// Copie partagée entre tous les utilisateurs (Firestore).
+    static let shared = CachePolicy(maxAge: AppRules.Cache.sharedMaxAge)
+
+    /// Disponibilité de visionnement (« Où regarder »).
+    static let watchAvailability = CachePolicy(maxAge: AppRules.Cache.watchAvailabilityMaxAge)
 
     /// `isEnded`: une série terminée ne change plus jamais (ni statut, ni épisodes),
     /// donc sa copie en cache ne périme pas.

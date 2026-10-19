@@ -11,8 +11,8 @@ import UIKit
 final class LiveActivityScheduler {
     static let shared = LiveActivityScheduler()
 
-    /// Temps pendant lequel « Terminé » reste sur l'écran verrouillé.
-    nonisolated static let dismissalDelay: TimeInterval = 15 * 60
+    /// Voir AppRules.LiveActivity.
+    nonisolated static let dismissalDelay = AppRules.LiveActivity.dismissalDelay
     nonisolated static let debugActivityID = "debug-live-activity"
 
     /// Live Activities permises pour tvQ dans les Réglages d'iOS.

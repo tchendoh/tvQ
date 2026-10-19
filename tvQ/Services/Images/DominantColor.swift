@@ -48,11 +48,9 @@ nonisolated enum DominantColor {
         palette(in: pixels)?.dominant
     }
 
-    /// Part minimale de pixels (5 %) pour qu'un groupe de teintes compte.
-    static let minShare = 20
-    /// Écart minimal de teinte entre la couleur dominante et l'accent : 2 groupes
-    /// de 30°, soit 60°. En deçà, l'accent ressemblerait trop au fond.
-    static let minAccentHueDistance = 2
+    // Seuils : voir AppRules.Colors.
+    static let minShare = AppRules.Colors.minShare
+    static let minAccentHueDistance = AppRules.Colors.minAccentHueDistance
 
     /// Dominante : le groupe de teintes le plus peuplé. Accent : le groupe suivant le
     /// plus peuplé, s'il est assez présent et assez différent, rendu lisible sur fond
@@ -98,9 +96,8 @@ nonisolated enum DominantColor {
         return buckets
     }
 
-    /// Contraste minimal de l'accent avec le fond : 3:1, le seuil WCAG pour les
-    /// éléments graphiques (barre, compte à rebours en gros caractères).
-    static let minAccentContrast = 3.0
+    /// Voir AppRules.Colors.
+    static let minAccentContrast = AppRules.Colors.minAccentContrast
 
     /// Pousse la couleur à sa pleine intensité (même teinte), puis l'éclaircit vers
     /// le blanc jusqu'à ce qu'elle ressorte sur le fond.

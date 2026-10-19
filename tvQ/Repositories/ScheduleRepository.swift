@@ -161,10 +161,8 @@ final class ScheduleRepository {
         }
     }
 
-    /// Saisons chargées et mises en cache pour chaque série : la saison en cours, la
-    /// précédente (rattrapage) et une de marge. Évite de charger les 36 saisons des
-    /// Simpson, ou les centaines d'épisodes d'une quotidienne.
-    static let recentSeasonCount = 3
+    /// Voir AppRules.Schedule.
+    static let recentSeasonCount = AppRules.Schedule.recentSeasonCount
 
     static func recentSeasons(of show: Show) -> [Int] {
         let last = max(show.numberOfSeasons, 1)
@@ -186,11 +184,8 @@ final class ScheduleRepository {
 
     // MARK: - Horaire "à venir"
 
-    /// "À venir" inclut aussi les épisodes récemment diffusés (jusqu'à 7 jours
-    /// en arrière) — pas seulement le futur — pour qu'un épisode sorti hier ou
-    /// cette semaine reste visible même si l'utilisateur n'a pas ouvert l'app
-    /// le jour même.
-    private static let recentlyAiredWindow: TimeInterval = 60 * 60 * 24 * 7 // 7 jours
+    /// Voir AppRules.Schedule.
+    private static let recentlyAiredWindow = AppRules.Schedule.recentlyAiredWindow
 
     func getUpcomingEpisodes(for shows: [Show]) async throws -> [Episode] {
         try await ensureUpcomingEpisodes(for: shows)

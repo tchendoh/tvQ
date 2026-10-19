@@ -65,6 +65,10 @@ Protocols appear only where they pay for themselves: at the boundary with extern
 - **Permission is asked in context**, after the first show is followed, never at launch.
 - **`currentUser` has one source of truth**: the Firebase auth stream. Sign in, sign out and account deletion update the whole app without extra code.
 
+## App rules
+
+Every threshold, limit and duration the app relies on (genres hidden from Home, seasons loaded for the schedule, cache lifetimes, the soft limit on followed shows, notification and Live Activity timing, color thresholds) lives in one file, [`tvQ/Core/AppRules.swift`](tvQ/Core/AppRules.swift), each with the reason it was chosen. The types that apply them only keep an alias. Server-side caps live in [`firestore.rules`](firestore.rules).
+
 ## What I learned
 
 - **Scale the architecture to the project.** I started with a full Clean Architecture (Domain, Data and Presentation layers, a protocol for every repository) and removed it: for one developer, it added indirection without adding safety.

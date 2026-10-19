@@ -26,12 +26,10 @@ nonisolated struct PlannedLiveActivity: Equatable, Sendable {
 /// (TVmaze), diffusés en soirée, dans les prochaines 24 h. Pur et sans effet de
 /// bord, comme NotificationPlanner (tests : LiveActivityPlannerTests).
 nonisolated struct LiveActivityPlanner: Sendable {
-    /// Apparition avant le début de l'épisode.
-    static let leadTime: TimeInterval = 15 * 60
-    /// iOS limite le nombre d'activités simultanées, programmées comprises : on
-    /// ne programme que la journée qui vient, reprogrammée à chaque ouverture.
-    static let horizon: TimeInterval = 24 * 3600
-    static let maxCount = 3
+    // Valeurs : voir AppRules.LiveActivity.
+    static let leadTime = AppRules.LiveActivity.leadTime
+    static let horizon = AppRules.LiveActivity.horizon
+    static let maxCount = AppRules.LiveActivity.maxCount
 
     /// Minutes depuis minuit : avant cette heure (ou après 23 h), une sortie est
     /// « de nuit » (plateforme à 3 h) et n'a pas de soirée de diffusion à suivre.
