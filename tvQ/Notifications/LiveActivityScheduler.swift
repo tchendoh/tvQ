@@ -188,15 +188,8 @@ enum ActivityArtwork {
         guard let url = planned.backdropURL, let directory = AppGroup.activityImagesURL else { return nil }
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
 
-        let image: UIImage
-        if let cached = await ImageCache.shared.image(for: url) {
-            image = cached
-        } else {
-            guard let (data, _) = try? await URLSession.shared.data(from: url),
-                  let downloaded = UIImage(data: data)
-            else { return nil }
-            image = downloaded
-        }
+        // Passe par le cache : l'image sert aussi à l'affichage dans l'app.
+        guard let image = await ImageCache.shared.loadImage(from: url) else { return nil }
 
         let resized = resize(image)
         guard let jpeg = resized.jpegData(compressionQuality: 0.75) else { return nil }

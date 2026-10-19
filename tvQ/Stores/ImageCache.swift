@@ -51,6 +51,37 @@ actor ImageCache {
         try? data.write(to: fileURL(for: url.absoluteString), options: .atomic)
     }
 
+    // MARK: - Chargement
+
+    /// Téléchargements en cours, par URL : deux vues qui demandent la même affiche
+    /// en même temps partagent un seul appel réseau.
+    private var inFlight: [URL: Task<UIImage?, Never>] = [:]
+
+    /// Le seul chemin de chargement d'image de l'app : cache (mémoire, puis disque),
+    /// sinon téléchargement, rangé dans le cache pour la prochaine fois. nil en cas
+    /// d'échec ; c'est à l'appelant de décider s'il réessaie (RetryingAsyncImage).
+    /// Utilisé par RetryingAsyncImage, ShowColorExtractor et ActivityArtwork.
+    func loadImage(from url: URL) async -> UIImage? {
+        if let cached = image(for: url) {
+            return cached
+        }
+        if let task = inFlight[url] {
+            return await task.value
+        }
+        let task = Task<UIImage?, Never> {
+            guard let (data, response) = try? await URLSession.shared.data(from: url),
+                  (response as? HTTPURLResponse)?.statusCode == 200,
+                  let downloaded = UIImage(data: data)
+            else { return nil }
+            store(downloaded, data: data, for: url)
+            return downloaded
+        }
+        inFlight[url] = task
+        let result = await task.value
+        inFlight[url] = nil
+        return result
+    }
+
     /// Vide le cache d'images — utilisé par le bouton "Clear local cache" de Settings.
     func clear() {
         memoryCache.removeAllObjects()

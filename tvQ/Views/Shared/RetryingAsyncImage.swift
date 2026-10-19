@@ -59,18 +59,12 @@ struct RetryingAsyncImage<Content: View, Placeholder: View>: View {
 
     private func load() async {
         guard let url else { return }
-        if let cached = await ImageCache.shared.image(for: url) {
-            image = cached
-            return
-        }
-        guard let (data, _) = try? await URLSession.shared.data(from: url),
-              let downloaded = UIImage(data: data) else {
+        guard let loaded = await ImageCache.shared.loadImage(from: url) else {
             guard attempt < Self.maxAttempts else { return }
             try? await Task.sleep(for: Self.retryDelay)
             if !Task.isCancelled { attempt += 1 }
             return
         }
-        await ImageCache.shared.store(downloaded, data: data, for: url)
-        image = downloaded
+        image = loaded
     }
 }
