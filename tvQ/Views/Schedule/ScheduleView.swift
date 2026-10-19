@@ -7,6 +7,11 @@ struct ScheduleView: View {
     @Environment(FollowedShowsStore.self) private var followedShowsStore
     @Environment(ScheduleViewModel.self) private var viewModel
     @State private var selectedTMDBID: Int?
+    /// Position de défilement, visée par l'id (le jour) de chaque section.
+    @State private var scrollPosition = ScrollPosition(idType: Date.self)
+    /// Vrai tant que la liste doit rester sur "Aujourd'hui" pendant la mise en page ;
+    /// faux dès que l'utilisateur fait défiler lui-même.
+    @State private var isAnchoredToToday = true
 
     var body: some View {
         NavigationStack {
@@ -27,8 +32,7 @@ struct ScheduleView: View {
                         description: Text("Your upcoming episodes will show up here.")
                     )
                 } else {
-                    ScrollViewReader { proxy in
-                        ScrollView {
+                    ScrollView {
                             LazyVStack(spacing: 16) {
                                 ForEach(daySections) { section in
                                     GroupedCard(isHighlighted: section.isToday) {
@@ -55,18 +59,39 @@ struct ScheduleView: View {
                                     .id(section.day)
                                 }
                             }
+                            // Chaque section (jour) est une cible : ScrollPosition vise son id.
+                            .scrollTargetLayout()
                             .padding(.horizontal)
                             .padding(.vertical, 12)
                         }
+                        .scrollPosition($scrollPosition, anchor: .top)
                         // On atterrit sur "Aujourd'hui" plutôt qu'en haut de liste
                         // (qui montrerait d'abord les jours passés) — l'utilisateur
                         // scrolle vers le haut seulement s'il veut revoir les
                         // épisodes déjà diffusés.
                         .onChange(of: viewModel.items) {
-                            scrollToTodayAfterLayout(using: proxy)
+                            anchorToToday()
                         }
                         .onAppear {
-                            scrollToTodayAfterLayout(using: proxy)
+                            anchorToToday()
+                        }
+                        // Dans un LazyVStack, les sections au-dessus d'"Aujourd'hui"
+                        // n'ont que des hauteurs estimées au premier passage : la
+                        // hauteur du contenu change pendant qu'elles sont mesurées.
+                        // Tant que l'utilisateur n'a pas touché à la liste, on
+                        // revise "Aujourd'hui" à chaque changement, au lieu de
+                        // deviner un délai (ancien Task.sleep de 250 ms).
+                        .onScrollGeometryChange(for: CGFloat.self) { geometry in
+                            geometry.contentSize.height
+                        } action: { _, _ in
+                            if isAnchoredToToday {
+                                scrollToToday()
+                            }
+                        }
+                        .onScrollPhaseChange { _, phase in
+                            if phase == .interacting {
+                                isAnchoredToToday = false
+                            }
                         }
                         // Le cache peut retarder la prise en compte d'un nouvel épisode ou d'un cache vidé
                         // manuellement (voir Settings) — ce geste permet de
@@ -81,14 +106,13 @@ struct ScheduleView: View {
                             ToolbarItem(placement: .navigationBarLeading) {
                                 Button {
                                     withAnimation {
-                                        scrollToToday(using: proxy)
+                                        scrollToToday()
                                     }
                                 } label: {
                                     Text("Today")
                                 }
                             }
                         }
-                    }
                 }
             }
             .navigationTitle("Schedule")
@@ -97,21 +121,16 @@ struct ScheduleView: View {
         }
     }
 
-    private func scrollToToday(using proxy: ScrollViewProxy) {
+    private func scrollToToday() {
         let today = Calendar.current.startOfDay(for: Date())
-        proxy.scrollTo(today, anchor: .top)
+        scrollPosition.scrollTo(id: today, anchor: .top)
     }
 
-    /// Pour l'arrivée initiale sur l'écran : dans un LazyVStack, les sections
-    /// au-dessus d'"Aujourd'hui" n'ont pas encore été mesurées au premier passage
-    /// (hauteurs estimées), donc un seul scrollTo atterrit à côté. On le rejoue
-    /// une fois la mise en page stabilisée.
-    private func scrollToTodayAfterLayout(using proxy: ScrollViewProxy) {
-        scrollToToday(using: proxy)
-        Task {
-            try? await Task.sleep(for: .milliseconds(250))
-            scrollToToday(using: proxy)
-        }
+    /// Vise "Aujourd'hui" et le garde en vue pendant la mise en page (voir
+    /// onScrollGeometryChange), jusqu'au premier geste de l'utilisateur.
+    private func anchorToToday() {
+        isAnchoredToToday = true
+        scrollToToday()
     }
 
     /// Regroupe les items par jour civil, puis par (série, saison) au sein d'un

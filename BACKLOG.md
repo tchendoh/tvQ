@@ -122,12 +122,12 @@ Retailles trouvées en parcourant le projet. Rien de bloquant.
 ### Revue du code du 2026-10-18
 
 Duplication :
-- [ ] **Téléchargement d'images écrit trois fois** : `RetryingAsyncImage`, `ShowColorExtractor` et `ActivityArtwork` (« ImageCache, sinon URLSession, puis stockage »). `ActivityArtwork` ne remet même pas l'image dans `ImageCache`. Un seul `ImageLoader.image(for:)` les remplacerait.
+- [x] **Téléchargement d'images écrit trois fois** : fait le 2026-10-19, `ImageCache.loadImage(from:)` (cache, sinon téléchargement rangé dans le cache, appels dédoublonnés par URL). `ActivityArtwork` remet maintenant l'image dans le cache.
 - [x] **Code d'épisode `S%02dE%02d` formaté à trois endroits** : fait le 2026-10-19, `Episode.code` et `Episode.code(season:episode:)`.
 
 Façons de faire un peu datées :
 - [x] **`print` encadré de `#if DEBUG`** : fait le 2026-10-19. `Log` (`Core/Logging/Log.swift`) : catégories `network`, `data`, `notifications` ; les erreurs vont aussi dans le fil d'Ariane Crashlytics (`report: true` pour une erreur non fatale).
-- [ ] **`Task.sleep(250 ms)` de `scrollToTodayAfterLayout`** (`ScheduleView`) : contournement pour rejouer le défilement après la mise en page. Depuis iOS 18, `ScrollPosition` avec `.scrollPosition($position)`, ou `onScrollGeometryChange`, permet de viser un élément sans deviner un délai. À retester à la main (arrivée sur Schedule).
+- [ ] **`Task.sleep(250 ms)` de `scrollToTodayAfterLayout`** : remplacé le 2026-10-19 par `ScrollPosition` + `onScrollGeometryChange` (revise « Aujourd'hui » tant que la hauteur change et que l'utilisateur n'a pas fait défiler). **À tester à la main** : arrivée sur Schedule, bouton Today, tirer pour rafraîchir, suivre une nouvelle série.
 - [x] **`DateFormatter` et `ISO8601DateFormatter` dans `EpisodeMapper`** : fait le 2026-10-19, `Date.ISO8601FormatStyle` (date seule en UTC, et horodatage TVmaze avec décalage).
 - [x] **`.font(.system(size: 16/18))`** : fait le 2026-10-19 (`NotificationBell` en `.callout`, `ShowCardView` en `.headline`).
 - [x] **`@MainActor` explicites redondants** : retirés le 2026-10-19 (`SessionStore`, `LoginViewModel`, `DeleteAccountViewModel`, `LiveActivityScheduler`, `ActivityArtwork`, méthodes d'`AuthService`, `Task { @MainActor in` de `ScheduleView`).
