@@ -34,3 +34,35 @@ struct MyShowsNearestEpisodeTests {
         #expect(MyShowsViewModel.nearest(in: [episode(1, daysFromNow: nil)], now: now).isEmpty)
     }
 }
+
+/// Jour de diffusion local : une date seule ne recule pas d'un jour à Montréal.
+struct EpisodeLocalAirDayTests {
+    private let montreal: Calendar = {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "America/Toronto")!
+        return calendar
+    }()
+
+    private func episode(_ iso: String, precise: Bool) -> Episode {
+        Episode(id: "1-s1e1", showID: "1", seasonNumber: 1, episodeNumber: 1, title: "", overview: "",
+                stillImageURL: nil, airDate: ISO8601DateFormatter().date(from: iso),
+                hasPreciseTime: precise, runtimeMinutes: nil)
+    }
+
+    private func day(_ date: Date?) -> DateComponents? {
+        date.map { montreal.dateComponents([.year, .month, .day], from: $0) }
+    }
+
+    @Test func dateOnlyKeepsItsDay() {
+        // Minuit UTC le 20 = 20 h le 19 à Montréal : doit rester le 20.
+        let local = episode("2026-10-20T00:00:00Z", precise: false).localAirDay(in: montreal)
+        #expect(day(local) == DateComponents(year: 2026, month: 10, day: 20))
+    }
+
+    @Test func preciseTimeIsConverted() {
+        // 1 h UTC le 21 = 21 h le 20 à Montréal : le 20.
+        let local = episode("2026-10-21T01:00:00Z", precise: true).localAirDay(in: montreal)
+        #expect(day(local) == DateComponents(year: 2026, month: 10, day: 20))
+    }
+}
+

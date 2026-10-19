@@ -254,21 +254,10 @@ private struct ShowListRow: View {
     }
 
     private var detail: String? {
-        if let episode, let day = Self.localDay(of: episode) {
+        if let episode, let day = episode.localAirDay() {
             return "\(episode.code) · \(Self.dayLabel(day))"
         }
         return show.network
-    }
-
-    /// Jour de diffusion dans le fuseau de l'appareil. Une date seule (TMDB) est
-    /// stockée à minuit UTC : la convertir telle quelle donnerait la veille à
-    /// Montréal. On garde donc son jour tel quel.
-    static func localDay(of episode: Episode) -> Date? {
-        guard let date = episode.airDate else { return nil }
-        guard !episode.hasPreciseTime else { return Calendar.current.startOfDay(for: date) }
-        var utc = Calendar(identifier: .gregorian)
-        utc.timeZone = .gmt
-        return Calendar.current.date(from: utc.dateComponents([.year, .month, .day], from: date))
     }
 
     /// Hier, aujourd'hui, demain ; puis le jour de semaine dans la semaine qui vient

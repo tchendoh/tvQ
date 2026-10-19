@@ -62,4 +62,17 @@ nonisolated extension Episode {
     static func code(season: Int, episode: Int) -> String {
         String(format: "S%02dE%02d", season, episode)
     }
+
+    /// Jour de diffusion (minuit) dans le fuseau de `calendar`. Une date seule (TMDB)
+    /// est stockée à minuit UTC, neutre pour tous les fuseaux (cache partagé) : on
+    /// garde son jour UTC tel quel. La convertir donnerait la veille en Amérique
+    /// (minuit UTC = 20 h la veille à Montréal). Une heure précise (TVmaze) se
+    /// convertit normalement.
+    func localAirDay(in calendar: Calendar = .current) -> Date? {
+        guard let airDate else { return nil }
+        guard !hasPreciseTime else { return calendar.startOfDay(for: airDate) }
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = .gmt
+        return calendar.date(from: utc.dateComponents([.year, .month, .day], from: airDate))
+    }
 }

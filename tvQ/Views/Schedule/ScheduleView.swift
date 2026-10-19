@@ -160,8 +160,10 @@ struct ScheduleView: View {
     /// pour l'utilisateur et point d'ancrage du scroll initial (voir scrollToToday).
     private var daySections: [DaySection] {
         let calendar = Calendar.current
+        // localAirDay : une date seule (sans heure) garde son jour, au lieu de
+        // tomber la veille une fois convertie de minuit UTC à l'heure de Montréal.
         var itemsByDay = Dictionary(grouping: viewModel.items) { item in
-            calendar.startOfDay(for: item.episode.airDate ?? .distantFuture)
+            item.episode.localAirDay(in: calendar) ?? calendar.startOfDay(for: .distantFuture)
         }
 
         let today = calendar.startOfDay(for: Date())
