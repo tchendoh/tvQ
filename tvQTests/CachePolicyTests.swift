@@ -19,7 +19,9 @@ struct CachePolicyTests {
         #expect(policy.isFresh(syncedAt: now - 10_000_000, isEnded: true, now: now))
     }
 
-    @Test func sharedCacheLivesLongerThanLocalCache() {
-        #expect(CachePolicy.shared.maxAge > CachePolicy.local.maxAge)
+    /// La copie locale reprend la date d'origine de la copie Firestore : plus courte,
+    /// elle serait aussitôt périmée et relirait Firestore à chaque chargement.
+    @Test func localCacheLivesAtLeastAsLongAsSharedCache() {
+        #expect(CachePolicy.local.maxAge >= CachePolicy.shared.maxAge)
     }
 }

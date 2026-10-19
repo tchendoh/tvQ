@@ -72,7 +72,14 @@ final class ScheduleRepository {
     /// Une série terminée ne produira plus jamais de nouvel épisode : sa copie ne périme pas.
     private func refreshInBackgroundIfStale(show: Show, cacheKey: String, syncedAt: Date) {
         guard !CachePolicy.local.isFresh(syncedAt: syncedAt, isEnded: show.status == .ended) else { return }
-        Task { _ = try? await self.resolveRemotely(show: show, cacheKey: cacheKey) }
+        Task {
+            do {
+                _ = try await self.resolveRemotely(show: show, cacheKey: cacheKey)
+            } catch {
+                // Hors ligne, par exemple : la copie périmée reste en place.
+                Log.network.info("Rafraîchissement des épisodes \(cacheKey) échoué : \(error)")
+            }
+        }
     }
 
     /// Copie partagée puis TMDB/TVmaze, avec écriture dans les deux copies.
@@ -101,7 +108,11 @@ final class ScheduleRepository {
         // Écriture best-effort dans la copie partagée : un échec (hors ligne, règles
         // Firestore) ne doit pas empêcher de retourner le résultat à l'utilisateur.
         try? await sharedCache.store(cacheKey: cacheKey, episodes: episodes, syncedAt: now)
-        try? await episodeStore.save(episodes, cacheKey: cacheKey, syncedAt: now)
+        do {
+            try await episodeStore.save(episodes, cacheKey: cacheKey, syncedAt: now)
+        } catch {
+            Log.data.error("Sauvegarde locale des épisodes \(cacheKey) échouée", error, report: true)
+        }
         return episodes
     }
 
@@ -182,22 +193,33 @@ final class ScheduleRepository {
     private static let recentlyAiredWindow: TimeInterval = 60 * 60 * 24 * 7 // 7 jours
 
     func getUpcomingEpisodes(for shows: [Show]) async throws -> [Episode] {
-        let earliestRelevantDate = Date.now.addingTimeInterval(-Self.recentlyAiredWindow)
+        try await ensureUpcomingEpisodes(for: shows)
+        return try await localUpcomingEpisodes(for: shows)
+    }
 
-        // Une série .ended n'aura plus jamais de nouvel épisode : inutile de la
-        // requêter pour l'horaire "à venir".
-        let relevantShows = shows.filter { $0.status != .ended }
+    /// Une série .ended n'aura plus jamais de nouvel épisode : inutile de la
+    /// requêter pour l'horaire "à venir".
+    private static func relevantForUpcoming(_ shows: [Show]) -> [Show] {
+        shows.filter { $0.status != .ended }
+    }
 
-        // 1. S'assurer, en parallèle, que chaque série a des épisodes en local.
+    /// S'assure, en parallèle, que chaque série a des épisodes en local (réseau
+    /// seulement pour une série jamais synchronisée, rafraîchissement en arrière-plan
+    /// pour une copie périmée). Ne retourne rien : l'écran relit la copie locale.
+    func ensureUpcomingEpisodes(for shows: [Show]) async throws {
         try await withThrowingTaskGroup(of: Void.self) { group in
-            for show in relevantShows {
+            for show in Self.relevantForUpcoming(shows) {
                 group.addTask { try await self.ensureEpisodes(for: show) }
             }
             try await group.waitForAll()
         }
+    }
 
-        // 2. Une seule requête, filtrée et triée par date dans le store.
-        let cacheKeys = relevantShows.map { cacheKey(for: $0) }
+    /// Copie locale seulement, une seule requête filtrée et triée par date dans le
+    /// store. Aucun réseau : sert aussi à relire l'écran après un changement local.
+    func localUpcomingEpisodes(for shows: [Show]) async throws -> [Episode] {
+        let earliestRelevantDate = Date.now.addingTimeInterval(-Self.recentlyAiredWindow)
+        let cacheKeys = Self.relevantForUpcoming(shows).map { cacheKey(for: $0) }
         return try await episodeStore.upcoming(cacheKeys: cacheKeys, since: earliestRelevantDate)
     }
 }

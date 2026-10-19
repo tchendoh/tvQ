@@ -33,6 +33,14 @@ struct MainTabView: View {
         .task(id: followedShowsStore.followedShowIDs) {
             scheduleViewModel.load(showIDs: followedShowsStore.followedShowIDs)
         }
+        // La base locale a changé (rafraîchissement en arrière-plan, nouvelle série,
+        // cache vidé) : on relit l'horaire depuis SwiftData, sans réseau. Le court délai
+        // regroupe les rafales : chaque nouvel incrément annule la relecture en attente.
+        .task(id: LocalDataVersion.shared.value) {
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
+            await scheduleViewModel.reloadFromLocal()
+        }
         // load() recharge tout l'horaire : suffit pour passer à la nouvelle langue.
         .onContentLanguageChange {
             scheduleViewModel.load(showIDs: followedShowsStore.followedShowIDs)
@@ -40,6 +48,12 @@ struct MainTabView: View {
         .schedulesEpisodeNotifications()
         // Toucher une notification : fiche de la série par-dessus l'onglet courant.
         .presentsShowDetailSheet(tmdbID: $notificationRouter.tmdbID)
+        // Toucher une Live Activity : même fiche (lien tvq://show/{id}).
+        .onOpenURL { url in
+            if let tmdbID = TvQLink.tmdbID(from: url) {
+                notificationRouter.tmdbID = tmdbID
+            }
+        }
         // Erreurs des séries suivies (chargement, follow/unfollow), communes à tous
         // les onglets : affichées ici une seule fois plutôt que dans chaque écran.
         .alert(

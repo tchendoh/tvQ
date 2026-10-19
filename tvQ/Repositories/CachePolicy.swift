@@ -11,8 +11,10 @@ import Foundation
 nonisolated struct CachePolicy: Sendable {
     let maxAge: TimeInterval
 
-    /// Copie locale, par appareil (SwiftData).
-    static let local = CachePolicy(maxAge: 60 * 60 * 12)
+    /// Copie locale, par appareil (SwiftData). Même durée que la copie partagée : la
+    /// copie locale reprend la date d'origine de la copie Firestore, et une durée plus
+    /// courte la rendait aussitôt périmée (relecture de Firestore à chaque chargement).
+    static let local = CachePolicy(maxAge: 60 * 60 * 24)
 
     /// Copie partagée entre tous les utilisateurs (Firestore) : elle absorbe la charge de
     /// TMDB/TVmaze, donc une fraîcheur de 24 h suffit pour un horaire de diffusion.

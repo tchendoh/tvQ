@@ -25,6 +25,10 @@ final class ScheduleViewModel {
     private let scheduleRepository: ScheduleRepository
     private var loadTask: Task<Void, Never>?
 
+    /// Séries suivies du dernier `load` : nécessaires pour relire la copie locale
+    /// quand elle change, sans attendre un nouvel appel de la vue.
+    private var showIDs: Set<String> = []
+
     init(
         showRepository: ShowRepository = .shared,
         scheduleRepository: ScheduleRepository = .shared
@@ -35,8 +39,14 @@ final class ScheduleViewModel {
 
     /// Appelée depuis .task(id: followedShowsStore.followedShowIDs) — se relance
     /// automatiquement à chaque follow/unfollow, comme MyShowsViewModel.load.
+    ///
+    /// L'écran affiche toujours la copie locale (SwiftData) : d'abord ce qu'elle contient
+    /// déjà, sans attendre le réseau, puis ce que la synchronisation y ajoute. Les
+    /// rafraîchissements en arrière-plan des repositories arrivent par LocalDataVersion
+    /// (voir MainTabView, qui appelle reloadFromLocal).
     func load(showIDs: Set<String>) {
         loadTask?.cancel()
+        self.showIDs = showIDs
 
         guard !showIDs.isEmpty else {
             items = []
@@ -49,10 +59,13 @@ final class ScheduleViewModel {
             errorMessage = nil
             defer { isLoading = false }
 
+            // 1. Affichage immédiat de ce qui est déjà sur l'appareil.
+            await reloadFromLocal()
+            if Task.isCancelled { return }
+
             do {
-                // Résolution en parallèle plutôt que séquentielle : le vrai goulot
-                // n'était pas l'horaire lui-même, déjà mis en cache, mais cette
-                // résolution de Show en boucle.
+                // 2. Résolution des séries en parallèle : locale si possible, réseau
+                // seulement pour celles jamais synchronisées sur cet appareil.
                 let tmdbIDs = showIDs.compactMap { Int($0) }
                 let shows = try await withThrowingTaskGroup(of: Show.self) { group in
                     for tmdbID in tmdbIDs {
@@ -66,14 +79,12 @@ final class ScheduleViewModel {
                 }
                 if Task.isCancelled { return }
 
-                let showsByID = Dictionary(uniqueKeysWithValues: shows.map { ($0.id, $0) })
-                let episodes = try await scheduleRepository.getUpcomingEpisodes(for: shows)
+                // 3. Épisodes manquants, puis relecture locale.
+                try await scheduleRepository.ensureUpcomingEpisodes(for: shows)
+                let episodes = try await scheduleRepository.localUpcomingEpisodes(for: shows)
                 if Task.isCancelled { return }
 
-                items = episodes.compactMap { episode in
-                    guard let show = showsByID[episode.showID] else { return nil }
-                    return ScheduleItem(episode: episode, show: show)
-                }
+                items = Self.makeItems(episodes: episodes, shows: shows)
             } catch {
                 if !Task.isCancelled {
                     errorMessage = String(localized: "Couldn't load your upcoming episodes. Check your connection and try again.")
@@ -82,12 +93,46 @@ final class ScheduleViewModel {
         }
     }
 
+    /// Associe chaque épisode à sa série ; un épisode dont la série est absente est ignoré.
+    private static func makeItems(episodes: [Episode], shows: [Show]) -> [ScheduleItem] {
+        let showsByID = Dictionary(shows.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        return episodes.compactMap { episode in
+            guard let show = showsByID[episode.showID] else { return nil }
+            return ScheduleItem(episode: episode, show: show)
+        }
+    }
+
+    // MARK: - Copie locale
+
+    /// Relit l'horaire depuis SwiftData seulement : aucun appel réseau, donc aucun
+    /// risque de boucle (une relecture ne provoque jamais de sauvegarde). Une série
+    /// pas encore synchronisée est simplement absente jusqu'à son arrivée.
+    ///
+    /// Appelée par MainTabView à chaque changement de LocalDataVersion. Si une autre
+    /// relecture a commencé entre-temps (tâche annulée), on n'écrase pas son résultat.
+    func reloadFromLocal() async {
+        let tmdbIDs = showIDs.compactMap { Int($0) }
+        // Liste vide : c'est `load` (aucune série suivie) ou `clear` (déconnexion) qui vide.
+        guard !tmdbIDs.isEmpty else { return }
+
+        var shows: [Show] = []
+        for tmdbID in tmdbIDs {
+            if let show = await showRepository.localShow(tmdbID: tmdbID) {
+                shows.append(show)
+            }
+        }
+        guard let episodes = try? await scheduleRepository.localUpcomingEpisodes(for: shows),
+              !Task.isCancelled else { return }
+        items = Self.makeItems(episodes: episodes, shows: shows)
+    }
+
     /// À la déconnexion (voir RootView) : le view model vit dans RootView, donc
     /// survit à la déconnexion. Annule le chargement en cours et vide l'état pour
     /// qu'un autre compte ne voie pas l'horaire du précédent.
     func clear() {
         loadTask?.cancel()
         loadTask = nil
+        showIDs = []
         items = []
         errorMessage = nil
         isLoading = false

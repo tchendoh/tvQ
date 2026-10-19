@@ -79,6 +79,19 @@ struct LocalStoresTests {
         #expect(cached.value.map(\.episodeNumber) == [9])
     }
 
+    @Test func savingIdenticalEpisodesOnlyUpdatesSyncDate() async throws {
+        let store = makeEpisodeStore()
+        let episodes = [makeEpisode(number: 1, airDate: nil), makeEpisode(number: 2, airDate: nil)]
+        let later = Date(timeIntervalSince1970: 1_900_000_000)
+
+        try await store.save(episodes, cacheKey: "100_en", syncedAt: Date(timeIntervalSince1970: 1_800_000_000))
+        try await store.save(episodes.reversed(), cacheKey: "100_en", syncedAt: later)
+
+        let cached = try #require(try await store.entry(cacheKey: "100_en"))
+        #expect(cached.syncedAt == later)
+        #expect(cached.value.map(\.episodeNumber) == [1, 2])
+    }
+
     @Test func sameEpisodeInTwoLanguagesDoesNotCollide() async throws {
         let store = makeEpisodeStore()
         try await store.save([makeEpisode(number: 1, airDate: nil)], cacheKey: "100_en")

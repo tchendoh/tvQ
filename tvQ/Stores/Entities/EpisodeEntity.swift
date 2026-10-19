@@ -13,6 +13,9 @@ import SwiftData
 /// alors que ces objets sont manipulés depuis un actor (EpisodeStore).
 @Model
 nonisolated final class EpisodeEntity {
+    // Requêtes de EpisodeStore : par série (entry, save) et par date (upcoming).
+    #Index<EpisodeEntity>([\.cacheKey], [\.airDate])
+
     @Attribute(.unique) var uid: String
     var cacheKey: String
 

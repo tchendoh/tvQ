@@ -31,7 +31,17 @@ actor EpisodeStore {
     }
 
     /// Remplace tous les épisodes de cette série d'un seul coup (une seule transaction).
+    /// Si les épisodes reçus sont identiques à ceux en place, seule la date de
+    /// synchronisation change : rien n'est réécrit et l'écran n'est pas relu pour rien.
     func save(_ episodes: [Episode], cacheKey: String, syncedAt: Date = .now) throws {
+        if let existing = try entry(cacheKey: cacheKey),
+           Self.sorted(existing.value) == Self.sorted(episodes) {
+            let syncDescriptor = FetchDescriptor<EpisodeSyncEntity>(predicate: #Predicate { $0.cacheKey == cacheKey })
+            try modelContext.fetch(syncDescriptor).first?.syncedAt = syncedAt
+            try modelContext.save()
+            return
+        }
+
         try modelContext.delete(model: EpisodeEntity.self, where: #Predicate { $0.cacheKey == cacheKey })
         try modelContext.delete(model: EpisodeSyncEntity.self, where: #Predicate { $0.cacheKey == cacheKey })
 
@@ -40,6 +50,12 @@ actor EpisodeStore {
         }
         modelContext.insert(EpisodeSyncEntity(cacheKey: cacheKey, syncedAt: syncedAt))
         try modelContext.save()
+        LocalDataVersion.bumpFromStore()
+    }
+
+    /// Même ordre que `entry` : la comparaison ne dépend pas de l'ordre d'arrivée.
+    private static func sorted(_ episodes: [Episode]) -> [Episode] {
+        episodes.sorted { ($0.seasonNumber, $0.episodeNumber, $0.id) < ($1.seasonNumber, $1.episodeNumber, $1.id) }
     }
 
     /// Épisodes datés à partir de `cutoff`, pour les séries données, triés par date.
@@ -60,5 +76,6 @@ actor EpisodeStore {
         try modelContext.delete(model: EpisodeEntity.self)
         try modelContext.delete(model: EpisodeSyncEntity.self)
         try modelContext.save()
+        LocalDataVersion.bumpFromStore()
     }
 }
