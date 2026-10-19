@@ -21,8 +21,7 @@ beforeEach(async () => {
   await env.clearFirestore();
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
-    await setDoc(doc(db, 'users/alice'), { followedShows: { '1399': Timestamp.now() }, legacyMigrated: true });
-    await setDoc(doc(db, 'users/alice/followedShows/1399'), { followedAt: Timestamp.now() });
+    await setDoc(doc(db, 'users/alice'), { followedShows: { '1399': Timestamp.now() } });
     await setDoc(doc(db, 'showsCache/1399_fr-CA'), { episodes: [], syncedAt: Timestamp.now() });
     await setDoc(doc(db, 'showMetadataCache/1399_fr-CA'), { show: { id: 1399 }, syncedAt: Timestamp.now() });
   });
@@ -36,7 +35,7 @@ const anon = () => env.unauthenticatedContext().firestore();
 test('A lit et modifie son document users', async () => {
   await assertSucceeds(getDoc(doc(alice(), 'users/alice')));
   await assertSucceeds(setDoc(doc(alice(), 'users/alice'),
-    { followedShows: { '94605': serverTimestamp() }, legacyMigrated: true }, { merge: true }));
+    { followedShows: { '94605': serverTimestamp() } }, { merge: true }));
   await assertSucceeds(setDoc(doc(alice(), 'users/alice'),
     { followedShows: { '94605': deleteField() } }, { merge: true }));
   await assertSucceeds(setDoc(doc(alice(), 'users/alice'),
@@ -45,22 +44,16 @@ test('A lit et modifie son document users', async () => {
 test('A supprime son document users (suppression de compte)', async () => {
   await assertSucceeds(deleteDoc(doc(alice(), 'users/alice')));
 });
-test('A lit et supprime son ancienne sous-collection, sans y écrire', async () => {
-  await assertSucceeds(getDoc(doc(alice(), 'users/alice/followedShows/1399')));
-  await assertSucceeds(deleteDoc(doc(alice(), 'users/alice/followedShows/1399')));
-  await assertFails(setDoc(doc(alice(), 'users/alice/followedShows/1'), { followedAt: serverTimestamp() }));
-});
 test('B ne peut ni lire ni écrire ni supprimer les données de A', async () => {
   await assertFails(getDoc(doc(bob(), 'users/alice')));
   await assertFails(setDoc(doc(bob(), 'users/alice'), { followedShows: {} }, { merge: true }));
   await assertFails(deleteDoc(doc(bob(), 'users/alice')));
-  await assertFails(getDoc(doc(bob(), 'users/alice/followedShows/1399')));
-  await assertFails(deleteDoc(doc(bob(), 'users/alice/followedShows/1399')));
 });
 test('Document users mal formé refusé', async () => {
   await assertFails(setDoc(doc(alice(), 'users/alice'), { followedShows: {}, admin: true }, { merge: true }));
   await assertFails(setDoc(doc(alice(), 'users/alice'), { followedShows: ['1399'] }));
-  await assertFails(setDoc(doc(alice(), 'users/alice'), { legacyMigrated: 'oui' }));
+  // Ancien indicateur de migration, retiré le 2026-10-19.
+  await assertFails(setDoc(doc(alice(), 'users/alice'), { legacyMigrated: true }, { merge: true }));
   await assertFails(setDoc(doc(alice(), 'users/alice'), { mutedShows: ['1399'] }));
 });
 

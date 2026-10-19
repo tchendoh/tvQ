@@ -30,28 +30,20 @@ service cloud.firestore {
 
     // ---- Données personnelles ----
     // users/{userID} = { followedShows: { "<idTMDB>": <date d'ajout>, ... },
-    //                   mutedShows: { "<idTMDB>": true, ... }, legacyMigrated: true }
+    //                   mutedShows: { "<idTMDB>": true, ... } }
     // Un seul document par utilisateur : une lecture pour toute la liste.
     function validUserDoc() {
       let data = request.resource.data;
-      return data.keys().hasOnly(['followedShows', 'mutedShows', 'legacyMigrated'])
+      return data.keys().hasOnly(['followedShows', 'mutedShows'])
           && (!('followedShows' in data) || (data.followedShows is map
                                             && data.followedShows.size() <= 2000))
           && (!('mutedShows' in data) || (data.mutedShows is map
-                                         && data.mutedShows.size() <= 2000))
-          && (!('legacyMigrated' in data) || data.legacyMigrated is bool);
+                                         && data.mutedShows.size() <= 2000));
     }
 
     match /users/{userID} {
       allow read, delete: if isOwner(userID);
       allow create, update: if isOwner(userID) && validUserDoc();
-
-      // Ancienne structure (un document par série), remplacée en octobre 2026.
-      // Encore lisible et supprimable par son propriétaire, le temps que l'app
-      // la migre ; plus aucune écriture.
-      match /followedShows/{showID} {
-        allow read, delete: if isOwner(userID);
-      }
     }
 
     // ---- Caches partagés (contenu TMDB, aucune donnée personnelle) ----
