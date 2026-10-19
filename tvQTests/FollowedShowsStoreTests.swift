@@ -92,6 +92,23 @@ struct FollowedShowsStoreTests {
         #expect(store.errorMessage == nil)
     }
 
+    @Test func followingIsLimitedButUnfollowingIsNot() async {
+        service.followed = (1...FollowedShowsStore.maxFollowedShows).map(String.init)
+        let store = makeStore()
+        store.load(userID: "A")
+        #expect(await loaded(store))
+
+        store.toggle(showID: "9999")
+        #expect(!store.isFollowing("9999"))
+        #expect(store.errorMessage != nil)
+        #expect(service.followCalls.isEmpty)
+
+        store.dismissError()
+        store.toggle(showID: "1")
+        #expect(!store.isFollowing("1"))
+        #expect(store.errorMessage == nil)
+    }
+
     @Test func failedFollowIsRolledBack() async {
         let store = makeStore()
         store.load(userID: "A")

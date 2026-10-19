@@ -103,6 +103,11 @@ final class FollowedShowsStore {
         }
     }
 
+    /// Limite douce du nombre de séries suivies. Au-delà, l'app n'a pas été conçue
+    /// pour charger l'horaire de tout le monde (appels TMDB et TVmaze, limite de
+    /// débit de TVmaze). Les règles Firestore plafonnent de leur côté à 2000.
+    static let maxFollowedShows = 100
+
     /// Appelée quand l'alerte d'erreur est fermée (voir MainTabView).
     func dismissError() {
         errorMessage = nil
@@ -113,6 +118,12 @@ final class FollowedShowsStore {
     func toggle(showID: String) {
         guard let userID else { return }
         let wasFollowing = isFollowing(showID)
+
+        // Ne plus suivre reste toujours possible ; seul l'ajout est limité.
+        if !wasFollowing, followedShowIDs.count >= Self.maxFollowedShows {
+            errorMessage = String(localized: "You can follow up to \(Self.maxFollowedShows) shows. Unfollow one to add another.")
+            return
+        }
 
         if wasFollowing {
             followedShowIDs.remove(showID)
