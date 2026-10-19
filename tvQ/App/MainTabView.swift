@@ -9,7 +9,7 @@ struct MainTabView: View {
         TabView {
             HomeView()
                 .tabItem {
-                    Label("Home", systemImage: "sparkles")
+                    Label("Home", systemImage: "flame")
                 }
 
             ScheduleView()

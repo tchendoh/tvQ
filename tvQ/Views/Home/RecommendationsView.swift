@@ -31,7 +31,7 @@ struct RecommendationsView: View {
             } else if viewModel.isEmpty {
                 ContentUnavailableView(
                     "Nothing to discover yet",
-                    systemImage: "sparkles",
+                    systemImage: "flame",
                     description: Text("Shows to discover will show up here.")
                 )
             } else {
