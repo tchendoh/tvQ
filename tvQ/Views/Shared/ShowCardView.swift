@@ -42,11 +42,15 @@ struct ShowCardView: View {
                 }
             }
 
+            // Toujours la place de deux lignes, même pour un titre court : toutes les
+            // cartes ont la même hauteur. Avec une hauteur variable, la grille
+            // paresseuse (LazyVGrid) devait réestimer les rangées en remontant, et la
+            // page sautait.
             Text(title)
                 .font(.subheadline.weight(.medium))
-                .lineLimit(2)
+                .lineLimit(2, reservesSpace: true)
                 .multilineTextAlignment(.leading)
-                .frame(maxWidth: .infinity, minHeight: 34, alignment: .topLeading)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
         }
     }
 }
