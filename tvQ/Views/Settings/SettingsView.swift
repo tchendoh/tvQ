@@ -79,7 +79,7 @@ struct SettingsView: View {
                 Text("Used to show which services carry a show in your country.")
             }
 
-            notificationsSection
+            episodeAlertsSection
 
             Section {
                 NavigationLink("About") {
@@ -105,35 +105,8 @@ struct SettingsView: View {
                 Text("Permanently deletes your account and the shows you follow.")
             }
 
-            // Copie locale uniquement — le cache Firestore partagé reste intact,
-            // pour ne pas effacer les données des autres utilisateurs. Utile pour
-            // retester le chemin de chargement à froid (voir
-            // FollowedShowsStore.prefetchContent) sans désinstaller l'app.
-            Section {
-                Button("Clear local cache") {
-                    clearLocalCache()
-                }
-            } footer: {
-                if didClearCache {
-                    Text("Local cache cleared.")
-                } else {
-                    Text("Forces shows and episodes to reload from scratch on next view. Useful for testing.")
-                }
-            }
-
-            // Test de la chaîne Crashlytics (plantage → envoi → dSYM → rapport lisible).
-            // Lancer l'app SANS le débogueur, appuyer, puis rouvrir l'app pour envoyer
-            // le rapport. Pour un rapport lisible, tester en Release (le dSYM est vide
-            // en Debug à cause de ENABLE_DEBUG_DYLIB) en retirant temporairement le
-            // #if DEBUG. Absent des builds Release tel quel.
             #if DEBUG
-            Section {
-                Button("Test Crashlytics", role: .destructive) {
-                    fatalError("Test Crashlytics")
-                }
-            } footer: {
-                Text("Debug only. Crashes the app on purpose to test crash reporting.")
-            }
+            debugSection
             #endif
         }
         .navigationTitle("Settings")
@@ -155,10 +128,36 @@ struct SettingsView: View {
         notificationScheduler.authorizationStatus == .denied
     }
 
+    @AppStorage(AppSettings.Keys.liveActivitiesEnabled)
+    private var liveActivitiesEnabled = true
+
+    /// Live Activities refusées pour tvQ dans les Réglages d'iOS.
+    private var liveActivitiesDeniedBySystem: Bool {
+        !LiveActivityScheduler.shared.areActivitiesEnabled
+    }
+
+    // MARK: - Alertes d'épisodes
+
+    /// Live Activities et notifications dans une même section : l'ordre dit la
+    /// priorité (un épisode à heure exacte, en soirée, a un compte à rebours plutôt
+    /// qu'une notification), et la phrase sous chaque interrupteur dit qui fait quoi.
     @ViewBuilder
-    private var notificationsSection: some View {
+    private var episodeAlertsSection: some View {
         Section {
-            Toggle("New episodes", isOn: Binding(
+            Toggle(isOn: Binding(
+                get: { liveActivitiesEnabled && !liveActivitiesDeniedBySystem },
+                set: { liveActivitiesEnabled = $0 }
+            )) {
+                SettingLabel(
+                    title: Text("Live Activities"),
+                    detail: liveActivitiesDeniedBySystem
+                        ? Text("Turned off in iOS Settings.")
+                        : Text("Live countdown on the Lock Screen, 15 min before episodes with an exact time.")
+                )
+            }
+            .disabled(liveActivitiesDeniedBySystem)
+
+            Toggle(isOn: Binding(
                 get: { notificationsEnabled && !isDeniedBySystem },
                 set: { isOn in
                     guard isOn else {
@@ -169,9 +168,12 @@ struct SettingsView: View {
                         notificationsEnabled = await notificationScheduler.requestAuthorization()
                     }
                 }
-            ))
+            )) {
+                SettingLabel(title: Text("Notifications"), detail: notificationsDetail)
+            }
             .disabled(isDeniedBySystem)
 
+            // Réglages propres aux notifications, sous leur interrupteur.
             if notificationsEnabled && !isDeniedBySystem {
                 Picker("Timing", selection: $notificationTiming) {
                     Text("10 min before").tag(NotificationTiming.tenMinutesBefore)
@@ -181,38 +183,71 @@ struct SettingsView: View {
                 DatePicker("Morning time", selection: morningTime, displayedComponents: .hourAndMinute)
             }
 
-            #if DEBUG
-            // Toujours visible en Debug, même notifications désactivées : la page
-            // montre justement la permission et l'absence de notifications.
-            debugNotificationButtons
-            #endif
-
-            if isDeniedBySystem {
+            if isDeniedBySystem || liveActivitiesDeniedBySystem {
                 Button("Open iOS Settings") {
-                    if let url = URL(string: UIApplication.openNotificationSettingsURLString) {
+                    let address = isDeniedBySystem
+                        ? UIApplication.openNotificationSettingsURLString
+                        : UIApplication.openSettingsURLString
+                    if let url = URL(string: address) {
                         openURL(url)
                     }
                 }
             }
         } header: {
-            Text("Notifications")
+            Text("Episode Alerts")
         } footer: {
-            if isDeniedBySystem {
-                Text("Notifications are turned off for tvQ in iOS Settings.")
-            } else {
-                Text("Episodes without a known time, and those released overnight, are announced at the morning time. Use the bell in Schedule to mute a show.")
-            }
+            Text("Episodes without a known time, and those released overnight, are announced at the morning time. Use the bell in Schedule to mute a show.")
         }
     }
 
-    #if DEBUG
-    /// Page de débogage des notifications (Debug seulement, textes non traduits).
-    private var debugNotificationButtons: some View {
-        let label: String = "Scheduled notifications (debug)"
-        return NavigationLink(label) {
-            NotificationsDebugView()
+    /// Avec les Live Activities, les notifications couvrent le reste ; sans elles, tout.
+    private var notificationsDetail: Text {
+        if isDeniedBySystem {
+            Text("Turned off in iOS Settings.")
+        } else if liveActivitiesEnabled && !liveActivitiesDeniedBySystem {
+            Text("For all other episodes.")
+        } else {
+            Text("For all episodes.")
         }
     }
+
+    // MARK: - Débogage
+
+    #if DEBUG
+    /// Outils de développement, regroupés au bas de Settings et absents en Release
+    /// (textes non traduits).
+    private var debugSection: some View {
+        Section {
+            NavigationLink(verbatimLabel("Scheduled notifications")) {
+                NotificationsDebugView(kind: .notifications)
+            }
+            NavigationLink(verbatimLabel("Live Activities")) {
+                NotificationsDebugView(kind: .liveActivities)
+            }
+            // Copie locale uniquement : le cache Firestore partagé reste intact, pour
+            // ne pas effacer les données des autres utilisateurs. Sert à retester le
+            // chargement à froid (FollowedShowsStore.prefetchContent) sans désinstaller.
+            Button(verbatimLabel("Clear local cache")) {
+                clearLocalCache()
+            }
+            // Test de la chaîne Crashlytics (plantage, envoi, dSYM, rapport lisible).
+            // Lancer l'app SANS le débogueur, appuyer, puis rouvrir l'app pour envoyer
+            // le rapport. Pour un rapport lisible, tester en Release (le dSYM est vide
+            // en Debug à cause de ENABLE_DEBUG_DYLIB) en retirant temporairement le
+            // #if DEBUG.
+            Button(verbatimLabel("Test Crashlytics"), role: .destructive) {
+                fatalError("Test Crashlytics")
+            }
+        } header: {
+            Text(verbatim: "Debug")
+        } footer: {
+            Text(verbatim: didClearCache
+                 ? "Local cache cleared."
+                 : "Debug builds only. Clear local cache forces shows and episodes to reload from scratch; Test Crashlytics crashes the app on purpose.")
+        }
+    }
+
+    private func verbatimLabel(_ string: String) -> String { string }
     #endif
 
     /// L'heure du matin est stockée en minutes depuis minuit ; DatePicker veut une Date.
@@ -247,4 +282,19 @@ struct SettingsView: View {
         SettingsView()
     }
     .environment(SessionStore())
+}
+
+/// Titre d'un réglage avec une phrase grise en dessous, comme dans les Réglages d'iOS.
+private struct SettingLabel: View {
+    let title: Text
+    let detail: Text
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            title
+            detail
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+    }
 }

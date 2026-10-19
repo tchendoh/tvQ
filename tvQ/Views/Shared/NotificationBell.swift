@@ -32,7 +32,8 @@ struct NotificationBell: View {
                         .contentShape(Rectangle())
                 case .badge:
                     icon
-                        .font(.system(size: 16, weight: .bold))
+                        // Suit Dynamic Type, contrairement à l'ancienne taille fixe de 16 pt.
+                        .font(.callout.weight(.bold))
                         .frame(width: 34, height: 34)
                         .background(.ultraThinMaterial, in: Circle())
                         .overlay { Circle().strokeBorder(Color.emphasis.opacity(0.5), lineWidth: 1) }
@@ -48,9 +49,12 @@ struct NotificationBell: View {
         }
     }
 
+    /// Contour dans les deux états, plus léger qu'une cloche pleine. L'état se lit à
+    /// la forme (barre oblique) autant qu'à la teinte : activée en gris foncé, coupée
+    /// en gris pâle. C'est l'exception, la série coupée, qui s'efface.
     private var icon: some View {
-        Image(systemName: isMuted ? "bell.slash" : "bell.fill")
+        Image(systemName: isMuted ? "bell.slash" : "bell")
             .contentTransition(.symbolEffect(.replace))
-            .foregroundStyle(isMuted ? Color.secondary : Color.emphasis)
+            .foregroundStyle(isMuted ? .tertiary : .secondary)
     }
 }

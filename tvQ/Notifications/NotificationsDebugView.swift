@@ -5,55 +5,117 @@ import SwiftUI
 /// le plan (heures, séries coupées, réglage du moment) sans attendre un soir de
 /// diffusion. Textes en dur, non traduits : jamais visible dans une build Release.
 struct NotificationsDebugView: View {
+    /// Quelle moitié afficher : deux liens distincts dans la section Debug de Settings.
+    enum Kind {
+        case notifications
+        case liveActivities
+    }
+
+    var kind: Kind = .notifications
+
     @Environment(FollowedShowsStore.self) private var followedShowsStore: FollowedShowsStore?
     @Environment(\.scenePhase) private var scenePhase
     private let scheduler = NotificationScheduler.shared
 
     @State private var pending: [NotificationScheduler.PendingInfo] = []
     @State private var lastRefresh = Date.now
+    @State private var activities: [LiveActivityScheduler.DebugInfo] = []
+    private let liveActivityScheduler = LiveActivityScheduler.shared
 
     var body: some View {
         List {
-            Section {
-                LabeledContent(verbatim("iOS permission"), value: permissionText)
-                LabeledContent(verbatim("Scheduled"), value: "\(pending.count) / 64")
-                LabeledContent(verbatim("Muted shows"), value: "\(followedShowsStore?.mutedShowIDs.count ?? 0)")
-            } footer: {
-                Text(verbatim: "Updated \(lastRefresh.formatted(date: .omitted, time: .standard)). iOS keeps at most 64 pending notifications per app.")
-            }
-
-            Section {
-                Button(verbatim("Test notification in 10 s")) {
-                    let tmdbID = followedShowsStore?.followedShowIDs.compactMap(Int.init).first
-                    Task {
-                        await scheduler.scheduleTestNotification(
-                            tmdbID: tmdbID,
-                            title: tmdbID.map { "tvQ test: show \($0)" } ?? "tvQ test"
-                        )
-                        await reload()
-                    }
-                }
-            } footer: {
-                Text(verbatim: "Go to the Home Screen (⇧⌘H in the simulator) to see the banner, then tap it: the show page should open.")
-            }
-
-            Section {
-                if pending.isEmpty {
-                    Text(verbatim: "Nothing scheduled. Check that notifications are on and that followed shows have episodes in the coming weeks.")
-                        .foregroundStyle(.secondary)
-                }
-                ForEach(pending) { item in
-                    row(item)
-                }
-            } header: {
-                Text(verbatim: "Pending")
+            if kind == .notifications {
+                notificationSections
+            } else {
+                liveActivitySection
             }
         }
-        .navigationTitle(Text(verbatim: "Notifications (debug)"))
+        .navigationTitle(Text(verbatim: kind == .notifications ? "Notifications (debug)" : "Live Activities (debug)"))
         .refreshable { await reload() }
         .task { await reload() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { Task { await reload() } }
+        }
+    }
+
+    @ViewBuilder
+    private var notificationSections: some View {
+        Section {
+            LabeledContent(verbatim("iOS permission"), value: permissionText)
+            LabeledContent(verbatim("Scheduled"), value: "\(pending.count) / 64")
+            LabeledContent(verbatim("Muted shows"), value: "\(followedShowsStore?.mutedShowIDs.count ?? 0)")
+        } footer: {
+            Text(verbatim: "Updated \(lastRefresh.formatted(date: .omitted, time: .standard)). iOS keeps at most 64 pending notifications per app.")
+        }
+
+        Section {
+            Button(verbatim("Test notification in 10 s")) {
+                let tmdbID = followedShowsStore?.followedShowIDs.compactMap(Int.init).first
+                Task {
+                    await scheduler.scheduleTestNotification(
+                        tmdbID: tmdbID,
+                        title: tmdbID.map { "tvQ test: show \($0)" } ?? "tvQ test"
+                    )
+                    await reload()
+                }
+            }
+        } footer: {
+            Text(verbatim: "Go to the Home Screen (⇧⌘H in the simulator) to see the banner, then tap it: the show page should open.")
+        }
+
+        Section {
+            if pending.isEmpty {
+                Text(verbatim: "Nothing scheduled. Check that notifications are on and that followed shows have episodes in the coming weeks.")
+                    .foregroundStyle(.secondary)
+            }
+            ForEach(pending) { item in
+                row(item)
+            }
+        } header: {
+            Text(verbatim: "Pending")
+        }
+    }
+
+    private var liveActivitySection: some View {
+        Section {
+            LabeledContent(verbatim("Allowed by iOS"), value: liveActivityScheduler.areActivitiesEnabled ? "yes" : "no")
+            Button(verbatim("Test Live Activity (now)")) {
+                Task {
+                    let tmdbID = followedShowsStore?.followedShowIDs.compactMap(Int.init).first
+                    var show: Show?
+                    if let tmdbID {
+                        show = try? await ShowRepository.shared.getShow(tmdbID: tmdbID)
+                    }
+                    await liveActivityScheduler.scheduleTest(
+                        tmdbID: show?.tmdbID ?? 0,
+                        title: show?.title ?? "tvQ",
+                        backdropURL: show?.backdropURL,
+                        color: show?.dominantColor,
+                        accent: show?.accentColor
+                    )
+                    await reload()
+                }
+            }
+            ForEach(activities) { activity in
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack {
+                        Text(verbatim: activity.title).font(.body)
+                        Spacer()
+                        Text(verbatim: activity.state)
+                            .font(.caption2.weight(.semibold))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.purple.opacity(0.2), in: Capsule())
+                    }
+                    Text(verbatim: "\(Self.format(activity.airDate)) → \(activity.endDate.formatted(date: .omitted, time: .shortened))")
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+            }
+        } header: {
+            Text(verbatim: "Live Activities (\(activities.count))")
+        } footer: {
+            Text(verbatim: "Starts right away: 30 s countdown, a 1 min \"episode\", then Ended. Lock the device (⌘L in the simulator) to see it.")
         }
     }
 
@@ -86,6 +148,7 @@ struct NotificationsDebugView: View {
     private func reload() async {
         await scheduler.refreshAuthorizationStatus()
         pending = await scheduler.pendingInfo()
+        activities = liveActivityScheduler.debugInfo
         lastRefresh = .now
     }
 
