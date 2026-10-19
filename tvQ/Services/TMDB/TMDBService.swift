@@ -28,11 +28,11 @@ struct TMDBService {
     /// Jeton refusé (401, ex. après une rotation dans Remote Config) : on va chercher
     /// la valeur actuelle et on réessaie une fois, sans attendre un relancement.
     private func get<T: Decodable>(_ url: URL) async throws -> T {
-        let token = try await APIConfig.tmdbAPIKey()
+        let token = try await TMDBToken.shared.value()
         do {
             return try await send(url, token: token)
         } catch NetworkError.httpStatus(401) {
-            guard let fresh = try await APIConfig.refreshTMDBAPIKey(rejected: token) else {
+            guard let fresh = try await TMDBToken.shared.refreshAfterRejection(of: token) else {
                 throw NetworkError.httpStatus(401)
             }
             return try await send(url, token: fresh)
