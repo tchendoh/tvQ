@@ -1,8 +1,13 @@
 import SwiftUI
 
-/// Cloche d'une série : coupe ou réactive ses notifications de nouveaux
-/// épisodes. Invisible tant que les notifications sont désactivées dans les
-/// réglages (ou refusées par iOS) : elle n'aurait alors aucun effet.
+/// Cloche d'une série : coupe ou réactive ses alertes de nouveaux épisodes,
+/// notifications et Live Activities ensemble. Visible dès que l'une des deux est
+/// active (réglage activé et permis par iOS) ; invisible sinon, puisqu'elle
+/// n'aurait aucun effet.
+///
+/// La permission des Live Activities n'est pas observée : si elle change dans
+/// les Réglages d'iOS pendant que l'app est ouverte, la cloche suit au prochain
+/// rafraîchissement de la vue.
 struct NotificationBell: View {
     enum Style {
         /// Dans une liste (Schedule).
@@ -16,12 +21,19 @@ struct NotificationBell: View {
 
     @Environment(FollowedShowsStore.self) private var followedShowsStore
     @AppStorage(AppSettings.Keys.notificationsEnabled) private var notificationsEnabled = false
+    @AppStorage(AppSettings.Keys.liveActivitiesEnabled) private var liveActivitiesEnabled = true
     private let scheduler = NotificationScheduler.shared
+    private let liveActivityScheduler = LiveActivityScheduler.shared
 
     private var isMuted: Bool { followedShowsStore.areNotificationsMuted(showID) }
 
+    private var hasActiveAlerts: Bool {
+        (notificationsEnabled && scheduler.isAuthorized)
+            || (liveActivitiesEnabled && liveActivityScheduler.areActivitiesEnabled)
+    }
+
     var body: some View {
-        if notificationsEnabled, scheduler.isAuthorized, followedShowsStore.isFollowing(showID) {
+        if hasActiveAlerts, followedShowsStore.isFollowing(showID) {
             Button {
                 followedShowsStore.toggleNotifications(showID: showID)
             } label: {
@@ -44,8 +56,8 @@ struct NotificationBell: View {
             }
             .buttonStyle(.plain)
             .sensoryFeedback(.selection, trigger: isMuted)
-            .accessibilityLabel(isMuted ? Text("Notifications off") : Text("Notifications on"))
-            .accessibilityHint(Text("Turns new-episode notifications for this show on or off."))
+            .accessibilityLabel(isMuted ? Text("Episode alerts off") : Text("Episode alerts on"))
+            .accessibilityHint(Text("Turns new-episode alerts for this show on or off."))
         }
     }
 
