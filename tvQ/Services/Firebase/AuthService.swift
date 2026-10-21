@@ -81,19 +81,78 @@ final class AuthService {
         }
     }
 
+    /// Connexion à un compte existant. Depuis une session anonyme, celle-ci est
+    /// abandonnée (voir `replacingAnonymousUser`).
     func signIn(email: String, password: String) async throws -> AppUser {
         do {
-            let result = try await Auth.auth().signIn(withEmail: email, password: password)
+            return try await replacingAnonymousUser {
+                let result = try await Auth.auth().signIn(withEmail: email, password: password)
+                return Self.map(result.user)
+            }
+        } catch {
+            throw AuthServiceError.translated(error)
+        }
+    }
+
+    // MARK: - Session anonyme
+
+    /// Session sans compte, ouverte d'office par SessionStore. Demande le réseau
+    /// la première fois ; Firebase la conserve ensuite sur l'appareil.
+    func signInAnonymously() async throws {
+        do {
+            _ = try await Auth.auth().signInAnonymously()
+        } catch {
+            throw AuthServiceError.translated(error)
+        }
+    }
+
+    /// uid de la session courante si elle est anonyme, sinon nil.
+    var anonymousUserID: String? {
+        guard let user = Auth.auth().currentUser, user.isAnonymous else { return nil }
+        return user.uid
+    }
+
+    /// Création de compte par courriel. Depuis une session anonyme, le courriel est
+    /// rattaché à celle-ci : même uid, donc les séries suivies sont conservées.
+    func signUp(email: String, password: String) async throws -> AppUser {
+        guard let anonymousUser = Auth.auth().currentUser, anonymousUser.isAnonymous else {
+            return try await createUser(email: email, password: password)
+        }
+        let credential = EmailAuthProvider.credential(withEmail: email, password: password)
+        do {
+            let result = try await anonymousUser.link(with: credential)
             return Self.map(result.user)
         } catch {
             throw AuthServiceError.translated(error)
         }
     }
 
-    func signUp(email: String, password: String) async throws -> AppUser {
+    /// Exécute une connexion qui remplace la session courante. Si celle-ci était
+    /// anonyme, son utilisateur Firebase est supprimé ensuite (au mieux : un échec
+    /// laisse seulement un compte anonyme orphelin, sans conséquence pour l'utilisateur).
+    private func replacingAnonymousUser(_ signIn: () async throws -> AppUser) async throws -> AppUser {
+        let previous = Auth.auth().currentUser.flatMap { $0.isAnonymous ? $0 : nil }
+        let user = try await signIn()
+        if let previous, previous.uid != user.id {
+            Self.deleteInBackground(previous)
+        }
+        return user
+    }
+
+    private func createUser(email: String, password: String) async throws -> AppUser {
         do {
             let result = try await Auth.auth().createUser(withEmail: email, password: password)
             return Self.map(result.user)
+        } catch {
+            throw AuthServiceError.translated(error)
+        }
+    }
+
+    /// Envoie le courriel de réinitialisation de Firebase. Firebase ne révèle pas
+    /// si le compte existe (protection contre l'énumération des courriels).
+    func sendPasswordReset(email: String) async throws {
+        do {
+            try await Auth.auth().sendPasswordReset(withEmail: email)
         } catch {
             throw AuthServiceError.translated(error)
         }
@@ -105,17 +164,70 @@ final class AuthService {
             idToken: idToken,
             rawNonce: rawNonce
         )
-        let result = try await Auth.auth().signIn(with: credential)
+        let user: FirebaseAuth.User
+        if Auth.auth().currentUser?.isAnonymous == true {
+            user = try await linkOrSwitchToApple(credential: credential)
+        } else {
+            user = try await Auth.auth().signIn(with: credential).user
+        }
 
         // Apple ne fournit le nom qu'à la toute première connexion — Firebase ne le
         // reçoit pas automatiquement, il faut l'écrire nous-mêmes sur le profil.
-        if let displayName, result.user.displayName == nil {
-            let changeRequest = result.user.createProfileChangeRequest()
+        if let displayName, user.displayName == nil {
+            let changeRequest = user.createProfileChangeRequest()
             changeRequest.displayName = displayName
-            try? await changeRequest.commitChanges()
+            await Self.commit(changeRequest)
         }
 
-        return Self.map(result.user)
+        return Self.map(user)
+    }
+
+    /// Depuis une session anonyme : rattache Apple à celle-ci (séries conservées).
+    /// Si ce compte Apple appartient déjà à un compte tvQ, on se connecte plutôt à
+    /// ce dernier. Le nonce Apple étant à usage unique, Firebase fournit pour ce cas
+    /// un identifiant de remplacement dans l'erreur.
+    private func linkOrSwitchToApple(credential: AuthCredential) async throws -> FirebaseAuth.User {
+        // Lu sur place et utilisé une seule fois : `link` l'envoie hors du MainActor.
+        guard let anonymousUser = Auth.auth().currentUser else {
+            throw AuthServiceError.noCurrentUser
+        }
+        do {
+            return try await anonymousUser.link(with: credential).user
+        } catch {
+            let nsError = error as NSError
+            guard AuthErrorCode(rawValue: nsError.code) == .credentialAlreadyInUse,
+                  let updatedCredential = nsError.userInfo[AuthErrorUserInfoUpdatedCredentialKey] as? AuthCredential
+            else { throw error }
+
+            // Relu après l'échec (toujours la session anonyme), puisque `anonymousUser`
+            // a été envoyé à `link` et ne doit plus servir.
+            let orphan = Auth.auth().currentUser
+            let existingUser = try await Auth.auth().signIn(with: updatedCredential).user
+            if let orphan { Self.deleteInBackground(orphan) }
+            return existingUser
+        }
+    }
+
+    // MARK: - Objets Firebase non Sendable
+    //
+    // FirebaseAuth.User et UserProfileChangeRequest ne sont pas Sendable. Leurs
+    // variantes `async` sont nonisolated : les appeler depuis le MainActor « envoie »
+    // l'objet ailleurs, ce que Swift 6 refuse dès qu'il reste utilisé ensuite.
+    // Les variantes à completion handler s'appellent sur place, sans envoi.
+
+    /// Suppression au mieux d'un compte anonyme abandonné : un échec laisse
+    /// seulement un compte orphelin, sans données ni conséquence.
+    private static func deleteInBackground(_ user: FirebaseAuth.User) {
+        user.delete(completion: nil)
+    }
+
+    /// Enregistre le nom fourni par Apple ; un échec n'empêche pas la connexion.
+    private static func commit(_ changeRequest: UserProfileChangeRequest) async {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            changeRequest.commitChanges { _ in
+                continuation.resume()
+            }
+        }
     }
 
     func signOut() throws {
@@ -181,7 +293,8 @@ final class AuthService {
         AppUser(
             id: firebaseUser.uid,
             email: firebaseUser.email ?? "",
-            displayName: firebaseUser.displayName
+            displayName: firebaseUser.displayName,
+            isAnonymous: firebaseUser.isAnonymous
         )
     }
 }

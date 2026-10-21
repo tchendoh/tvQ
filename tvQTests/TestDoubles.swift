@@ -145,16 +145,53 @@ final class FakeUserShows: UserShowsServicing {
     private(set) var unfollowCalls: [String] = []
     private(set) var muteCalls: [(muted: Bool, showID: String)] = []
 
-    func followedShows(userID: String) async throws -> UserShowsService.FollowedShows {
+    private var continuations: [AsyncThrowingStream<UserShowsService.FollowedShows, Error>.Continuation] = []
+
+    /// Comme l'écouteur Firestore : un premier envoi (après `delay`), puis le flux
+    /// reste ouvert jusqu'à l'annulation. `pushRemoteChange` simule un changement
+    /// fait depuis un autre appareil.
+    func followedShowsUpdates(userID: String) -> AsyncThrowingStream<UserShowsService.FollowedShows, Error> {
         loadCalls += 1
-        if delay != .zero { try await Task.sleep(for: delay) }
-        if shouldFail { throw FakeError() }
-        return UserShowsService.FollowedShows(followedIDs: followed, mutedIDs: muted)
+        let (stream, continuation) = AsyncThrowingStream<UserShowsService.FollowedShows, Error>.makeStream()
+        continuations.append(continuation)
+        let delay = delay, shouldFail = shouldFail
+        let snapshot = UserShowsService.FollowedShows(followedIDs: followed, mutedIDs: muted)
+        Task {
+            if delay != .zero { try? await Task.sleep(for: delay) }
+            if shouldFail {
+                continuation.finish(throwing: FakeError())
+            } else {
+                continuation.yield(snapshot)
+            }
+        }
+        return stream
+    }
+
+    func pushRemoteChange() {
+        let snapshot = UserShowsService.FollowedShows(followedIDs: followed, mutedIDs: muted)
+        continuations.forEach { $0.yield(snapshot) }
+    }
+
+    /// Comme `followCalls`, avec le compte visé (fusion de comptes à la connexion).
+    private(set) var followTargets: [FollowTarget] = []
+
+    struct FollowTarget: Equatable {
+        let showID: String
+        let userID: String
     }
 
     func follow(showID: String, userID: String) async throws {
         followCalls.append(showID)
+        followTargets.append(FollowTarget(showID: showID, userID: userID))
         if shouldFail { throw FakeError() }
+    }
+
+    var deleteShouldFail = false
+    private(set) var deleteCalls: [String] = []
+
+    func deleteAllData(userID: String) async throws {
+        if deleteShouldFail { throw FakeError() }
+        deleteCalls.append(userID)
     }
 
     func unfollow(showID: String, userID: String) async throws {
@@ -244,5 +281,116 @@ final class FakeColorExtractor: ShowColorExtracting {
     func palette(for imageURL: URL) async -> ShowPalette? {
         requestedURLs.append(imageURL)
         return color.map { ShowPalette(dominant: $0, accent: accent) }
+    }
+}
+
+// MARK: - Authentification
+
+extension AppUser {
+    static func anonymous(_ id: String = "anon") -> AppUser {
+        AppUser(id: id, email: "", displayName: nil, isAnonymous: true)
+    }
+
+    static func account(_ id: String) -> AppUser {
+        AppUser(id: id, email: "\(id)@example.com", displayName: nil, isAnonymous: false)
+    }
+}
+
+@MainActor
+final class FakeAuth: AuthServicing {
+    var currentUser: AppUser?
+    var signInMethod: AuthService.SignInMethod = .password
+
+    var anonymousUserID: String? {
+        guard let currentUser, currentUser.isAnonymous else { return nil }
+        return currentUser.id
+    }
+
+    // Résultats programmés : un succès devient l'utilisateur courant.
+    var signInResult: Result<AppUser, Error> = .success(.account("alice"))
+    var signUpResult: Result<AppUser, Error> = .success(.account("anon"))
+    var appleResult: Result<AppUser, Error> = .success(.account("anon"))
+    var anonymousSignInShouldFail = false
+    var anonymousSignInDelay: Duration = .zero
+    var deleteShouldFail = false
+    var resetShouldFail = false
+
+    /// Appelé au début de chaque connexion : permet de vérifier ce qui s'est
+    /// passé *avant* (ex. effacement du document anonyme).
+    var onAuthenticate: (() -> Void)?
+
+    private(set) var calls: [String] = []
+    private(set) var anonymousSignInCount = 0
+
+    let authStateChanges: AsyncStream<AppUser?>
+    private let stateContinuation: AsyncStream<AppUser?>.Continuation
+
+    init(currentUser: AppUser? = nil) {
+        self.currentUser = currentUser
+        (authStateChanges, stateContinuation) = AsyncStream<AppUser?>.makeStream()
+    }
+
+    /// Simule un changement signalé par Firebase.
+    func emit(_ user: AppUser?) {
+        currentUser = user
+        stateContinuation.yield(user)
+    }
+
+    func signInAnonymously() async throws {
+        calls.append("signInAnonymously")
+        anonymousSignInCount += 1
+        if anonymousSignInDelay != .zero { try? await Task.sleep(for: anonymousSignInDelay) }
+        if anonymousSignInShouldFail { throw AuthServiceError.network }
+        emit(.anonymous("anon-\(anonymousSignInCount)"))
+    }
+
+    func signIn(email: String, password: String) async throws -> AppUser {
+        calls.append("signIn")
+        return try complete(signInResult)
+    }
+
+    func signUp(email: String, password: String) async throws -> AppUser {
+        calls.append("signUp")
+        return try complete(signUpResult)
+    }
+
+    func signInWithApple(idToken: String, rawNonce: String, displayName: String?) async throws -> AppUser {
+        calls.append("signInWithApple")
+        return try complete(appleResult)
+    }
+
+    private func complete(_ result: Result<AppUser, Error>) throws -> AppUser {
+        onAuthenticate?()
+        let user = try result.get()
+        currentUser = user
+        return user
+    }
+
+    func sendPasswordReset(email: String) async throws {
+        calls.append("sendPasswordReset")
+        if resetShouldFail { throw AuthServiceError.network }
+    }
+
+    func signOut() throws {
+        calls.append("signOut")
+        emit(nil)
+    }
+
+    func reauthenticate(password: String) async throws {
+        calls.append("reauthenticate")
+    }
+
+    func reauthenticateWithApple(idToken: String, rawNonce: String) async throws {
+        calls.append("reauthenticateWithApple")
+    }
+
+    func revokeAppleToken(authorizationCode: String) async throws {
+        calls.append("revokeAppleToken")
+    }
+
+    func deleteCurrentUser() async throws {
+        calls.append("deleteCurrentUser")
+        if deleteShouldFail { throw FakeError() }
+        emit(nil)
     }
 }

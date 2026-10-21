@@ -1,16 +1,14 @@
 import SwiftUI
 
-/// Racine de l'app : route entre LoginView et le contenu principal selon
-/// l'état d'authentification, réactif via SessionStore.
+/// Racine de l'app : affiche le contenu principal dès qu'un utilisateur existe
+/// (compte ou session anonyme). LoginView n'est plus une étape obligatoire :
+/// elle s'ouvre depuis Settings.
 struct RootView: View {
     @State private var session = SessionStore()
     @State private var followedShowsStore = FollowedShowsStore()
     // Créé ici (et non dans ScheduleView) pour que l'horaire se précharge dès
     // le lancement, sans attendre la première ouverture de l'onglet Schedule.
     @State private var scheduleViewModel = ScheduleViewModel()
-
-    @AppStorage(AppSettings.Keys.appearance)
-    private var appearance: AppAppearance = .system
 
     var body: some View {
         Group {
@@ -23,12 +21,14 @@ struct RootView: View {
                         followedShowsStore.load(userID: user.id)
                     }
             } else {
-                LoginView()
+                LaunchView(
+                    failed: session.anonymousSessionState == .failed,
+                    retry: { Task { await session.startAnonymousSession() } }
+                )
             }
         }
         // Écoute Firebase tant que l'app est ouverte ; SwiftUI annule la tâche avec la vue.
         .task { await session.observe() }
-        .preferredColorScheme(appearance.colorScheme)
         // Déconnexion ou suppression de compte : vider l'état partagé qui vit ici.
         .onChange(of: session.currentUser?.id) { _, newID in
             if newID == nil {
@@ -42,6 +42,36 @@ struct RootView: View {
                 }
             }
         }
+    }
+}
+
+/// Écran affiché tant que la session anonyme n'est pas ouverte : en pratique,
+/// seulement au tout premier lancement (ou après une déconnexion).
+private struct LaunchView: View {
+    let failed: Bool
+    let retry: () -> Void
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Image("tvQAppIcon")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 96, height: 96)
+                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .accessibilityLabel(Text(verbatim: "tvQ"))
+
+            if failed {
+                Text("tvQ needs a connection to start the first time.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                Button("Try Again", action: retry)
+                    .buttonStyle(.borderedProminent)
+            } else {
+                ProgressView()
+            }
+        }
+        .padding(24)
     }
 }
 

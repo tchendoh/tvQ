@@ -16,6 +16,8 @@ final class FollowedShowsStore {
     private let showRepository: ShowRepository
     private let scheduleRepository: ScheduleRepository
     private var userID: String?
+    /// Écoute du document users/{userID} (voir load) ; annulée par clear.
+    private var listenTask: Task<Void, Never>?
     /// Appelé après un suivi réussi : propose les notifications (voir
     /// NotificationScheduler.offerAfterFollow). Remplaçable dans les tests.
     private let offerNotifications: () async -> Void
@@ -37,21 +39,33 @@ final class FollowedShowsStore {
     }
 
     /// À appeler quand l'utilisateur se connecte (voir RootView, .task(id: user.id)).
+    /// Écoute le document de l'utilisateur jusqu'à clear() : la copie locale de
+    /// Firestore d'abord (pas d'attente du réseau au lancement), puis le serveur,
+    /// puis les changements faits depuis un autre appareil.
+    ///
+    /// Les bascules optimistes (toggle, toggleNotifications, unfollow) restent
+    /// cohérentes avec l'écoute : Firestore applique une écriture à sa copie
+    /// locale tout de suite et renvoie un instantané qui la contient déjà. Si le
+    /// serveur la refuse, il renvoie l'état d'avant, comme notre retour en arrière.
     func load(userID: String) {
+        listenTask?.cancel()
         self.userID = userID
-        Task {
-            isLoading = true
-            errorMessage = nil
-            defer { isLoading = false }
+        isLoading = true
+        errorMessage = nil
 
+        listenTask = Task {
+            defer { if self.userID == userID { isLoading = false } }
             do {
-                let followed = try await userShowsService.followedShows(userID: userID)
-                // Déconnexion (ou changement de compte) survenue pendant l'appel :
-                // ne pas repeupler le store avec les séries de l'ancien compte.
-                guard self.userID == userID else { return }
-                followedShowIDs = Set(followed.followedIDs)
-                mutedShowIDs = Set(followed.mutedIDs)
+                for try await followed in userShowsService.followedShowsUpdates(userID: userID) {
+                    // Déconnexion (ou changement de compte) survenue entre-temps :
+                    // ne pas repeupler le store avec les séries de l'ancien compte.
+                    guard !Task.isCancelled, self.userID == userID else { return }
+                    followedShowIDs = Set(followed.followedIDs)
+                    mutedShowIDs = Set(followed.mutedIDs)
+                    isLoading = false
+                }
             } catch {
+                guard !Task.isCancelled, self.userID == userID else { return }
                 errorMessage = FirestoreQuota.message(
                     for: error,
                     fallback: String(localized: "Couldn't load your followed shows.")
@@ -64,8 +78,11 @@ final class FollowedShowsStore {
     /// le store vit dans RootView, donc survit à la déconnexion et montrerait
     /// sinon les séries de l'ancien compte au suivant.
     func clear() {
+        listenTask?.cancel()
+        listenTask = nil
         followedShowIDs = []
         mutedShowIDs = []
+        isLoading = false
         errorMessage = nil
         userID = nil
     }

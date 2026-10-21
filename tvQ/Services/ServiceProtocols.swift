@@ -43,11 +43,32 @@ protocol SharedEpisodeCaching {
 
 /// Séries suivies d'un utilisateur (Firestore).
 protocol UserShowsServicing {
-    func followedShows(userID: String) async throws -> UserShowsService.FollowedShows
+    func followedShowsUpdates(userID: String) -> AsyncThrowingStream<UserShowsService.FollowedShows, Error>
     func follow(showID: String, userID: String) async throws
     func unfollow(showID: String, userID: String) async throws
     func unfollow(showIDs: Set<String>, userID: String) async throws
     func setNotificationsMuted(_ muted: Bool, showID: String, userID: String) async throws
+    func deleteAllData(userID: String) async throws
+}
+
+/// Authentification (Firebase Auth) : session, comptes, suppression.
+protocol AuthServicing {
+    var currentUser: AppUser? { get }
+    var authStateChanges: AsyncStream<AppUser?> { get }
+    var anonymousUserID: String? { get }
+    var signInMethod: AuthService.SignInMethod { get }
+
+    func signInAnonymously() async throws
+    func signIn(email: String, password: String) async throws -> AppUser
+    func signUp(email: String, password: String) async throws -> AppUser
+    func signInWithApple(idToken: String, rawNonce: String, displayName: String?) async throws -> AppUser
+    func sendPasswordReset(email: String) async throws
+    func signOut() throws
+
+    func reauthenticate(password: String) async throws
+    func reauthenticateWithApple(idToken: String, rawNonce: String) async throws
+    func revokeAppleToken(authorizationCode: String) async throws
+    func deleteCurrentUser() async throws
 }
 
 extension TMDBService: TMDBFetching {}
@@ -55,3 +76,4 @@ extension TVmazeService: TVmazeFetching {}
 extension FirestoreShowCacheService: SharedShowCaching {}
 extension FirestoreEpisodeCacheService: SharedEpisodeCaching {}
 extension UserShowsService: UserShowsServicing {}
+extension AuthService: AuthServicing {}

@@ -150,6 +150,7 @@ struct LiveActivityPlannerTests {
 }
 
 /// Sigle de la série dans la Dynamic Island réduite.
+@MainActor
 struct ShowInitialsTests {
     @Test(arguments: [
         ("Moon Knight", "MK"),

@@ -1,10 +1,11 @@
 import SwiftUI
 
+/// Page d'accueil de Settings, sur le modèle des Réglages d'iOS : une carte de
+/// compte, puis une ligne par sujet avec sa valeur actuelle à droite. Le détail
+/// vit dans les sous-pages (EpisodeAlertsSettingsView, ContentLanguageSettingsView,
+/// AccountSettingsView, AboutView, DebugSettingsView).
 struct SettingsView: View {
     @Environment(SessionStore.self) private var session
-
-    @AppStorage(AppSettings.Keys.appearance)
-    private var appearance: AppAppearance = .system
 
     @AppStorage(AppSettings.Keys.contentLanguage)
     private var contentLanguage: String = ContentLanguage.english.rawValue
@@ -12,267 +13,170 @@ struct SettingsView: View {
     @AppStorage(AppSettings.Keys.useOriginalLanguage)
     private var useOriginalLanguage: Bool = false
 
-    @AppStorage(AppSettings.Keys.watchProviderRegion)
-    private var watchProviderRegion: String = WatchProviderRegion.canada.rawValue
-
     @AppStorage(AppSettings.Keys.notificationsEnabled)
     private var notificationsEnabled = false
 
     @AppStorage(AppSettings.Keys.notificationTiming)
     private var notificationTiming: NotificationTiming = .atAirTime
 
-    @AppStorage(AppSettings.Keys.notificationMorningMinutes)
-    private var morningMinutes = AppSettings.defaultMorningMinutes
+    @AppStorage(AppSettings.Keys.liveActivitiesEnabled)
+    private var liveActivitiesEnabled = true
 
-    @Environment(\.openURL) private var openURL
     private let notificationScheduler = NotificationScheduler.shared
 
-    @State private var didClearCache = false
-    @State private var isPresentingDeleteAccount = false
-    @State private var signOutFailed = false
+    @State private var isPresentingLogin = false
+    @State private var isPresentingEraseData = false
 
     var body: some View {
         Form {
-            if let user = session.currentUser {
-                Section {
-                    Text(user.displayName ?? user.email)
+            accountSection
+
+            Section {
+                NavigationLink {
+                    EpisodeAlertsSettingsView()
+                } label: {
+                    SettingsRow(
+                        title: "Episode Alerts",
+                        systemImage: "bell.badge.fill",
+                        color: .red,
+                        value: alertsSummary.text,
+                        valueColor: alertsSummary.isProblem ? .orange : .secondary
+                    )
+                }
+
+                NavigationLink {
+                    ContentLanguageSettingsView()
+                } label: {
+                    SettingsRow(
+                        title: "Content Language",
+                        systemImage: "globe",
+                        color: .blue,
+                        value: languageSummary
+                    )
                 }
             }
 
-            Section("Appearance") {
-                Picker("Appearance", selection: $appearance) {
-                    ForEach(AppAppearance.allCases) { option in
-                        Text(option.displayName).tag(option)
-                    }
-                }
-                .pickerStyle(.inline)
-                .labelsHidden()
-            }
-
             Section {
-                Picker("Show & episode language", selection: $contentLanguage) {
-                    ForEach(ContentLanguage.allCases) { option in
-                        Text(option.displayName).tag(option.rawValue)
-                    }
-                }
-            } header: {
-                Text("Content Language")
-            } footer: {
-                Text("Affects show titles, descriptions, and episode info from TMDB.")
-            }
-
-            Section {
-                Toggle("Prefer show's original language", isOn: $useOriginalLanguage)
-            } footer: {
-                Text("When on, a show's page and episodes use its original language instead of the setting above. Search results are unaffected.")
-            }
-
-            Section {
-                Picker("Country", selection: $watchProviderRegion) {
-                    ForEach(WatchProviderRegion.allCases) { option in
-                        Text(option.displayName).tag(option.rawValue)
-                    }
-                }
-            } header: {
-                Text("Where to Watch")
-            } footer: {
-                Text("Used to show which services carry a show in your country.")
-            }
-
-            episodeAlertsSection
-
-            Section {
-                NavigationLink("About") {
+                NavigationLink {
                     AboutView()
+                } label: {
+                    SettingsRow(title: "About", systemImage: "info", color: .gray)
                 }
-            }
-
-            Section {
-                Button("Sign Out", role: .destructive) {
-                    do {
-                        try session.signOut()
-                    } catch {
-                        signOutFailed = true
-                    }
-                }
-            }
-
-            Section {
-                Button("Delete Account", role: .destructive) {
-                    isPresentingDeleteAccount = true
-                }
-            } footer: {
-                Text("Permanently deletes your account and the shows you follow.")
             }
 
             #if DEBUG
-            debugSection
+            Section {
+                NavigationLink {
+                    DebugSettingsView()
+                } label: {
+                    Label {
+                        Text(verbatim: "Debug")
+                    } icon: {
+                        SettingsIcon(systemImage: "ladybug.fill", color: .green)
+                    }
+                }
+            }
             #endif
         }
         .navigationTitle("Settings")
-        .sheet(isPresented: $isPresentingDeleteAccount) {
+        .sheet(isPresented: $isPresentingLogin) {
+            LoginView()
+        }
+        .sheet(isPresented: $isPresentingEraseData) {
             if let user = session.currentUser {
                 DeleteAccountView(userID: user.id)
             }
         }
-        .alert("Sign out failed.", isPresented: $signOutFailed) {
-            Button("OK", role: .cancel) {}
-        }
     }
 
-    // MARK: - Notifications
+    // MARK: - Compte
 
-    /// Permission refusée dans iOS : tvQ ne peut pas la redemander, seulement
-    /// envoyer vers les Réglages.
-    private var isDeniedBySystem: Bool {
-        notificationScheduler.authorizationStatus == .denied
-    }
-
-    @AppStorage(AppSettings.Keys.liveActivitiesEnabled)
-    private var liveActivitiesEnabled = true
-
-    /// Live Activities refusées pour tvQ dans les Réglages d'iOS.
-    private var liveActivitiesDeniedBySystem: Bool {
-        !LiveActivityScheduler.shared.areActivitiesEnabled
-    }
-
-    // MARK: - Alertes d'épisodes
-
-    /// Live Activities et notifications dans une même section : l'ordre dit la
-    /// priorité (un épisode à heure exacte, en soirée, a un compte à rebours plutôt
-    /// qu'une notification), et la phrase sous chaque interrupteur dit qui fait quoi.
+    /// Vrai compte : carte qui mène à Account. Session anonyme : invitation à créer
+    /// un compte (ouvre LoginView) et, à part, l'effacement des données.
     @ViewBuilder
-    private var episodeAlertsSection: some View {
-        Section {
-            Toggle(isOn: Binding(
-                get: { liveActivitiesEnabled && !liveActivitiesDeniedBySystem },
-                set: { liveActivitiesEnabled = $0 }
-            )) {
-                SettingLabel(
-                    title: Text("Live Activities"),
-                    detail: liveActivitiesDeniedBySystem
-                        ? Text("Turned off in iOS Settings.")
-                        : Text("Live countdown on the Lock Screen, 15 min before episodes with an exact time.")
-                )
-            }
-            .disabled(liveActivitiesDeniedBySystem)
-
-            Toggle(isOn: Binding(
-                get: { notificationsEnabled && !isDeniedBySystem },
-                set: { isOn in
-                    guard isOn else {
-                        notificationsEnabled = false
-                        return
-                    }
-                    Task {
-                        notificationsEnabled = await notificationScheduler.requestAuthorization()
-                    }
-                }
-            )) {
-                SettingLabel(title: Text("Notifications"), detail: notificationsDetail)
-            }
-            .disabled(isDeniedBySystem)
-
-            // Réglages propres aux notifications, sous leur interrupteur.
-            if notificationsEnabled && !isDeniedBySystem {
-                Picker("Timing", selection: $notificationTiming) {
-                    Text("10 min before").tag(NotificationTiming.tenMinutesBefore)
-                    Text("At air time").tag(NotificationTiming.atAirTime)
-                    Text("10 min after it ends").tag(NotificationTiming.tenMinutesAfterEnd)
-                }
-                DatePicker("Morning time", selection: morningTime, displayedComponents: .hourAndMinute)
-            }
-
-            if isDeniedBySystem || liveActivitiesDeniedBySystem {
-                Button("Open iOS Settings") {
-                    let address = isDeniedBySystem
-                        ? UIApplication.openNotificationSettingsURLString
-                        : UIApplication.openSettingsURLString
-                    if let url = URL(string: address) {
-                        openURL(url)
-                    }
+    private var accountSection: some View {
+        let user = session.currentUser
+        if let user, !user.isAnonymous {
+            Section {
+                NavigationLink {
+                    AccountSettingsView()
+                } label: {
+                    accountCard(
+                        user: user,
+                        title: Text(user.displayName ?? user.email),
+                        subtitle: Text("Account")
+                    )
                 }
             }
-        } header: {
-            Text("Episode Alerts")
-        } footer: {
-            Text("Episodes without a known time, and those released overnight, are announced at the morning time. Use the bell in Schedule to mute a show.")
-        }
-    }
-
-    /// Avec les Live Activities, les notifications couvrent le reste ; sans elles, tout.
-    private var notificationsDetail: Text {
-        if isDeniedBySystem {
-            Text("Turned off in iOS Settings.")
-        } else if liveActivitiesEnabled && !liveActivitiesDeniedBySystem {
-            Text("For all other episodes.")
         } else {
-            Text("For all episodes.")
+            Section {
+                Button {
+                    isPresentingLogin = true
+                } label: {
+                    accountCard(
+                        user: user,
+                        title: Text("Create an Account"),
+                        subtitle: Text("Keep your shows if you reinstall tvQ or change phones.")
+                    )
+                }
+                .foregroundStyle(.primary)
+            } footer: {
+                Button("Erase My Data") {
+                    isPresentingEraseData = true
+                }
+                .font(.footnote)
+                .tint(.red)
+            }
         }
     }
 
-    // MARK: - Débogage
-
-    #if DEBUG
-    /// Outils de développement, regroupés au bas de Settings et absents en Release
-    /// (textes non traduits).
-    private var debugSection: some View {
-        Section {
-            NavigationLink(verbatimLabel("Scheduled notifications")) {
-                NotificationsDebugView(kind: .notifications)
+    private func accountCard(user: AppUser?, title: Text, subtitle: Text) -> some View {
+        HStack(spacing: 14) {
+            AccountAvatar(user: user)
+            VStack(alignment: .leading, spacing: 2) {
+                title
+                    .font(.title3.weight(.semibold))
+                    .lineLimit(1)
+                subtitle
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             }
-            NavigationLink(verbatimLabel("Live Activities")) {
-                NotificationsDebugView(kind: .liveActivities)
-            }
-            // Copie locale uniquement : le cache Firestore partagé reste intact, pour
-            // ne pas effacer les données des autres utilisateurs. Sert à retester le
-            // chargement à froid (FollowedShowsStore.prefetchContent) sans désinstaller.
-            Button(verbatimLabel("Clear local cache")) {
-                clearLocalCache()
-            }
-            // Test de la chaîne Crashlytics (plantage, envoi, dSYM, rapport lisible).
-            // Lancer l'app SANS le débogueur, appuyer, puis rouvrir l'app pour envoyer
-            // le rapport. Pour un rapport lisible, tester en Release (le dSYM est vide
-            // en Debug à cause de ENABLE_DEBUG_DYLIB) en retirant temporairement le
-            // #if DEBUG.
-            Button(verbatimLabel("Test Crashlytics"), role: .destructive) {
-                fatalError("Test Crashlytics")
-            }
-        } header: {
-            Text(verbatim: "Debug")
-        } footer: {
-            Text(verbatim: didClearCache
-                 ? "Local cache cleared."
-                 : "Debug builds only. Clear local cache forces shows and episodes to reload from scratch; Test Crashlytics crashes the app on purpose.")
         }
+        .padding(.vertical, 6)
     }
 
-    private func verbatimLabel(_ string: String) -> String { string }
-    #endif
+    // MARK: - Valeurs résumées
 
-    /// L'heure du matin est stockée en minutes depuis minuit ; DatePicker veut une Date.
-    private var morningTime: Binding<Date> {
-        Binding(
-            get: {
-                Calendar.current.date(
-                    bySettingHour: morningMinutes / 60, minute: morningMinutes % 60, second: 0, of: .now
-                ) ?? .now
-            },
-            set: { date in
-                let parts = Calendar.current.dateComponents([.hour, .minute], from: date)
-                morningMinutes = (parts.hour ?? 9) * 60 + (parts.minute ?? 0)
-            }
-        )
+    /// Ce que les alertes font réellement, compte tenu des refus dans iOS.
+    private var alertsSummary: (text: Text, isProblem: Bool) {
+        let notificationsDenied = notificationScheduler.authorizationStatus == .denied
+        let liveActivitiesOn = liveActivitiesEnabled && LiveActivityScheduler.shared.areActivitiesEnabled
+        let notificationsOn = notificationsEnabled && !notificationsDenied
+
+        if notificationsEnabled && notificationsDenied {
+            return (Text("Off in iOS"), true)
+        }
+        if notificationsOn {
+            return (Text(notificationTiming.shortName), false)
+        }
+        return (liveActivitiesOn ? Text("Live Activities") : Text("Off"), false)
     }
 
-    private func clearLocalCache() {
-        didClearCache = false
-        Task {
-            try? await ShowStore.shared.clear()
-            try? await EpisodeStore.shared.clear()
-            try? await WatchAvailabilityStore.shared.clear()
-            await ImageCache.shared.clear()
-            didClearCache = true
+    private var languageSummary: Text {
+        let language = useOriginalLanguage
+            ? Text("Original")
+            : Text(ContentLanguage(rawValue: contentLanguage)?.displayName ?? "")
+        return language
+    }
+}
+
+private extension NotificationTiming {
+    /// Libellé court pour la ligne Episode Alerts (mêmes clés que le Picker de la sous-page).
+    var shortName: LocalizedStringKey {
+        switch self {
+        case .tenMinutesBefore: "10 min before"
+        case .atAirTime: "At air time"
+        case .tenMinutesAfterEnd: "10 min after it ends"
         }
     }
 }
@@ -282,19 +186,4 @@ struct SettingsView: View {
         SettingsView()
     }
     .environment(SessionStore())
-}
-
-/// Titre d'un réglage avec une phrase grise en dessous, comme dans les Réglages d'iOS.
-private struct SettingLabel: View {
-    let title: Text
-    let detail: Text
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            title
-            detail
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-        }
-    }
 }

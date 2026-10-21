@@ -54,6 +54,21 @@ struct FollowedShowsStoreTests {
         #expect(!store.areNotificationsMuted("1"))
     }
 
+    /// Changement fait depuis un autre appareil : l'écoute le reçoit sans relancer load.
+    @Test func remoteChangesReachTheStore() async {
+        service.followed = ["1"]
+        let store = makeStore()
+        store.load(userID: "A")
+        #expect(await loaded(store))
+
+        service.followed = ["1", "2"]
+        service.muted = ["1"]
+        service.pushRemoteChange()
+
+        #expect(await eventually { store.followedShowIDs == ["1", "2"] && store.areNotificationsMuted("1") })
+        #expect(service.loadCalls == 1)
+    }
+
     /// Déconnexion pendant le chargement : les séries de l'ancien compte ne doivent
     /// pas réapparaître dans le store.
     @Test func signOutDuringLoadLeavesStoreEmpty() async {

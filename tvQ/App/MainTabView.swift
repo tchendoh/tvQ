@@ -28,30 +28,26 @@ struct MainTabView: View {
 
     var body: some View {
         TabView(selection: tabSelection) {
-            HomeView()
-                .tabItem {
-                    Label("Home", systemImage: "flame")
-                }
-                .tag(AppTab.home)
+            Tab("Home", systemImage: "flame", value: AppTab.home) {
+                HomeView()
+            }
 
-            ScheduleView()
-                .tabItem {
-                    Label("Schedule", systemImage: "calendar")
-                }
-                .tag(AppTab.schedule)
+            Tab("Schedule", systemImage: "calendar", value: AppTab.schedule) {
+                ScheduleView()
+            }
 
-            MyShowsView()
-                .tabItem {
-                    Label("My Shows", systemImage: "tv")
-                }
-                .tag(AppTab.myShows)
+            Tab("My Shows", systemImage: "tv", value: AppTab.myShows) {
+                MyShowsView()
+            }
 
-            SearchView()
-                .tabItem {
-                    Label("Search", systemImage: "magnifyingglass")
-                }
-                .tag(AppTab.search)
+            // Rôle de recherche : iOS l'affiche à part, à droite de la barre d'onglets.
+            Tab(value: AppTab.search, role: .search) {
+                SearchView()
+            }
         }
+        // iPhone et Duo plié : barre d'onglets habituelle. iPad et Duo déplié :
+        // barre d'onglets en haut, convertible en barre latérale.
+        .tabViewStyle(.sidebarAdaptable)
         /// Préchargement de l'horaire au lancement : un TabView n'évalue un onglet
         /// qu'à sa première apparition, donc le déclencheur vit ici plutôt que
         /// dans ScheduleView. Se relance à chaque follow/unfollow.

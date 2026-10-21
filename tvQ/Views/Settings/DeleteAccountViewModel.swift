@@ -4,22 +4,22 @@ import AuthenticationServices
 
 /// Suppression de compte (DeleteAccountView). Vit le temps de la feuille modale.
 ///
-/// Au succès, Firebase signale la déconnexion : SessionStore passe à nil et RootView
-/// ramène l'app à LoginView, ce qui ferme aussi cette feuille.
+/// Au succès, Firebase signale la déconnexion : SessionStore ouvre une nouvelle
+/// session anonyme vide, et l'uid qui change ferme aussi cette feuille.
 @Observable
 final class DeleteAccountViewModel {
     private(set) var isDeleting = false
     private(set) var errorMessage: String?
 
     private let userID: String
-    private let authService: AuthService
-    private let userShowsService: UserShowsService
+    private let authService: any AuthServicing
+    private let userShowsService: any UserShowsServicing
     private var pendingAppleNonce: String?
 
     init(
         userID: String,
-        authService: AuthService = AuthService(),
-        userShowsService: UserShowsService = UserShowsService()
+        authService: any AuthServicing = AuthService(),
+        userShowsService: any UserShowsServicing = UserShowsService()
     ) {
         self.userID = userID
         self.authService = authService
@@ -30,6 +30,35 @@ final class DeleteAccountViewModel {
     /// détermine comment confirmer l'identité avant de supprimer.
     var usesAppleSignIn: Bool {
         authService.signInMethod == .apple
+    }
+
+    /// Session anonyme : rien à revérifier (ni mot de passe ni Apple).
+    var isAnonymous: Bool {
+        authService.anonymousUserID != nil
+    }
+
+    /// Session anonyme : efface les données, puis l'utilisateur Firebase. Si Firebase
+    /// refuse la suppression (connexion jugée trop ancienne, impossible à revérifier
+    /// pour un anonyme), on se déconnecte : les données sont déjà parties, et
+    /// l'utilisateur orphelin n'a plus rien.
+    func eraseAnonymousData() async {
+        guard !isDeleting else { return }
+        isDeleting = true
+        errorMessage = nil
+        defer { isDeleting = false }
+
+        do {
+            try await userShowsService.deleteAllData(userID: userID)
+        } catch {
+            errorMessage = String(localized: "Couldn't erase your data. Check your connection, then try again.")
+            return
+        }
+
+        do {
+            try await authService.deleteCurrentUser()
+        } catch {
+            try? authService.signOut()
+        }
     }
 
     /// Compte courriel : réauthentification par mot de passe, puis suppression.

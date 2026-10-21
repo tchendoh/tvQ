@@ -3,6 +3,7 @@ import Foundation
 @testable import tvQ
 
 /// Épisode le plus proche de chaque série (tri « récent » et affichage en liste).
+@MainActor
 struct MyShowsNearestEpisodeTests {
     private let now = Date(timeIntervalSince1970: 1_800_000_000)
 
@@ -36,6 +37,7 @@ struct MyShowsNearestEpisodeTests {
 }
 
 /// Jour de diffusion local : une date seule ne recule pas d'un jour à Montréal.
+@MainActor
 struct EpisodeLocalAirDayTests {
     private let montreal: Calendar = {
         var calendar = Calendar(identifier: .gregorian)

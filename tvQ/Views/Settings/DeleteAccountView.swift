@@ -7,6 +7,7 @@ import AuthenticationServices
 /// Au succès, le compte disparaît et RootView ramène l'app à LoginView.
 struct DeleteAccountView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     @State private var viewModel: DeleteAccountViewModel
 
     @State private var password = ""
@@ -19,11 +20,25 @@ struct DeleteAccountView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    Text("This permanently deletes your account and the list of shows you follow. This can't be undone.")
+                if viewModel.isAnonymous {
+                    Section {
+                        Text("This erases the list of shows you follow. This can't be undone.")
+                    }
+
+                    Section {
+                        Button("Erase My Data", role: .destructive) {
+                            isPresentingFinalConfirmation = true
+                        }
+                    }
+                } else {
+                    Section {
+                        Text("This permanently deletes your account and the list of shows you follow. This can't be undone.")
+                    }
                 }
 
-                if viewModel.usesAppleSignIn {
+                if viewModel.isAnonymous {
+                    EmptyView()
+                } else if viewModel.usesAppleSignIn {
                     Section {
                         SignInWithAppleButton(
                             .continue,
@@ -32,7 +47,8 @@ struct DeleteAccountView: View {
                                 Task { await viewModel.deleteAccount(withApple: result) }
                             }
                         )
-                        .signInWithAppleButtonStyle(.black)
+                        .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
+                        .id(colorScheme)
                         .frame(height: 48)
                     } footer: {
                         Text("Confirm with Apple to delete your account.")
@@ -60,7 +76,7 @@ struct DeleteAccountView: View {
                     }
                 }
             }
-            .navigationTitle("Delete Account")
+            .navigationTitle(viewModel.isAnonymous ? "Erase My Data" : "Delete Account")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -76,12 +92,18 @@ struct DeleteAccountView: View {
                 }
             }
             .confirmationDialog(
-                "Delete your account?",
+                viewModel.isAnonymous ? "Erase your data?" : "Delete your account?",
                 isPresented: $isPresentingFinalConfirmation,
                 titleVisibility: .visible
             ) {
-                Button("Delete Account", role: .destructive) {
-                    Task { await viewModel.deleteAccount(password: password) }
+                Button(viewModel.isAnonymous ? "Erase" : "Delete Account", role: .destructive) {
+                    Task {
+                        if viewModel.isAnonymous {
+                            await viewModel.eraseAnonymousData()
+                        } else {
+                            await viewModel.deleteAccount(password: password)
+                        }
+                    }
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {

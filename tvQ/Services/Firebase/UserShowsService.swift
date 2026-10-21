@@ -17,8 +17,8 @@ import FirebaseFirestore
 /// mais elle est gardée parce qu'elle serait impossible à reconstituer plus tard
 /// (tri par date d'ajout, « suivie depuis »...).
 final class UserShowsService {
-    private static let field = "followedShows"
-    private static let mutedField = "mutedShows"
+    nonisolated private static let field = "followedShows"
+    nonisolated private static let mutedField = "mutedShows"
 
     private let db: Firestore
 
@@ -30,15 +30,35 @@ final class UserShowsService {
         db.collection("users").document(userID)
     }
 
-    struct FollowedShows {
+    nonisolated struct FollowedShows: Sendable {
         let followedIDs: [String]
         let mutedIDs: [String]
     }
 
-    func followedShows(userID: String) async throws -> FollowedShows {
-        let data = try await userDocument(userID: userID).getDocument().data() ?? [:]
-        let followed = data[Self.field] as? [String: Any] ?? [:]
-        let muted = (data[Self.mutedField] as? [String: Any] ?? [:]).keys
+    /// Séries suivies et cloches coupées, au fil des changements. Le premier
+    /// envoi vient de la copie locale de Firestore quand elle existe (affichage
+    /// immédiat, même hors ligne), puis du serveur ; ensuite, chaque changement,
+    /// y compris ceux faits depuis un autre appareil. Firestore facture une
+    /// lecture au démarrage de l'écoute, puis une par changement venu du serveur.
+    /// Terminer l'itération (ou annuler sa tâche) retire l'écouteur.
+    func followedShowsUpdates(userID: String) -> AsyncThrowingStream<FollowedShows, Error> {
+        AsyncThrowingStream { continuation in
+            // ListenerRegistration n'est pas Sendable, mais remove() peut être appelé
+            // de n'importe quel fil : Firestore le documente comme sûr.
+            nonisolated(unsafe) let registration = userDocument(userID: userID).addSnapshotListener { snapshot, error in
+                if let error {
+                    continuation.finish(throwing: error)
+                    return
+                }
+                continuation.yield(Self.followedShows(from: snapshot?.data() ?? [:]))
+            }
+            continuation.onTermination = { _ in registration.remove() }
+        }
+    }
+
+    nonisolated private static func followedShows(from data: [String: Any]) -> FollowedShows {
+        let followed = data[field] as? [String: Any] ?? [:]
+        let muted = (data[mutedField] as? [String: Any] ?? [:]).keys
         return FollowedShows(followedIDs: Array(followed.keys), mutedIDs: Array(muted))
     }
 

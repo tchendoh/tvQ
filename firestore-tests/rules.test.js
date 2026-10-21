@@ -30,6 +30,9 @@ beforeEach(async () => {
 const alice = () => env.authenticatedContext('alice').firestore();
 const bob = () => env.authenticatedContext('bob').firestore();
 const anon = () => env.unauthenticatedContext().firestore();
+// Session anonyme Firebase (utilisateur sans compte) : authentifiée, avec un uid.
+const guest = () => env.authenticatedContext('guest',
+  { firebase: { sign_in_provider: 'anonymous' } }).firestore();
 
 // Données personnelles
 test('A lit et modifie son document users', async () => {
@@ -56,6 +59,14 @@ test('Document users mal formé refusé', async () => {
   await assertFails(setDoc(doc(alice(), 'users/alice'), { legacyMigrated: true }, { merge: true }));
   await assertFails(setDoc(doc(alice(), 'users/alice'), { mutedShows: ['1399'] }));
 });
+test('Session anonyme : gère son propre document users, pas celui de A', async () => {
+  await assertSucceeds(setDoc(doc(guest(), 'users/guest'),
+    { followedShows: { '1399': serverTimestamp() } }, { merge: true }));
+  await assertSucceeds(getDoc(doc(guest(), 'users/guest')));
+  await assertSucceeds(deleteDoc(doc(guest(), 'users/guest')));
+  await assertFails(getDoc(doc(guest(), 'users/alice')));
+  await assertFails(setDoc(doc(guest(), 'users/alice'), { followedShows: {} }, { merge: true }));
+});
 
 // Caches partagés
 test('Utilisateur connecté lit et écrit un cache bien formé', async () => {
@@ -72,6 +83,11 @@ test('Cache mal formé refusé', async () => {
   await assertFails(setDoc(doc(bob(), 'showsCache/1_fr'), { episodes: [], syncedAt: Timestamp.fromDate(new Date(2099, 0, 1)) }));
   await assertFails(setDoc(doc(bob(), 'showMetadataCache/1_fr'), { show: 'x', syncedAt: Timestamp.now() }));
   await assertFails(setDoc(doc(bob(), 'showMetadataCache/1_fr'), { syncedAt: Timestamp.now() }));
+});
+test('Session anonyme : lit et écrit les caches (risque accepté, voir firestore.rules)', async () => {
+  await assertSucceeds(getDoc(doc(guest(), 'showsCache/1399_fr-CA')));
+  await assertSucceeds(setDoc(doc(guest(), 'showMetadataCache/1399_en'), { show: { id: 1399 }, syncedAt: Timestamp.now() }));
+  await assertFails(deleteDoc(doc(guest(), 'showsCache/1399_fr-CA')));
 });
 test('Personne ne supprime un cache', async () => {
   await assertFails(deleteDoc(doc(bob(), 'showsCache/1399_fr-CA')));

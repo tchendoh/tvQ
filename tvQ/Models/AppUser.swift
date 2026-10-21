@@ -6,4 +6,6 @@ struct AppUser: Identifiable, Equatable, Hashable {
     let id: String
     let email: String
     let displayName: String?
+    /// Session anonyme Firebase : aucun courriel ni Apple rattaché pour l'instant.
+    let isAnonymous: Bool
 }
