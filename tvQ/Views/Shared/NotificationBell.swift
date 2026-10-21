@@ -12,7 +12,7 @@ struct NotificationBell: View {
     enum Style {
         /// Dans une liste (Schedule).
         case plain
-        /// Sur une image (fiche) : même pastille que FollowBadge.
+        /// Sur une image (fiche) : ToggleBadgeLabel, comme FollowBadge.
         case badge
     }
 
@@ -42,20 +42,18 @@ struct NotificationBell: View {
                     icon
                         .frame(width: 44, height: 44)
                         .contentShape(Rectangle())
+                        // La pastille (ToggleBadgeLabel) a son propre retour haptique.
+                        .sensoryFeedback(.impact(weight: .light), trigger: isMuted)
                 case .badge:
-                    icon
-                        // Suit Dynamic Type, contrairement à l'ancienne taille fixe de 16 pt.
-                        .font(.callout.weight(.bold))
-                        .frame(width: 34, height: 34)
-                        .background(.ultraThinMaterial, in: Circle())
-                        .overlay { Circle().strokeBorder(Color.emphasis.opacity(0.5), lineWidth: 1) }
-                        // Comme FollowBadge : lisible sur n'importe quelle image.
-                        .environment(\.colorScheme, .dark)
-                        .shadow(color: .black.opacity(0.25), radius: 3, x: 0, y: 1)
+                    // Même pastille que FollowBadge.
+                    ToggleBadgeLabel(
+                        systemImage: isMuted ? "bell.slash" : "bell",
+                        isOn: !isMuted,
+                        offColor: .secondary
+                    )
                 }
             }
             .buttonStyle(.plain)
-            .sensoryFeedback(.selection, trigger: isMuted)
             .accessibilityLabel(isMuted ? Text("Episode alerts off") : Text("Episode alerts on"))
             .accessibilityHint(Text("Turns new-episode alerts for this show on or off."))
         }

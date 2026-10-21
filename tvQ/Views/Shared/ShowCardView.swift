@@ -59,50 +59,33 @@ struct ShowCardView: View {
     }
 }
 
-/// Look "glass" (choisi le 2026-08-09 après comparaison avec d'autres looks) : fond
-/// `.ultraThinMaterial` circulaire, contour teinté selon l'état — remplace
-/// l'ancien carré noir plein. Icône + couleur toujours dérivées de FollowIcon,
-/// pour rester la seule source de vérité sur cette apparence ; ici sans état
-/// interne — isFollowed vient de FollowedShowsStore.
+/// Badge de suivi des cartes et de la fiche : ToggleBadgeLabel (verre si la série
+/// n'est pas suivie, disque plein si elle l'est). Sans état interne : isFollowed
+/// vient de FollowedShowsStore.
 struct FollowBadge: View {
     let isFollowed: Bool
     let action: (() -> Void)?
 
-    private var tintColor: Color {
-        FollowIcon.tintColor(isFollowing: isFollowed)
-    }
-
     var body: some View {
-        Group {
-            if let action {
-                Button {
-                    withAnimation(.spring) { action() }
-                } label: {
-                    icon
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(isFollowed ? Text("Following") : Text("Follow"))
-            } else {
-                icon
+        if let action {
+            Button {
+                withAnimation(.spring) { action() }
+            } label: {
+                label
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel(isFollowed ? Text("Following") : Text("Follow"))
+        } else {
+            label
         }
-        .frame(width: 34, height: 34)
-        .background(.ultraThinMaterial, in: Circle())
-        .overlay {
-            Circle().strokeBorder(tintColor.opacity(0.5), lineWidth: 1)
-        }
-        // Le badge flotte sur des affiches de contenu très variable
-        // (claires, sombres, saturées) — on force le mode sombre pour que le
-        // matériau et Color.emphasis restent lisibles peu importe l'image en
-        // dessous, plutôt que de dépendre du thème système de l'utilisateur.
-        .environment(\.colorScheme, .dark)
-        .shadow(color: .black.opacity(0.25), radius: 3, x: 0, y: 1)
     }
 
-    private var icon: some View {
-        FollowIcon(isFollowing: isFollowed)
-            // Suit Dynamic Type (l'ancienne taille fixe de 18 pt ne bougeait pas).
-            .font(.headline.weight(.bold))
+    private var label: some View {
+        ToggleBadgeLabel(
+            systemImage: isFollowed ? "checkmark" : "plus",
+            isOn: isFollowed,
+            offColor: FollowIcon.tintColor(isFollowing: false)
+        )
     }
 }
 
