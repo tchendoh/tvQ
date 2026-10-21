@@ -1,23 +1,74 @@
 {
+  "features" : [
+    "refractivity"
+  ],
   "fill" : {
-    "solid" : "display-p3:0.06275,0.06275,0.06275,1.00000"
+    "automatic-gradient" : "display-p3:0.06275,0.06275,0.06275,1.00000"
   },
   "groups" : [
     {
+      "blur-material" : null,
       "layers" : [
         {
-          "blend-mode" : "normal",
-          "fill" : "none",
-          "image-name" : "Frame 1 (15).png",
-          "name" : "tvQ"
+          "glass" : true,
+          "image-name" : "Q.png",
+          "name" : "Q",
+          "position" : {
+            "scale" : 1.3,
+            "translation-in-points" : [
+              -43,
+              -29
+            ]
+          }
         }
       ],
+      "lighting" : "individual",
+      "refractivity" : {
+        "depth" : 0.1244921875,
+        "enabled" : true,
+        "strength" : 0.1077734375
+      },
       "shadow" : {
         "kind" : "neutral",
-        "opacity" : 0.5
+        "opacity" : 0.3
       },
+      "specular" : true,
       "translucency" : {
         "enabled" : true,
+        "value" : 0.4
+      }
+    },
+    {
+      "blend-mode" : "normal",
+      "blur-material" : null,
+      "layers" : [
+        {
+          "glass" : true,
+          "image-name" : "tv.png",
+          "name" : "tv",
+          "opacity" : 1,
+          "position" : {
+            "scale" : 1.2,
+            "translation-in-points" : [
+              9,
+              -19.200000000000045
+            ]
+          }
+        }
+      ],
+      "lighting" : "individual",
+      "refractivity" : {
+        "depth" : 0.309453125,
+        "enabled" : true,
+        "strength" : 0.2106640625
+      },
+      "shadow" : {
+        "kind" : "none",
+        "opacity" : 0.5
+      },
+      "specular" : true,
+      "translucency" : {
+        "enabled" : false,
         "value" : 0.3
       }
     }

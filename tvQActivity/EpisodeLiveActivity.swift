@@ -253,7 +253,7 @@ private struct Artwork: View {
 
 // MARK: - Couleurs et image
 
-/// Logo de tvQ (« tv » blanc, « Q » magenta), tiré du calque de tvQlogo.icon.
+/// Logo de tvQ, tiré directement de l'export Icon Composer (tvQlogo-iOS-Default).
 private struct TvQLogo: View {
     var body: some View {
         Image("tvQLogo")
