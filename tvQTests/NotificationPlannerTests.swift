@@ -86,6 +86,47 @@ struct NotificationPlannerTests {
         #expect(plan.first?.trigger == .floating(expected))
     }
 
+    // Raison d'un report au matin : décide du message (pas de « nouvel épisode
+    // aujourd'hui » à 9 h pour un épisode diffusé hier soir).
+
+    @Test func onTimeEpisodeHasNoMorningReason() {
+        let air = date("2026-10-21T21:00:00-04:00")
+        #expect(planner().slot(for: episode(airDate: air, precise: true))?.reason == .onTime)
+    }
+
+    @Test func dateOnlyEpisodeIsAnnouncedAsToday() {
+        let air = date("2026-10-23T00:00:00Z")
+        #expect(planner().slot(for: episode(airDate: air, precise: false))?.reason == .dateOnly)
+    }
+
+    @Test func streamingReleaseAtThreeAMIsOutSinceLastNight() {
+        let air = date("2026-10-22T00:00:00-07:00")
+        #expect(planner().slot(for: episode(airDate: air, precise: true))?.reason == .releasedOvernight)
+    }
+
+    @Test func releaseAtSevenAMIsOutSinceThisMorning() {
+        let air = date("2026-10-22T07:00:00-04:00")
+        #expect(planner().slot(for: episode(airDate: air, precise: true))?.reason == .releasedEarlyMorning)
+    }
+
+    @Test func lateNightEpisodeAiredLastNight() {
+        let air = date("2026-10-21T23:30:00-04:00")
+        #expect(planner().slot(for: episode(airDate: air, precise: true))?.reason == .airedLastNight)
+    }
+
+    @Test func afterEndPastMidnightStillAiredLastNight() {
+        // Commence à 23 h, finit vers minuit : notifié le matin, mais diffusé hier soir.
+        let air = date("2026-10-21T23:00:00-04:00")
+        let slot = planner(.tenMinutesAfterEnd).slot(for: episode(airDate: air, precise: true), runtimeMinutes: 60)
+        #expect(slot?.reason == .airedLastNight)
+    }
+
+    @Test func tenMinutesBeforeAMidnightReleaseIsOutSinceLastNight() {
+        // Sortie à 0 h 05 : 23 h 55 tombe dans la nuit, reporté au matin.
+        let air = date("2026-10-22T00:05:00-04:00")
+        #expect(planner(.tenMinutesBefore).slot(for: episode(airDate: air, precise: true))?.reason == .releasedOvernight)
+    }
+
     @Test func mutedShowIsSkipped() {
         let air = date("2026-10-21T21:00:00-04:00")
         let plan = planner().plan(items: [item(episode(airDate: air, precise: true))], mutedShowIDs: ["1"], now: now)

@@ -101,8 +101,9 @@ nonisolated struct NotificationPlanner: Sendable {
     struct Slot {
         let trigger: PlannedNotification.Trigger
         let fireDate: Date
-        /// true : notification décalée au matin (date sans heure, ou sortie la nuit).
-        let isMorning: Bool
+        /// Pourquoi la notification arrive à ce moment : le message en dépend
+        /// (« diffusé hier soir » plutôt que « nouvel épisode aujourd'hui » à 9 h).
+        let reason: Reason
         /// Identifie le moment dans l'identifiant de la notification.
         let key: String
     }
@@ -126,6 +127,24 @@ nonisolated struct NotificationPlanner: Sendable {
         }
     }
 
+    /// Raison du moment choisi. Les trois dernières sont des reports à l'heure du matin.
+    enum Reason: Equatable {
+        /// Heure exacte connue, notification au moment prévu.
+        case onTime
+        /// Date seule (TMDB) : on sait seulement que l'épisode sort aujourd'hui.
+        case dateOnly
+        /// Sorti entre minuit et 6 h (plateformes à minuit heure du Pacifique).
+        case releasedOvernight
+        /// Sorti entre 6 h et l'heure du matin.
+        case releasedEarlyMorning
+        /// Commencé en soirée (ou plus tôt dans la journée) et reporté au matin
+        /// suivant, faute de pouvoir notifier pendant la nuit.
+        case airedLastNight
+    }
+
+    /// Minute (depuis minuit) qui sépare « cette nuit » de « ce matin ».
+    static let earlyMorningStartMinutes = 6 * 60
+
     func slot(for episode: Episode, runtimeMinutes: Int = NotificationPlanner.defaultRuntimeMinutes) -> Slot? {
         guard let airDate = episode.airDate else { return nil }
 
@@ -136,7 +155,16 @@ nonisolated struct NotificationPlanner: Sendable {
             var utc = Calendar(identifier: .gregorian)
             utc.timeZone = TimeZone(identifier: "UTC")!
             let day = utc.dateComponents([.year, .month, .day], from: airDate)
-            return morningSlot(day: day)
+            return morningSlot(day: day, reason: .dateOnly)
+        }
+
+        // Heure locale du début de l'épisode : décide du message d'un report au matin.
+        let start = calendar.dateComponents([.hour, .minute], from: airDate)
+        let startMinutes = (start.hour ?? 0) * 60 + (start.minute ?? 0)
+        let deferredReason: Reason = switch startMinutes {
+        case ..<Self.earlyMorningStartMinutes: .releasedOvernight
+        case ..<morningMinutes: .releasedEarlyMorning
+        default: .airedLastNight
         }
 
         let fireDate = airDate + offset(runtimeMinutes: runtimeMinutes)
@@ -146,21 +174,22 @@ nonisolated struct NotificationPlanner: Sendable {
         if minutes >= Self.nightStartMinutes {
             // Fin de soirée : reporté au lendemain matin.
             guard let nextDay = calendar.date(byAdding: .day, value: 1, to: fireDate) else { return nil }
-            return morningSlot(day: calendar.dateComponents([.year, .month, .day], from: nextDay))
+            return morningSlot(day: calendar.dateComponents([.year, .month, .day], from: nextDay),
+                               reason: deferredReason)
         }
         if minutes < morningMinutes {
             // Pendant la nuit (ex. 3 h) : reporté au matin du même jour.
-            return morningSlot(day: local)
+            return morningSlot(day: local, reason: deferredReason)
         }
         return Slot(
             trigger: .exact(fireDate),
             fireDate: fireDate,
-            isMorning: false,
+            reason: .onTime,
             key: String(Int(fireDate.timeIntervalSince1970))
         )
     }
 
-    private func morningSlot(day: DateComponents) -> Slot? {
+    private func morningSlot(day: DateComponents, reason: Reason) -> Slot? {
         var components = DateComponents()
         components.year = day.year
         components.month = day.month
@@ -173,7 +202,7 @@ nonisolated struct NotificationPlanner: Sendable {
         return Slot(
             trigger: .floating(components),
             fireDate: fireDate,
-            isMorning: true,
+            reason: reason,
             key: String(format: "%04d%02d%02d", year, month, dayNumber)
         )
     }
@@ -188,23 +217,42 @@ nonisolated struct NotificationPlanner: Sendable {
             tmdbID: show.tmdbID,
             showID: show.id,
             title: show.title,
-            body: body(for: sorted.map(\.episode), isMorning: slot.isMorning),
+            body: body(for: sorted.map(\.episode), reason: slot.reason),
             trigger: slot.trigger,
             fireDate: slot.fireDate
         )
     }
 
-    private func body(for episodes: [Episode], isMorning: Bool) -> String {
+    private func body(for episodes: [Episode], reason: Reason) -> String {
         let first = episodes[0]
         let code = first.code
 
         if episodes.count > 1 {
             let count = episodes.count
             let season = first.seasonNumber
-            return String(localized: "\(count) new episodes of season \(season) are out.")
+            return switch reason {
+            case .releasedOvernight:
+                String(localized: "\(count) new episodes of season \(season) are out since last night.")
+            case .releasedEarlyMorning:
+                String(localized: "\(count) new episodes of season \(season) are out since this morning.")
+            case .airedLastNight:
+                String(localized: "\(count) new episodes of season \(season) aired last night.")
+            case .onTime, .dateOnly:
+                String(localized: "\(count) new episodes of season \(season) are out.")
+            }
         }
-        if isMorning {
+
+        switch reason {
+        case .dateOnly:
             return String(localized: "New episode today: \(code) “\(first.title)”.")
+        case .releasedOvernight:
+            return String(localized: "Out since last night: \(code) “\(first.title)”.")
+        case .releasedEarlyMorning:
+            return String(localized: "Out since this morning: \(code) “\(first.title)”.")
+        case .airedLastNight:
+            return String(localized: "Aired last night: \(code) “\(first.title)”.")
+        case .onTime:
+            break
         }
         switch timing {
         case .tenMinutesBefore:

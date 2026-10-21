@@ -1,6 +1,66 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "%lld new episodes of season %lld are out since last night." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld nouveaux épisodes de la saison %2$lld sont disponibles depuis cette nuit."
+          }
+        }
+      }
+    },
+    "%lld new episodes of season %lld are out since this morning." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld nouveaux épisodes de la saison %2$lld sont disponibles depuis ce matin."
+          }
+        }
+      }
+    },
+    "%lld new episodes of season %lld aired last night." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld nouveaux épisodes de la saison %2$lld ont été diffusés hier soir."
+          }
+        }
+      }
+    },
+    "Aired last night: %@ “%@”." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diffusé hier soir : %1$@ « %2$@ »."
+          }
+        }
+      }
+    },
+    "Out since last night: %@ “%@”." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disponible depuis cette nuit : %1$@ « %2$@ »."
+          }
+        }
+      }
+    },
+    "Out since this morning: %@ “%@”." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disponible depuis ce matin : %1$@ « %2$@ »."
+          }
+        }
+      }
+    },
     "" : {
 
     },
