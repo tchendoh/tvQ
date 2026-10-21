@@ -23,6 +23,9 @@ struct DebugSettingsView: View {
             NavigationLink(verbatimLabel("Live Activities")) {
                 NotificationsDebugView(kind: .liveActivities)
             }
+            NavigationLink(verbatimLabel("Style Lab")) {
+                StyleLabView()
+            }
             // Copie locale uniquement : le cache Firestore partagé reste intact, pour
             // ne pas effacer les données des autres utilisateurs. Sert à retester le
             // chargement à froid (FollowedShowsStore.prefetchContent) sans désinstaller.
