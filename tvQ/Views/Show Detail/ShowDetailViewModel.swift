@@ -13,6 +13,7 @@ final class ShowDetailViewModel {
     /// Saisons anciennes dont le chargement a échoué : on affiche un message.
     private(set) var failedSeasons: Set<Int> = []
     private(set) var watchAvailability: WatchAvailability?
+    private var watchAvailabilityTask: Task<Void, Never>?
     private(set) var isLoading = false
     private(set) var errorMessage: String?
 
@@ -92,6 +93,18 @@ final class ShowDetailViewModel {
         errorMessage = nil
         isLoading = false
         load()
+    }
+
+    /// Pays changé depuis le menu de la section « où regarder » : seuls les
+    /// diffuseurs sont rechargés (cache local par pays, sinon TMDB).
+    func reloadWatchAvailability() {
+        watchAvailabilityTask?.cancel()
+        let tmdbID = tmdbID
+        watchAvailabilityTask = Task {
+            let availability = await showRepository.getWatchAvailability(tmdbID: tmdbID)
+            guard !Task.isCancelled else { return }
+            watchAvailability = availability
+        }
     }
 
     /// Appelée depuis .task sur la vue. Charge la série puis ses épisodes ;

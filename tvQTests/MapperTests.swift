@@ -248,6 +248,37 @@ struct WatchAvailabilityMapperTests {
         #expect(result.providerNames == ["Netflix", "Disney+", "Max"])
     }
 
+    @Test(arguments: [
+        ("Netflix Basic with Ads", "Netflix"),
+        ("Amazon Prime Video with Ads", "Amazon Prime Video"),
+        ("Paramount+ Amazon Channel", "Paramount+"),
+        ("Paramount Plus Apple TV Channel", "Paramount+"),
+        ("Paramount Plus Essential", "Paramount+"),
+        ("Crave Apple TV Channel", "Crave"),
+        ("Starz Roku Premium Channel", "Starz"),
+        ("Peacock Premium", "Peacock"),
+        ("Apple TV Plus", "Apple TV+"),
+        ("Hulu Plus Live TV", "Hulu+ Live TV"),
+        ("AMC Plus Amazon Channel", "AMC+"),
+        ("HBO Max Amazon Channel", "Max"),
+    ])
+    func variantsAreReducedToTheService(raw: String, expected: String) {
+        #expect(WatchAvailabilityMapper.normalizedProviderName(raw) == expected)
+    }
+
+    @Test(arguments: ["The Roku Channel", "Apple TV", "Apple TV+", "Amazon Video", "Canal+", "Crave", "Pluto TV"])
+    func plainNamesAreUntouched(name: String) {
+        #expect(WatchAvailabilityMapper.normalizedProviderName(name) == name)
+    }
+
+    @Test func channelVariantsCollapseIntoOneEntry() {
+        let result = WatchAvailabilityMapper.map(
+            dto: dto(flatrate: providers("Paramount+", "Paramount+ Amazon Channel", "Paramount Plus Apple TV Channel", "Crave", "Crave Amazon Channel")),
+            region: "CA"
+        )
+        #expect(result.providerNames == ["Paramount+", "Crave"])
+    }
+
     /// Décision volontaire : même marque, catalogues différents.
     @Test func sameBrandDifferentCatalogStaysSeparate() {
         let result = WatchAvailabilityMapper.map(
@@ -260,7 +291,7 @@ struct WatchAvailabilityMapperTests {
     @Test func usesTMDBLinkForTheRegion() {
         let result = WatchAvailabilityMapper.map(dto: dto(flatrate: providers("Crave")), region: "CA")
         #expect(result.justWatchURL.absoluteString == "https://www.themoviedb.org/tv/1399/watch?locale=CA")
-        #expect(result.regionDisplayName == "Canada")
+        #expect(result.regionDisplayName == AppSettings.regionDisplayName("CA"))
     }
 
     @Test func missingRegionIsEmptyWithJustWatchFallback() {
@@ -269,8 +300,64 @@ struct WatchAvailabilityMapperTests {
         #expect(result.justWatchURL.absoluteString == "https://www.justwatch.com")
     }
 
-    @Test func unknownRegionCodeIsShownAsIs() {
+    @Test func freeProvidersComeAfterSubscriptionAndBeforeBuyAndRent() {
+        let dto = TMDBWatchProvidersDTO(results: [
+            "CA": TMDBWatchProvidersRegionDTO(
+                link: nil,
+                flatrate: providers("Crave"),
+                buy: providers("Apple TV"),
+                rent: providers("Amazon Video"),
+                ads: providers("Tubi"),
+                free: providers("Kanopy")
+            ),
+        ])
+        let result = WatchAvailabilityMapper.map(dto: dto, region: "CA")
+        #expect(result.providerNames == ["Crave", "Kanopy", "Tubi", "Apple TV", "Amazon Video"])
+    }
+
+    @Test func providersAreGroupedByWayToWatch() {
+        let dto = TMDBWatchProvidersDTO(results: [
+            "CA": TMDBWatchProvidersRegionDTO(
+                link: nil,
+                flatrate: providers("Crave", "Netflix"),
+                buy: providers("Apple TV", "Crave"),
+                rent: providers("Amazon Video", "Apple TV"),
+                ads: providers("Tubi"),
+                free: providers("Kanopy")
+            ),
+        ])
+        let result = WatchAvailabilityMapper.map(dto: dto, region: "CA")
+        #expect(result.included == ["Crave", "Netflix"])
+        #expect(result.free == ["Kanopy", "Tubi"])
+        // Crave, déjà inclus dans l'abonnement, n'est pas répété en achat.
+        #expect(result.buyOrRent == ["Apple TV", "Amazon Video"])
+    }
+
+    /// Série offerte seulement gratuitement avec pub : pas « nulle part ».
+    @Test func adsOnlyCountryCountsAsAvailable() {
+        let dto = TMDBWatchProvidersDTO(results: [
+            "CA": TMDBWatchProvidersRegionDTO(link: nil, flatrate: nil, buy: nil, rent: nil, ads: providers("Tubi")),
+        ])
+        let result = WatchAvailabilityMapper.map(dto: dto, region: "CA")
+        #expect(result.providerNames == ["Tubi"])
+        #expect(!result.isEmpty)
+        #expect(result.availableRegions == ["CA"])
+    }
+
+    @Test func availableRegionsSkipCountriesWithoutProviders() {
+        let dto = TMDBWatchProvidersDTO(results: [
+            "CA": TMDBWatchProvidersRegionDTO(link: nil, flatrate: providers("Crave"), buy: nil, rent: nil),
+            "FR": TMDBWatchProvidersRegionDTO(link: nil, flatrate: [], buy: nil, rent: nil),
+            "US": TMDBWatchProvidersRegionDTO(link: nil, flatrate: nil, buy: nil, rent: providers("Apple TV")),
+        ])
+        let result = WatchAvailabilityMapper.map(dto: dto, region: "CA")
+        #expect(Set(result.availableRegions) == ["CA", "US"])
+    }
+
+    /// Nom du pays fourni par iOS dans la langue de l'interface, pour n'importe quel code.
+    @Test func regionNameComesFromLocale() {
         let result = WatchAvailabilityMapper.map(dto: dto(region: "DE"), region: "DE")
-        #expect(result.regionDisplayName == "DE")
+        #expect(result.regionDisplayName == Locale.current.localizedString(forRegionCode: "DE"))
+        #expect(result.regionDisplayName != "DE")
     }
 }

@@ -1,12 +1,18 @@
 import SwiftUI
 
 struct ShowDetailView: View {
+    /// Pays choisi par l'utilisateur ; nil = région de l'appareil (voir AppSettings).
+    @AppStorage(AppSettings.Keys.watchProviderRegion) private var regionOverride: String?
+    /// Largeur du plus long libellé de groupe (« Buy or Rent »…), pour aligner les pastilles.
+    @State private var providerLabelWidth: CGFloat = 0
     @Environment(FollowedShowsStore.self) private var followedShowsStore
     @State private var viewModel: ShowDetailViewModel
     /// Vrai une fois l'image d'en-tête sortie de l'écran : le titre réapparaît
     /// alors, en petit, dans la barre de navigation (il est déjà affiché en gros
     /// sur l'image tant qu'elle est visible).
     @State private var isHeroScrolledAway = false
+    /// Résumé déplié (« more ») ou limité à 3 lignes.
+    @State private var isOverviewExpanded = false
 
     /// Hauteur de l'image d'en-tête.
     nonisolated private static let heroHeight: CGFloat = 300
@@ -45,7 +51,11 @@ struct ShowDetailView: View {
             }
         }
         .task(id: tmdbID) { viewModel.load(tmdbID: tmdbID) }
+        .onChange(of: tmdbID) {
+            isOverviewExpanded = false
+        }
         .onContentLanguageChange { viewModel.reload() }
+        .onChange(of: regionOverride) { viewModel.reloadWatchAvailability() }
         .navigationTitle(isHeroScrolledAway ? (viewModel.show?.title ?? "") : "")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -53,75 +63,42 @@ struct ShowDetailView: View {
     @ViewBuilder
     private func content(for show: Show) -> some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 28) {
                 header(for: show)
 
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 8) {
-                        Text(show.status.displayName)
-                            .font(.caption.weight(.semibold))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(.secondary.opacity(0.15), in: Capsule())
-
-                        if let network = show.network {
-                            Text(network)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-
-                        Spacer()
-                    }
-
-                    if !show.genres.isEmpty {
-                        Text(show.genres.joined(separator: " · "))
+                // Hiérarchie inspirée de l'app TV d'Apple : une ligne de
+                // métadonnées et le résumé d'abord, puis des sections titrées
+                // (plutôt que des séparateurs), du plus utile au plus factuel.
+                VStack(alignment: .leading, spacing: 10) {
+                    if let metadata = metadataLine(for: show) {
+                        Text(verbatim: metadata)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
-
                     if !show.overview.isEmpty {
-                        Text(show.overview)
-                            .font(.body)
-                            .padding(.top, 4)
-                    }
-
-                    // imdbID est optionnel (voir Show.swift) : certaines séries
-                    // n'ont pas d'IMDB ID renseigné sur TMDB, auquel cas il n'y a
-                    // simplement pas de lien à montrer.
-                    if let imdbID = show.imdbID, let imdbURL = URL(string: "https://www.imdb.com/title/\(imdbID)/") {
-                        // Logo officiel (trousse de marque IMDb, brand.imdb.com) plutôt
-                        // qu'une icône générique — versions noir/blanc en Assets.xcassets
-                        // (IMDbLogo), adaptées automatiquement au mode clair/sombre.
-                        Link(destination: imdbURL) {
-                            HStack(spacing: 6) {
-                                Image("IMDbLogo")
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .frame(height: 16)
-                                    .accessibilityHidden(true)
-                                Image(systemName: "arrow.up.right")
-                                    .font(.caption2.weight(.semibold))
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        .accessibilityLabel("View on IMDb")
-                        .padding(.top, 4)
-                    }
-
-                    if let availability = viewModel.watchAvailability {
-                        watchAvailabilitySection(availability)
+                        overview(show.overview)
                     }
                 }
                 .padding(.horizontal)
+                .padding(.top, -12)
 
-                if !viewModel.episodesBySeason.isEmpty {
-                    Divider()
+                if let availability = viewModel.watchAvailability {
+                    watchAvailabilitySection(availability)
                         .padding(.horizontal)
-
-                    seasonsSection
                 }
+
+                if !viewModel.sortedSeasonNumbers.isEmpty {
+                    episodesSection
+                        .padding(.horizontal)
+                }
+
+                aboutSection(for: show)
+                    .padding(.horizontal)
+
+                linksSection(for: show)
+                    .padding(.horizontal)
             }
-            .padding(.bottom)
+            .padding(.bottom, 24)
         }
         // L'image passe sous la barre de navigation, comme dans l'app TV et
         // l'exemple Landmarks d'Apple : les boutons de la barre flottent en
@@ -139,6 +116,122 @@ struct ShowDetailView: View {
         geometry.contentOffset.y + geometry.contentInsets.top > heroHeight - 80
     }
 
+    // MARK: - En-tête de contenu
+
+    /// « 2026 · Sci-Fi & Fantasy · Drama » : l'année (première diffusion, si la
+    /// saison 1 est chargée) puis les genres. Le reste va dans About.
+    private func metadataLine(for show: Show) -> String? {
+        var parts: [String] = []
+        if let firstAired {
+            parts.append(firstAired.formatted(.dateTime.year()))
+        }
+        parts.append(contentsOf: show.genres)
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
+    /// Première diffusion connue : le plus ancien épisode daté de la saison 1.
+    private var firstAired: Date? {
+        viewModel.episodesBySeason[1]?.compactMap(\.airDate).min()
+    }
+
+    /// Résumé tronqué à 3 lignes, avec « more » pour le déplier (comme l'app TV).
+    @ViewBuilder
+    private func overview(_ text: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(text)
+                .font(.body)
+                .lineLimit(isOverviewExpanded ? nil : 3)
+            // Approximation volontaire : mesurer la troncature réelle demanderait
+            // un second rendu caché ; au-delà de ~160 caractères, 3 lignes débordent.
+            if text.count > 160 {
+                Button(isOverviewExpanded ? "less" : "more") {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isOverviewExpanded.toggle()
+                    }
+                }
+                .font(.subheadline.weight(.semibold))
+            }
+        }
+    }
+
+    // MARK: - Sections
+
+    /// Titre de section, avec un contrôle optionnel à droite (pays, saison).
+    private func sectionHeader<Trailing: View>(
+        _ title: LocalizedStringKey,
+        @ViewBuilder trailing: () -> Trailing
+    ) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(title)
+                .font(.title3.bold())
+            Spacer(minLength: 8)
+            trailing()
+        }
+    }
+
+    private func aboutSection(for show: Show) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionHeader("About") { EmptyView() }
+
+            VStack(spacing: 8) {
+                LabeledContent("Status") { Text(show.status.displayName) }
+                if let network = show.network {
+                    LabeledContent("Network") { Text(verbatim: network) }
+                }
+                if let firstAired {
+                    LabeledContent("First aired") { Text(firstAired, format: .dateTime.day().month().year()) }
+                }
+                if show.numberOfSeasons > 0 {
+                    LabeledContent("Seasons") { Text(show.numberOfSeasons, format: .number) }
+                }
+                if let language = Locale.current.localizedString(forLanguageCode: show.originalLanguage) {
+                    LabeledContent("Original language") { Text(verbatim: language.localizedCapitalized) }
+                }
+            }
+            .font(.subheadline)
+        }
+    }
+
+    @ViewBuilder
+    private func linksSection(for show: Show) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionHeader("Links") { EmptyView() }
+
+            HStack(spacing: 20) {
+                // imdbID est optionnel (voir Show.swift) : certaines séries
+                // n'ont pas d'IMDB ID renseigné sur TMDB.
+                if let imdbID = show.imdbID, let imdbURL = URL(string: "https://www.imdb.com/title/\(imdbID)/") {
+                    // Logo officiel (trousse de marque IMDb, brand.imdb.com),
+                    // versions noir/blanc adaptées au mode clair/sombre.
+                    Link(destination: imdbURL) {
+                        HStack(spacing: 6) {
+                            Image("IMDbLogo")
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(height: 16)
+                                .accessibilityHidden(true)
+                            Image(systemName: "arrow.up.right")
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .accessibilityLabel("View on IMDb")
+                }
+
+                if let tmdbURL = URL(string: "https://www.themoviedb.org/tv/\(show.tmdbID)") {
+                    Link(destination: tmdbURL) {
+                        HStack(spacing: 4) {
+                            Text(verbatim: "TMDB")
+                                .font(.subheadline.weight(.semibold))
+                            Image(systemName: "arrow.up.right")
+                                .font(.caption2.weight(.semibold))
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // Texte seulement — pas les logos des diffuseurs/JustWatch, jugés pas assez
     // propres visuellement pour l'app.
     // Le lien JustWatch en fin de section reste discret (petite police, gris),
@@ -150,30 +243,114 @@ struct ShowDetailView: View {
     @ViewBuilder
     private func watchAvailabilitySection(_ availability: WatchAvailability) -> some View {
         VStack(alignment: .leading, spacing: 4) {
+            // Aucun diffuseur connu nulle part (ex. série toute récente) : le menu
+            // n'offrirait que le pays courant. On le garde si un autre pays a été
+            // choisi, pour pouvoir revenir à celui de l'appareil.
+            let showsRegionMenu = !availability.availableRegions.isEmpty || regionOverride != nil
+            sectionHeader("Where to Watch") {
+                if showsRegionMenu {
+                    regionMenu(availability)
+                }
+            }
+            .padding(.bottom, 6)
+
             if availability.isEmpty {
+                // Sous le titre « Where to Watch », le lien dit simplement où chercher.
                 Link(destination: availability.justWatchURL) {
                     HStack(spacing: 4) {
-                        Text("Where to watch?")
+                        Text("Search on JustWatch")
                         Image(systemName: "arrow.up.right")
                             .font(.caption2.weight(.semibold))
                     }
                 }
                 .font(.subheadline)
 
-                Text("via JustWatch")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
+
             } else {
-                Text("Watch (\(availability.regionDisplayName)) on \(availability.providerNames.joined(separator: ", "))")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                providerGroups(availability)
+                    .padding(.vertical, 2)
 
                 Link("via JustWatch", destination: availability.justWatchURL)
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
         }
-        .padding(.top, 4)
+    }
+
+    /// Diffuseurs regroupés par façon de regarder, en pastilles. Les libellés
+    /// forment une colonne alignée sur le plus long (mesuré, donc juste dans
+    /// toutes les langues) ; les pastilles passent à la ligne au besoin.
+    private func providerGroups(_ availability: WatchAvailability) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            providerRow("Included", availability.included, prominent: true)
+            providerRow("Free", availability.free, prominent: false)
+            providerRow("Buy or Rent", availability.buyOrRent, prominent: false)
+        }
+    }
+
+    @ViewBuilder
+    private func providerRow(_ title: LocalizedStringKey, _ names: [String], prominent: Bool) -> some View {
+        if !names.isEmpty {
+            // .top plutôt que .firstTextBaseline : une Layout personnalisée n'expose
+            // pas de ligne de base ; le décalage aligne le libellé sur la 1re rangée.
+            HStack(alignment: .top, spacing: 10) {
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize()
+                    .padding(.top, 4)
+                    .onGeometryChange(for: CGFloat.self, of: \.size.width) { width in
+                        providerLabelWidth = max(providerLabelWidth, width)
+                    }
+                    .frame(minWidth: providerLabelWidth, alignment: .leading)
+                FlowLayout {
+                    ForEach(names, id: \.self) { name in
+                        ProviderChip(name: name, prominent: prominent)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+
+    /// Choix du pays des diffuseurs, là où il sert (plutôt que dans Settings).
+    /// Par défaut la région de l'appareil ; le choix s'applique à toutes les fiches.
+    private func regionMenu(_ availability: WatchAvailability) -> some View {
+        let current = AppSettings.watchProviderRegion
+        let regions = Set(availability.availableRegions).union([current])
+            .sorted { AppSettings.regionDisplayName($0).localizedStandardCompare(AppSettings.regionDisplayName($1)) == .orderedAscending }
+
+        return Menu {
+            Button {
+                regionOverride = nil
+            } label: {
+                let device = AppSettings.regionDisplayName(AppSettings.deviceRegion)
+                if regionOverride == nil {
+                    Label("Same as my device (\(device))", systemImage: "checkmark")
+                } else {
+                    Text("Same as my device (\(device))")
+                }
+            }
+            Divider()
+            ForEach(regions, id: \.self) { code in
+                Button {
+                    regionOverride = code
+                } label: {
+                    if regionOverride == code {
+                        Label(AppSettings.regionDisplayName(code), systemImage: "checkmark")
+                    } else {
+                        Text(verbatim: AppSettings.regionDisplayName(code))
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 3) {
+                Text(verbatim: availability.regionDisplayName)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption2.weight(.semibold))
+            }
+        }
+        .font(.subheadline)
     }
 
     @ViewBuilder
@@ -237,11 +414,10 @@ struct ShowDetailView: View {
         }
     }
 
-    private var seasonsSection: some View {
+    /// Une ligne repliable par saison (la saison ancienne se charge à l'ouverture).
+    private var episodesSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Episodes")
-                .font(.headline)
-                .padding(.horizontal)
+            sectionHeader("Episodes") { EmptyView() }
 
             ForEach(viewModel.sortedSeasonNumbers, id: \.self) { seasonNumber in
                 DisclosureGroup("Season \(seasonNumber)") {
@@ -267,7 +443,6 @@ struct ShowDetailView: View {
                             .task { viewModel.loadSeason(seasonNumber) }
                     }
                 }
-                .padding(.horizontal)
             }
         }
     }
@@ -315,4 +490,24 @@ private extension ShowStatus {
         ShowDetailView(tmdbID: 1399)
     }
     .environment(FollowedShowsStore())
+}
+
+/// Pastille d'un diffuseur. « Inclus » en couleur d'accent : l'œil va d'abord
+/// à ce que l'utilisateur peut regarder sans rien payer de plus.
+private struct ProviderChip: View {
+    let name: String
+    let prominent: Bool
+
+    var body: some View {
+        Text(verbatim: name)
+            .font(.caption.weight(.medium))
+            .lineLimit(1)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 4)
+            .foregroundStyle(prominent ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
+            .background(
+                prominent ? AnyShapeStyle(.tint.opacity(0.15)) : AnyShapeStyle(.fill.tertiary),
+                in: Capsule()
+            )
+    }
 }

@@ -167,7 +167,9 @@ struct LocalStoresTests {
         let store = WatchAvailabilityStore(modelContainer: LocalDatabase.makeContainer(inMemory: true))
         let canada = WatchAvailability(
             regionDisplayName: "Canada",
-            providerNames: ["Netflix"],
+            included: ["Netflix"],
+            free: [],
+            buyOrRent: [],
             justWatchURL: URL(string: "https://www.justwatch.com")!
         )
 

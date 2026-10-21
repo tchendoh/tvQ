@@ -60,6 +60,12 @@ struct DTODecodingTests {
         #expect(canada.providerNames == ["Crave", "Apple TV", "Google Play Movies"])
         let us = WatchAvailabilityMapper.map(dto: dto, region: "US")
         #expect(us.providerNames == ["Max"])
+        // Pays proposés dans le menu de la fiche : ceux qui ont au moins un diffuseur.
+        #expect(Set(canada.availableRegions) == Set(dto.results.filter { _, region in
+            !region.providersInDisplayOrder.isEmpty
+        }.keys))
+        #expect(canada.availableRegions.contains("CA"))
+        #expect(canada.availableRegions.contains("US"))
     }
 
     @Test func tvmazeShow() throws {

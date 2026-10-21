@@ -225,7 +225,7 @@ struct RepositoryTests {
 
     @Test func staleWatchAvailabilityIsKeptWhenOffline() async throws {
         let region = AppSettings.watchProviderRegion
-        let old = WatchAvailability(regionDisplayName: "Canada", providerNames: ["Crave"], justWatchURL: URL(string: "https://www.justwatch.com")!)
+        let old = WatchAvailability(regionDisplayName: "Canada", included: ["Crave"], free: [], buyOrRent: [], justWatchURL: URL(string: "https://www.justwatch.com")!)
         try await watchStore.save(old, cacheKey: "100_\(region)", syncedAt: .distantPast)
         tmdb.watchProviders = nil   // échec réseau
 

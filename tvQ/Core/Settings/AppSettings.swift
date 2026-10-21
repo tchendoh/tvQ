@@ -15,66 +15,9 @@ enum ContentLanguage: String, CaseIterable, Identifiable {
     }
 }
 
-/// Code pays ISO 3166-1 utilisé pour filtrer les diffuseurs retournés par
-/// `TMDBService.fetchWatchProviders` (voir WatchAvailabilityMapper) — TMDB renvoie
-/// toutes les régions d'un coup, ce setting sert seulement à choisir laquelle
-/// afficher. Liste volontairement courte (marchés les plus probables pour les
-/// utilisateurs de tvQ) plutôt que la liste complète des ~60 pays TMDB.
-enum WatchProviderRegion: String, CaseIterable, Identifiable {
-    case canada = "CA"
-    case unitedStates = "US"
-    case france = "FR"
-    case unitedKingdom = "GB"
-
-    var id: String { rawValue }
-
-    /// Chaîne brute (pas LocalizedStringKey) — utilisée par WatchAvailabilityMapper
-    /// pour composer le texte "Watch (Canada) on ..." affiché dans ShowDetailView.
-    var displayNameString: String {
-        switch self {
-        case .canada: "Canada"
-        case .unitedStates: "United States"
-        case .france: "France"
-        case .unitedKingdom: "United Kingdom"
-        }
-    }
-
-    var displayName: LocalizedStringKey {
-        LocalizedStringKey(displayNameString)
-    }
-}
-
-enum AppAppearance: String, CaseIterable, Identifiable {
-    case system
-    case light
-    case dark
-
-    var id: Self { self }
-
-    var displayName: LocalizedStringKey {
-        switch self {
-        case .system: "System"
-        case .light: "Light"
-        case .dark: "Dark"
-        }
-    }
-
-    var colorScheme: ColorScheme? {
-        switch self {
-        case .system: nil
-        case .light: .light
-        case .dark: .dark
-        }
-    }
-}
-
-/// Point d'accès unique aux préférences persistées localement (UserDefaults, via
-/// @AppStorage côté vues). Pas de sync multi-appareils pour l'instant — un seul
-/// appareil actif, décision prise avec l'utilisateur ; à reconsidérer si ça change.
 enum AppSettings {
     enum Keys {
         static let contentLanguage = "settings.contentLanguage"
-        static let appearance = "settings.appearance"
         static let useOriginalLanguage = "settings.useOriginalLanguage"
         static let watchProviderRegion = "settings.watchProviderRegion"
         static let notificationsEnabled = "settings.notificationsEnabled"
@@ -89,11 +32,23 @@ enum AppSettings {
         UserDefaults.standard.string(forKey: Keys.contentLanguage) ?? ContentLanguage.english.rawValue
     }
 
-    /// Lu par WatchAvailabilityMapper pour choisir la région à afficher dans la
-    /// section "Regarder sur" de ShowDetailView. Par défaut le Canada — la
-    /// majorité des utilisateurs actuels de tvQ y sont.
+    /// Pays (ISO 3166-1, ex. "CA") des diffuseurs affichés dans ShowDetailView.
+    /// Par défaut la région de l'appareil (Réglages › Général › Langue et région) ;
+    /// la clé n'est écrite que si l'utilisateur choisit un autre pays depuis la
+    /// fiche d'une série. TMDB renvoie tous les pays d'un coup : n'importe quel
+    /// code fonctionne, et un pays sans données mène au lien JustWatch.
     static var watchProviderRegion: String {
-        UserDefaults.standard.string(forKey: Keys.watchProviderRegion) ?? WatchProviderRegion.canada.rawValue
+        UserDefaults.standard.string(forKey: Keys.watchProviderRegion) ?? deviceRegion
+    }
+
+    /// Région de l'appareil, ou le Canada si iOS n'en fournit pas.
+    nonisolated static var deviceRegion: String {
+        Locale.current.region?.identifier ?? "CA"
+    }
+
+    /// Nom du pays dans la langue de l'interface (« Canada », « États-Unis »).
+    nonisolated static func regionDisplayName(_ code: String) -> String {
+        Locale.current.localizedString(forRegionCode: code) ?? code
     }
 
     /// Portée volontairement limitée à ShowDetailView + épisodes (pas la recherche) :

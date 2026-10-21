@@ -1,22 +1,24 @@
 import Foundation
 
 /// Extrait la région choisie par l'utilisateur (AppSettings.watchProviderRegion)
-/// de la réponse TMDB (toutes régions confondues) et l'aplatit en un modèle
-/// `WatchAvailability` simple, texte seulement.
+/// de la réponse TMDB (toutes régions confondues) et la ramène à un modèle
+/// `WatchAvailability` simple, texte seulement, regroupé par façon de regarder.
 enum WatchAvailabilityMapper {
     static func map(dto: TMDBWatchProvidersDTO, region: String) -> WatchAvailability {
-        let regionDisplayName = WatchProviderRegion(rawValue: region)?.displayNameString ?? region
+        let regionDisplayName = AppSettings.regionDisplayName(region)
         let regionDTO = dto.results[region]
 
-        // flatrate (abonnement) affiché en premier : c'est ce que la majorité
-        // des utilisateurs cherchent en priorité, avant achat/location.
-        let names = [regionDTO?.flatrate, regionDTO?.buy, regionDTO?.rent]
-            .compactMap { $0 }
-            .flatMap { $0 }
-            .map { normalizedProviderName($0.providerName) }
-
+        // Abonnement d'abord (ce que la majorité cherche), puis le gratuit, puis
+        // achat/location. Un service déjà vu dans un groupe précédent est omis.
         var seen = Set<String>()
-        let dedupedNames = names.filter { seen.insert($0).inserted }
+        func names(_ lists: [TMDBWatchProviderDTO]?...) -> [String] {
+            lists.compactMap { $0 }.flatMap { $0 }
+                .map { normalizedProviderName($0.providerName) }
+                .filter { seen.insert($0).inserted }
+        }
+        let included = names(regionDTO?.flatrate)
+        let free = names(regionDTO?.free, regionDTO?.ads)
+        let buyOrRent = names(regionDTO?.buy, regionDTO?.rent)
 
         // Lien retourné par TMDB pour cette région (pointe en fait vers
         // themoviedb.org/tv/.../watch, qui redirige lui-même vers JustWatch —
@@ -24,36 +26,59 @@ enum WatchAvailabilityMapper {
         // JustWatch si TMDB n'a aucune donnée pour ce pays.
         let url = regionDTO?.link.flatMap(URL.init(string:)) ?? URL(string: "https://www.justwatch.com")!
 
+        let availableRegions = dto.results
+            .filter { _, regionDTO in !regionDTO.providersInDisplayOrder.isEmpty }
+            .map(\.key)
+
         return WatchAvailability(
             regionDisplayName: regionDisplayName,
-            providerNames: dedupedNames,
-            justWatchURL: url
+            included: included,
+            free: free,
+            buyOrRent: buyOrRent,
+            justWatchURL: url,
+            availableRegions: availableRegions
         )
     }
 
-    /// JustWatch/TMDB renvoient parfois plusieurs noms pour un même service
-    /// (renommage historique, orthographe), qu'on fusionne ici sous un seul nom
-    /// affiché. Volontairement limité aux cas où le catalogue est identique —
-    /// PAS aux cas où la marque est partagée mais le catalogue diffère (ex.
-    /// Apple TV magasin achat/location vs Apple TV+ abonnement ; Amazon Video
-    /// achat/location vs Amazon Prime Video abonnement ; Paramount+ Amazon
-    /// Channel qui est un canal d'accès distinct) — ces cas restent séparés
-    /// intentionnellement, une série peut être disponible sur l'un sans l'autre.
-    /// Comparaison insensible à la casse : JustWatch n'est pas toujours cohérent
-    /// sur la capitalisation d'une entrée à l'autre.
-    private static let providerNameAliases: [String: String] = [
-        // Paliers avec pub Netflix — même catalogue que Netflix standard,
-        // aucune série n'est exclusive au palier avec publicité.
-        "netflix with ads": "Netflix",
-        "netflix standard with ads": "Netflix",
-        "netflix basic with ads": "Netflix",
-        // Orthographe ("Disney Plus" vs "Disney+"), même service.
-        "disney plus": "Disney+",
-        // Rebranding 2023 du même service, pas un changement de catalogue.
-        "hbo max": "Max",
+    /// JustWatch/TMDB multiplient les variantes d'un même service : paliers
+    /// (« Netflix Standard with Ads »), canaux revendus par une autre plateforme
+    /// (« Paramount+ Amazon Channel », « Crave Apple TV Channel ») et orthographes
+    /// (« Disney Plus »). Pour l'utilisateur, la question est « sur quel service ? » :
+    /// tout est ramené au nom du service, puis dédupliqué.
+    ///
+    /// Restent séparés, volontairement : les marques partagées dont le catalogue
+    /// diffère vraiment (Apple TV, magasin d'achat/location, vs Apple TV+,
+    /// abonnement ; Amazon Video vs Amazon Prime Video). Aucune règle ci-dessous ne
+    /// les touche.
+    static func normalizedProviderName(_ name: String) -> String {
+        var result = name.trimmingCharacters(in: .whitespaces)
+        for (pattern, replacement) in normalizationRules {
+            result = result.replacingOccurrences(
+                of: pattern, with: replacement, options: [.regularExpression, .caseInsensitive]
+            )
+        }
+        return providerNameAliases[result.lowercased()] ?? result
+    }
+
+    /// Appliquées dans l'ordre, sur la fin du nom seulement (`$`).
+    private static let normalizationRules: [(pattern: String, replacement: String)] = [
+        // Canal revendu : « Paramount+ Amazon Channel » → « Paramount+ ».
+        // Exige un nom avant (« The Roku Channel », un vrai service, reste intact).
+        (#"(?<=\S)\s+(?:Amazon|Apple TV|Prime Video|Roku Premium|YouTube TV)\s+Channel$"#, ""),
+        // Palier avec pub : « Netflix Standard with Ads », « Max with Ads ».
+        (#"\s+(?:(?:Standard|Basic|Premium|Essential)\s+)?with\s+Ads$"#, ""),
+        // Palier nommé : « Paramount+ Essential », « Peacock Premium ».
+        (#"(?<=\S)\s+(?:Standard|Basic|Premium|Essential)$"#, ""),
+        // Orthographe, partout dans le nom : « Disney Plus » → « Disney+ »,
+        // « Hulu Plus Live TV » → « Hulu+ Live TV ». Mot entier seulement, et
+        // jamais en tête (un service qui s'appellerait « Plus » reste intact).
+        (#"(?<=\S)\s+Plus\b"#, "+"),
     ]
 
-    private static func normalizedProviderName(_ name: String) -> String {
-        providerNameAliases[name.lowercased()] ?? name
-    }
+    /// Renommages qu'aucune règle ne peut deviner (comparaison sans casse).
+    private static let providerNameAliases: [String: String] = [
+        // Rebranding 2023 du même service, pas un changement de catalogue.
+        "hbo max": "Max",
+        "netflix kids": "Netflix",
+    ]
 }
