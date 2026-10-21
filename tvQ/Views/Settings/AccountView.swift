@@ -1,11 +1,12 @@
 import SwiftUI
 
-/// Page d'accueil de Settings, sur le modèle des Réglages d'iOS : une carte de
-/// compte, puis une ligne par sujet avec sa valeur actuelle à droite. Le détail
-/// vit dans les sous-pages (EpisodeAlertsSettingsView, ContentLanguageSettingsView,
-/// AccountSettingsView, AboutView, DebugSettingsView).
-struct SettingsView: View {
+/// Feuille Account, ouverte par l'avatar de la barre d'outils (accountToolbarItem) :
+/// l'identité en tête, puis une ligne par réglage avec sa valeur actuelle à droite.
+/// Le détail vit dans les sous-pages (EpisodeAlertsSettingsView,
+/// ContentLanguageSettingsView, AccountSettingsView, AboutView, DebugSettingsView).
+struct AccountView: View {
     @Environment(SessionStore.self) private var session
+    @Environment(\.dismiss) private var dismiss
 
     @AppStorage(AppSettings.Keys.contentLanguage)
     private var contentLanguage: String = ContentLanguage.english.rawValue
@@ -78,7 +79,13 @@ struct SettingsView: View {
             }
             #endif
         }
-        .navigationTitle("Settings")
+        .navigationTitle("Account")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button(role: .close) { dismiss() }
+            }
+        }
         .sheet(isPresented: $isPresentingLogin) {
             LoginView()
         }
@@ -104,7 +111,7 @@ struct SettingsView: View {
                     accountCard(
                         user: user,
                         title: Text(user.displayName ?? user.email),
-                        subtitle: Text("Account")
+                        subtitle: user.displayName == nil ? Text("Account Details") : Text(user.email)
                     )
                 }
             }
@@ -183,7 +190,7 @@ private extension NotificationTiming {
 
 #Preview {
     NavigationStack {
-        SettingsView()
+        AccountView()
     }
     .environment(SessionStore())
 }

@@ -60,7 +60,7 @@ struct SearchView: View {
             } message: { message in
                 Text(message)
             }
-            .settingsToolbarItem()
+            .accountToolbarItem()
         }
     }
 

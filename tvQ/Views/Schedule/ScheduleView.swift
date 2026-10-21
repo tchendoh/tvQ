@@ -135,7 +135,7 @@ struct ScheduleView: View {
             }
             .navigationTitle("Schedule")
             .presentsShowDetailSheet(tmdbID: $selectedTMDBID)
-            .settingsToolbarItem()
+            .accountToolbarItem()
         }
     }
 

@@ -135,6 +135,16 @@
         }
       }
     },
+    "Account Details" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Détails du compte"
+          }
+        }
+      }
+    },
     "Affects show titles, descriptions, and episode info from TMDB." : {
       "localizations" : {
         "en" : {
@@ -1713,6 +1723,7 @@
       }
     },
     "Settings" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

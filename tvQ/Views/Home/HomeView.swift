@@ -6,7 +6,7 @@ struct HomeView: View {
         NavigationStack {
             RecommendationsView()
                 .navigationTitle("Home")
-                .settingsToolbarItem()
+                .accountToolbarItem()
         }
     }
 }

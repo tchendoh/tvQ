@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Settings › Account (vrai compte seulement : en session anonyme, la carte de
+/// Account › Account Details (vrai compte seulement : en session anonyme, la carte de
 /// compte ouvre directement LoginView).
 struct AccountSettingsView: View {
     @Environment(SessionStore.self) private var session
@@ -48,7 +48,7 @@ struct AccountSettingsView: View {
                 Text("Permanently deletes your account and the shows you follow.")
             }
         }
-        .navigationTitle("Account")
+        .navigationTitle("Account Details")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $isPresentingDeleteAccount) {
             if let user = session.currentUser {

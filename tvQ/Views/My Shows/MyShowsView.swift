@@ -59,7 +59,7 @@ struct MyShowsView: View {
                 await viewModel.refreshNearestEpisodes()
             }
             .presentsShowDetailSheet(tmdbID: $selectedTMDBID)
-            .settingsToolbarItem()
+            .accountToolbarItem()
             .task(id: followedShowsStore.followedShowIDs) {
                 viewModel.load(showIDs: followedShowsStore.followedShowIDs)
             }
