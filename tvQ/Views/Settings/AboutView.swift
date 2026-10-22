@@ -103,7 +103,7 @@ struct AboutView: View {
             }
 
             Section {
-                if let url = URL(string: "mailto:eric.chandonnet.dev@gmail.com") {
+                if let url = URL(string: "mailto:tvq.app.support@gmail.com") {
                     Link("Contact", destination: url)
                 }
             } header: {
