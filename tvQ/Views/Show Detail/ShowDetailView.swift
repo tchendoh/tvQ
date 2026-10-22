@@ -70,11 +70,7 @@ struct ShowDetailView: View {
                 // métadonnées et le résumé d'abord, puis des sections titrées
                 // (plutôt que des séparateurs), du plus utile au plus factuel.
                 VStack(alignment: .leading, spacing: 10) {
-                    if let metadata = metadataLine(for: show) {
-                        Text(verbatim: metadata)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
+                    metadataRow(for: show)
                     if !show.overview.isEmpty {
                         overview(show.overview)
                     }
@@ -132,6 +128,26 @@ struct ShowDetailView: View {
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
+    /// Pastille de statut puis « 2022 · Drama » (choisi le 2026-10-22 dans
+    /// Debug › Style Lab, variante 1). Remplace la ligne « Status » d'About.
+    @ViewBuilder
+    private func metadataRow(for show: Show) -> some View {
+        let metadata = metadataLine(for: show)
+        if show.status != .unknown || metadata != nil {
+            HStack(spacing: 8) {
+                if show.status != .unknown {
+                    StatusPill(status: show.status)
+                }
+                if let metadata {
+                    Text(verbatim: metadata)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
+        }
+    }
+
     /// Première diffusion connue : le plus ancien épisode daté de la saison 1.
     private var firstAired: Date? {
         viewModel.episodesBySeason[1]?.compactMap(\.airDate).min()
@@ -177,15 +193,8 @@ struct ShowDetailView: View {
             sectionHeader("About") { EmptyView() }
 
             VStack(spacing: 8) {
-                LabeledContent("Status") { Text(show.status.displayName) }
                 if let network = show.network {
                     LabeledContent("Network") { Text(verbatim: network) }
-                }
-                if let firstAired {
-                    LabeledContent("First aired") { Text(firstAired, format: .dateTime.day().month().year()) }
-                }
-                if show.numberOfSeasons > 0 {
-                    LabeledContent("Seasons") { Text(show.numberOfSeasons, format: .number) }
                 }
                 if let language = Locale.current.localizedString(forLanguageCode: show.originalLanguage) {
                     LabeledContent("Original language") { Text(verbatim: language.localizedCapitalized) }
@@ -482,6 +491,29 @@ private extension ShowStatus {
         ShowDetailView(tmdbID: 1399)
     }
     .environment(FollowedShowsStore())
+}
+
+/// Statut de la série en petite capsule : teintée (rose) tant que la série
+/// a de nouveaux épisodes à venir (en cours, à venir), grise une fois terminée.
+/// Même forme que ProviderChip.
+private struct StatusPill: View {
+    let status: ShowStatus
+
+    private var isActive: Bool { status != .ended }
+
+    var body: some View {
+        Text(status.displayName)
+            .font(.caption.weight(.semibold))
+            .lineLimit(1)
+            .fixedSize()
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .foregroundStyle(isActive ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
+            .background(
+                isActive ? AnyShapeStyle(.tint.opacity(0.15)) : AnyShapeStyle(.fill.tertiary),
+                in: Capsule()
+            )
+    }
 }
 
 /// Pastille d'un diffuseur. « Inclus » en couleur d'accent : l'œil va d'abord
