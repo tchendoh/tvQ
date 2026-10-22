@@ -24,10 +24,8 @@ private struct AccountToolbarItem: ViewModifier {
                     // Vue personnalisée : sans ceci, elle resterait dans la barre horizontale.
                     accountItem
                         .axisBehavior(.verticalPreferred)
-                        .sharedBackgroundVisibility(.hidden)
                 } else {
                     accountItem
-                        .sharedBackgroundVisibility(.hidden)
                 }
             }
             .sheet(isPresented: $isPresentingAccount) {
@@ -40,13 +38,15 @@ private struct AccountToolbarItem: ViewModifier {
 
     /// Placement par défaut : en haut à droite sur iPhone, dans la colonne
     /// verticale sur iPhone Duo (comme le ProfileView d'Apple, Tech Talk 111462).
-    /// L'avatar est déjà un cercle coloré : pas de capsule Liquid Glass autour.
+    /// Bouton de verre de la barre, comme les autres, avec la silhouette ou les
+    /// initiales en rose (AccountAvatar, style .glyph) plutôt qu'un disque rose
+    /// plein : la couleur pleine est réservée à l'action principale.
     private var accountItem: some ToolbarContent {
         ToolbarItem {
             Button {
                 isPresentingAccount = true
             } label: {
-                AccountAvatar(user: session.currentUser, size: 32)
+                AccountAvatar(user: session.currentUser, size: 32, style: .glyph)
             }
             .buttonStyle(.plain)
             .matchedTransitionSource(id: Self.transitionID, in: transition)

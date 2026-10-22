@@ -55,8 +55,20 @@ struct SettingsIcon: View {
 
 /// Pastille d'initiales pour la carte de compte.
 struct AccountAvatar: View {
+    enum Style {
+        /// Disque rose plein, initiales en blanc (carte de compte).
+        case filled
+        /// Sans disque : initiales ou silhouette en rose, posées sur le verre de
+        /// la barre d'outils. Le rose plein y faisait concurrence au bouton de
+        /// suivi de la fiche, seule action à mériter la couleur (2026-10-22).
+        /// Essayé et écarté : le verre Clear teinté du bouton de suivi, peu
+        /// lisible sur les fonds clairs de la barre.
+        case glyph
+    }
+
     let user: AppUser?
     var size: CGFloat = 56
+    var style: Style = .filled
 
     private var initials: String {
         guard let user, !user.isAnonymous else { return "" }
@@ -68,16 +80,19 @@ struct AccountAvatar: View {
     }
 
     var body: some View {
+        let foreground: Color = style == .filled ? .white : .accentColor
         ZStack {
-            Circle().fill(Color.accentColor.gradient)
+            if style == .filled {
+                Circle().fill(Color.accentColor.gradient)
+            }
             if initials.isEmpty {
                 Image(systemName: "person.fill")
                     .font(.system(size: size * 0.45))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(foreground)
             } else {
                 Text(verbatim: initials)
                     .font(.system(size: size * 0.38, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(foreground)
             }
         }
         .frame(width: size, height: size)
