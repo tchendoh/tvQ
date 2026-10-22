@@ -89,14 +89,13 @@ struct AboutView: View {
                 Text("JustWatch")
             }
 
-            // Licence Apache 2.0 du SDK Firebase (Auth, Firestore, Crashlytics, App
-            // Check, Remote Config) : mention et lien vers le texte de la licence.
+            // Logiciels libres : texte complet de chaque licence (Apache 2.0, BSD,
+            // OpenSSL, zlib...), exigé par ces licences pour une distribution binaire.
             Section {
-                Text("tvQ uses the Firebase SDK for iOS, licensed under the Apache License 2.0.")
+                Text("tvQ uses open-source software, including the Firebase SDK for iOS.")
                     .font(.callout)
-                if let url = URL(string: "https://github.com/firebase/firebase-ios-sdk/blob/main/LICENSE") {
-                    Link("Apache License 2.0", destination: url)
-                        .font(.callout)
+                NavigationLink("Acknowledgements") {
+                    AcknowledgementsView()
                 }
             } header: {
                 Text("Open-source software")
