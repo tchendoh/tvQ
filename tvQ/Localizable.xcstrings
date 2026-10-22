@@ -1,76 +1,6 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "%lld new episodes of season %lld are out since last night." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$lld nouveaux épisodes de la saison %2$lld sont disponibles depuis cette nuit."
-          }
-        }
-      }
-    },
-    "%lld new episodes of season %lld are out since this morning." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$lld nouveaux épisodes de la saison %2$lld sont disponibles depuis ce matin."
-          }
-        }
-      }
-    },
-    "%lld new episodes of season %lld aired last night." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$lld nouveaux épisodes de la saison %2$lld ont été diffusés hier soir."
-          }
-        }
-      }
-    },
-    "Acknowledgements" : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Licences"
-          }
-        }
-      }
-    },
-    "Aired last night: %@ “%@”." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Diffusé hier soir : %1$@ « %2$@ »."
-          }
-        }
-      }
-    },
-    "Out since last night: %@ “%@”." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Disponible depuis cette nuit : %1$@ « %2$@ »."
-          }
-        }
-      }
-    },
-    "Out since this morning: %@ “%@”." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Disponible depuis ce matin : %1$@ « %2$@ »."
-          }
-        }
-      }
-    },
     "" : {
 
     },
@@ -133,6 +63,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Il y a %lld jours"
+          }
+        }
+      }
+    },
+    "%lld new episodes of season %lld aired last night." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld nouveaux épisodes de la saison %2$lld ont été diffusés hier soir."
+          }
+        }
+      }
+    },
+    "%lld new episodes of season %lld are out since last night." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld nouveaux épisodes de la saison %2$lld sont disponibles depuis cette nuit."
+          }
+        }
+      }
+    },
+    "%lld new episodes of season %lld are out since this morning." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld nouveaux épisodes de la saison %2$lld sont disponibles depuis ce matin."
           }
         }
       }
@@ -215,6 +175,16 @@
         }
       }
     },
+    "Acknowledgements" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Licences"
+          }
+        }
+      }
+    },
     "Affects show titles, descriptions, and episode info from TMDB." : {
       "localizations" : {
         "en" : {
@@ -239,6 +209,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Diffusé"
+          }
+        }
+      }
+    },
+    "Aired last night: %@ “%@”." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diffusé hier soir : %1$@ « %2$@ »."
           }
         }
       }
@@ -970,6 +950,7 @@
       }
     },
     "First aired" : {
+      "extractionState" : "stale",
       "localizations" : {
         "fr" : {
           "stringUnit" : {
@@ -1597,6 +1578,26 @@
         }
       }
     },
+    "Out since last night: %@ “%@”." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disponible depuis cette nuit : %1$@ « %2$@ »."
+          }
+        }
+      }
+    },
+    "Out since this morning: %@ “%@”." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disponible depuis ce matin : %1$@ « %2$@ »."
+          }
+        }
+      }
+    },
     "Password" : {
       "localizations" : {
         "en" : {
@@ -1779,6 +1780,7 @@
       }
     },
     "Seasons" : {
+      "extractionState" : "stale",
       "localizations" : {
         "fr" : {
           "stringUnit" : {
@@ -2059,6 +2061,7 @@
       }
     },
     "Status" : {
+      "extractionState" : "stale",
       "localizations" : {
         "fr" : {
           "stringUnit" : {
@@ -2308,26 +2311,6 @@
         }
       }
     },
-    "tvQ includes the following open-source software. Tap an item to read its full license." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "tvQ intègre les logiciels libres suivants. Touchez un élément pour lire sa licence complète."
-          }
-        }
-      }
-    },
-    "tvQ uses open-source software, including the Firebase SDK for iOS." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "tvQ utilise des logiciels libres, dont le SDK Firebase pour iOS."
-          }
-        }
-      }
-    },
     "tvmaze.com" : {
       "comment" : "A link to the TVmaze website.",
       "isCommentAutoGenerated" : true,
@@ -2349,6 +2332,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "tvQ"
+          }
+        }
+      }
+    },
+    "tvQ includes the following open-source software. Tap an item to read its full license." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "tvQ intègre les logiciels libres suivants. Touchez un élément pour lire sa licence complète."
           }
         }
       }
@@ -2382,6 +2375,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "tvQ a besoin d'une connexion Internet à son premier lancement."
+          }
+        }
+      }
+    },
+    "tvQ uses open-source software, including the Firebase SDK for iOS." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "tvQ utilise des logiciels libres, dont le SDK Firebase pour iOS."
           }
         }
       }
