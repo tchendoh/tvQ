@@ -12,8 +12,11 @@ struct NotificationBell: View {
     enum Style {
         /// Dans une liste (Schedule).
         case plain
-        /// Sur une image (fiche) : ToggleBadgeLabel, comme FollowBadge.
+        /// Sur une image : ToggleBadgeLabel, comme FollowBadge.
         case badge
+        /// En-tête de la fiche, à côté du grand bouton de suivi
+        /// (ShowDetailActions) : bouton de verre rond de même hauteur.
+        case glass
     }
 
     let showID: String
@@ -34,28 +37,43 @@ struct NotificationBell: View {
 
     var body: some View {
         if hasActiveAlerts, followedShowsStore.isFollowing(showID) {
-            Button {
-                followedShowsStore.toggleNotifications(showID: showID)
-            } label: {
-                switch style {
-                case .plain:
-                    icon
-                        .frame(width: 44, height: 44)
-                        .contentShape(Rectangle())
-                        // La pastille (ToggleBadgeLabel) a son propre retour haptique.
-                        .sensoryFeedback(.impact(weight: .light), trigger: isMuted)
-                case .badge:
-                    // Même pastille que FollowBadge.
-                    ToggleBadgeLabel(
-                        systemImage: isMuted ? "bell.slash" : "bell",
-                        isOn: !isMuted,
-                        offColor: .secondary
-                    )
+            if style == .glass {
+                Button {
+                    followedShowsStore.toggleNotifications(showID: showID)
+                } label: {
+                    Image(systemName: isMuted ? "bell.slash" : "bell")
+                        .contentTransition(.symbolEffect(.replace))
+                        .font(.headline)
+                        .foregroundStyle(isMuted ? .secondary : .primary)
                 }
+                .buttonStyle(.glass)
+                .buttonBorderShape(.circle)
+                .controlSize(.large)
+                .sensoryFeedback(.impact(weight: .light), trigger: isMuted)
+                .modifier(BellAccessibility(isMuted: isMuted))
+            } else {
+                Button {
+                    followedShowsStore.toggleNotifications(showID: showID)
+                } label: {
+                    switch style {
+                    case .badge:
+                        // Même pastille que FollowBadge.
+                        ToggleBadgeLabel(
+                            systemImage: isMuted ? "bell.slash" : "bell",
+                            isOn: !isMuted,
+                            offColor: .secondary
+                        )
+                    default:
+                        icon
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
+                            // La pastille (ToggleBadgeLabel) a son propre retour haptique.
+                            .sensoryFeedback(.impact(weight: .light), trigger: isMuted)
+                    }
+                }
+                .buttonStyle(.plain)
+                .modifier(BellAccessibility(isMuted: isMuted))
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel(isMuted ? Text("Episode alerts off") : Text("Episode alerts on"))
-            .accessibilityHint(Text("Turns new-episode alerts for this show on or off."))
         }
     }
 
@@ -66,5 +84,15 @@ struct NotificationBell: View {
         Image(systemName: isMuted ? "bell.slash" : "bell")
             .contentTransition(.symbolEffect(.replace))
             .foregroundStyle(isMuted ? .tertiary : .secondary)
+    }
+}
+
+private struct BellAccessibility: ViewModifier {
+    let isMuted: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .accessibilityLabel(isMuted ? Text("Episode alerts off") : Text("Episode alerts on"))
+            .accessibilityHint(Text("Turns new-episode alerts for this show on or off."))
     }
 }

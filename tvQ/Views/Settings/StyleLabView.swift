@@ -2,7 +2,8 @@ import SwiftUI
 
 #if DEBUG
 /// Debug › Style Lab : comparaison côte à côte des styles possibles pour les deux
-/// interrupteurs d'une série (suivi et cloche), sur une image et dans une liste.
+/// interrupteurs d'une série (suivi et cloche) : en-tête de la fiche, sur une
+/// image et dans une liste.
 /// État local seulement : rien n'est écrit dans FollowedShowsStore. Textes non
 /// traduits (debug).
 struct StyleLabView: View {
@@ -16,6 +17,18 @@ struct StyleLabView: View {
                 Toggle(isOn: $alertsOn) { Text(verbatim: "Episode alerts on") }
             } footer: {
                 Text(verbatim: "The icons below can be tapped too. Each sample is shown on a dark and a bright image to check legibility.")
+            }
+
+            ForEach(FollowWideButton.Look.allCases) { look in
+                Section {
+                    followLookSample(look, background: .dark)
+                    followLookSample(look, background: .bright)
+                } header: {
+                    Text(verbatim: "Follow button · \(Self.title(of: look))")
+                } footer: {
+                    Text(verbatim: Self.note(of: look))
+                }
+                .listRowInsets(EdgeInsets())
             }
 
             ForEach(BadgeVariant.allCases) { variant in
@@ -237,6 +250,67 @@ struct StyleLabView: View {
                 .buttonBorderShape(.circle)
                 .environment(\.colorScheme, .dark)
             }
+        }
+    }
+
+    // MARK: Bouton de suivi de la fiche
+
+    private static func title(of look: FollowWideButton.Look) -> String {
+        let name = switch look {
+        case .solid: "A. Solid pink"
+        case .outlined: "B. Glass, pink outline"
+        case .tinted: "C. Pink-tinted glass"
+        case .accentIcon: "D. Glass, pink plus only"
+        case .clearTinted: "E. Clear glass, light pink tint"
+        }
+        return look == FollowWideButton.defaultLook ? name + " (in use)" : name
+    }
+
+    private static func note(of look: FollowWideButton.Look) -> String {
+        switch look {
+        case .solid: "Prominent glass, solid pink. Hard to miss, but loud on most images."
+        case .outlined: "Neutral glass with a pink outline and pink text. Pink text can be hard to read on busy or warm images."
+        case .tinted: "Glass lightly tinted pink, white text. Still reads as the invitation, while the image shows through."
+        case .accentIcon: "Neutral glass; only the plus is pink. The quietest: close to the Following state."
+        case .clearTinted: "Apple's Clear glass, meant for controls over bright media with a dimming layer underneath (the header gradient). Lightly tinted pink."
+        }
+    }
+
+    /// Titre, bouton de suivi et cloche, comme l'en-tête de la fiche.
+    private func followLookSample(_ look: FollowWideButton.Look, background: SampleBackground) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(verbatim: "VisionQuest")
+                .font(.largeTitle.bold())
+                .foregroundStyle(.white)
+                .shadow(radius: 4)
+            HStack(spacing: 10) {
+                FollowWideButton(isFollowing: isFollowed, look: look) { toggle(.follow) }
+                sampleBell
+            }
+            .environment(\.colorScheme, .dark)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, minHeight: 170, alignment: .bottomLeading)
+        .background {
+            LinearGradient(colors: [.clear, .black.opacity(0.8)],
+                           startPoint: UnitPoint(x: 0.5, y: 0.35), endPoint: .bottom)
+                .background(background.gradient)
+        }
+    }
+
+    @ViewBuilder
+    private var sampleBell: some View {
+        if isFollowed {
+            Button { toggle(.alerts) } label: {
+                Image(systemName: alertsOn ? "bell" : "bell.slash")
+                    .contentTransition(.symbolEffect(.replace))
+                    .font(.headline)
+                    .foregroundStyle(alertsOn ? .primary : .secondary)
+            }
+            .buttonStyle(.glass)
+            .buttonBorderShape(.circle)
+            .controlSize(.large)
+            .transition(.scale.combined(with: .opacity))
         }
     }
 

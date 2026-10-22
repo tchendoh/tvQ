@@ -113,7 +113,10 @@ struct ShowDetailView: View {
 
     /// Vrai une fois l'image d'en-tête presque sortie de l'écran.
     nonisolated private static func isHeroScrolledAway(_ geometry: ScrollGeometry) -> Bool {
-        geometry.contentOffset.y + geometry.contentInsets.top > heroHeight - 80
+        // Le titre est maintenant au-dessus du bouton de suivi, donc plus haut
+        // dans l'image : il passe sous la barre (et le bouton X) vers 120 pt
+        // de défilement. Avant, à 220 pt, il restait caché sous le X un moment.
+        geometry.contentOffset.y + geometry.contentInsets.top > heroHeight - 180
     }
 
     // MARK: - En-tête de contenu
@@ -381,13 +384,15 @@ struct ShowDetailView: View {
         // image.
         .overlay {
             LinearGradient(
-                colors: [.clear, .black.opacity(0.75)],
-                startPoint: .center,
+                colors: [.clear, .black.opacity(0.8)],
+                startPoint: UnitPoint(x: 0.5, y: 0.35),
                 endPoint: .bottom
             )
         }
         .overlay(alignment: .bottomLeading) {
-            HStack(alignment: .bottom, spacing: 12) {
+            // Titre puis l'action principale (suivre), comme le titre et le
+            // bouton « Play » de l'app TV. Voir ShowDetailActions.
+            VStack(alignment: .leading, spacing: 12) {
                 Text(show.title)
                     .font(.largeTitle.bold())
                     .foregroundStyle(.white)
@@ -395,20 +400,7 @@ struct ShowDetailView: View {
                     .minimumScaleFactor(0.7)
                     .shadow(radius: 4)
 
-                Spacer(minLength: 0)
-
-                // Même badge que sur les cartes (ShowCardView). Hors de la barre
-                // d'outils : les éléments de barre sont hébergés par UIKit et
-                // reconstruits à chaque changement d'état, ce qui empêchait
-                // l'animation du symbole (transition + rebond) de se jouer. En
-                // bas de l'image plutôt qu'en haut : le haut passe maintenant
-                // sous la barre de navigation.
-                NotificationBell(showID: show.id, style: .badge)
-
-                FollowBadge(
-                    isFollowed: followedShowsStore.isFollowing(show.id),
-                    action: { followedShowsStore.toggle(showID: show.id) }
-                )
+                ShowDetailActions(showID: show.id)
             }
             .padding()
         }
