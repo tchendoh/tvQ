@@ -12,6 +12,8 @@ struct ScheduleView: View {
     /// Vrai tant que la liste doit rester sur "Aujourd'hui" pendant la mise en page ;
     /// faux dès que l'utilisateur fait défiler lui-même.
     @State private var isAnchoredToToday = true
+    /// Un défilement vers « Aujourd'hui » est déjà prévu (voir scheduleScrollToToday).
+    @State private var isScrollToTodayPending = false
     /// Vrai entre un deuxième toucher sur l'onglet et la fin du défilement d'iOS
     /// vers le haut (voir onScrollPhaseChange).
     @State private var returnsToTodayWhenIdle = false
@@ -88,7 +90,7 @@ struct ScheduleView: View {
                             geometry.contentSize.height
                         } action: { _, _ in
                             if isAnchoredToToday {
-                                scrollToToday()
+                                scheduleScrollToToday()
                             }
                         }
                         .onScrollPhaseChange { _, phase in
@@ -142,6 +144,21 @@ struct ScheduleView: View {
     private func scrollToToday() {
         let today = Calendar.current.startOfDay(for: Date())
         scrollPosition.scrollTo(id: today, anchor: .top)
+    }
+
+    /// La hauteur change plusieurs fois dans la même image pendant que le
+    /// LazyVStack mesure ses sections (SwiftUI le signale : « tried to update
+    /// multiple times per frame »). On regroupe ces appels en un seul défilement,
+    /// au tour suivant de la boucle principale.
+    private func scheduleScrollToToday() {
+        guard !isScrollToTodayPending else { return }
+        isScrollToTodayPending = true
+        Task { @MainActor in
+            isScrollToTodayPending = false
+            if isAnchoredToToday {
+                scrollToToday()
+            }
+        }
     }
 
     /// Vise "Aujourd'hui" et le garde en vue pendant la mise en page (voir
