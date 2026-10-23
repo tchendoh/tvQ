@@ -8,11 +8,11 @@ A native iOS app built solo in Swift 6 and SwiftUI.
 
 | Home | Schedule | My Shows |
 |---|---|---|
-| ![Home](https://tchendoh.github.io/tvq-site/screenshots/home-en.png) | ![Schedule](https://tchendoh.github.io/tvq-site/screenshots/schedule-en.png) | ![My Shows](https://tchendoh.github.io/tvq-site/screenshots/my-shows-en.png) |
+| <img src="https://tchendoh.github.io/tvq-site/screenshots/home-en.png" alt="Home" width="250"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/schedule-en.png" alt="Schedule" width="250"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/my-shows-en.png" alt="My Shows" width="250"> |
 
-| Search | Show detail (dark) | Show detail (light) |
-|---|---|---|
-| ![Search](https://tchendoh.github.io/tvq-site/screenshots/search-fr-dark.jpeg) | ![Show detail, dark](https://tchendoh.github.io/tvq-site/screenshots/show-detail-en-dark.png) | ![Show detail, light](https://tchendoh.github.io/tvq-site/screenshots/show-detail-en-light.png) |
+| Show detail (dark) | Show detail (light) |
+|---|---|
+| <img src="https://tchendoh.github.io/tvq-site/screenshots/show-detail-en-dark.png" alt="Show detail, dark" width="250"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/show-detail-en-light.png" alt="Show detail, light" width="250"> |
 
 ## Highlights
 
