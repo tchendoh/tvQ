@@ -8,11 +8,11 @@ Une application iOS native, développée en solo en Swift 6 et SwiftUI.
 
 | Accueil | Horaire | Mes séries |
 |---|---|---|
-| ![Accueil](Screenshots/tvQ-accueil.png) | ![Horaire](Screenshots/tvQ-horaire-dark-mode.png) | ![Mes séries](Screenshots/tvQ-mesSeries-dark-mode.jpeg) |
+| ![Accueil](https://tchendoh.github.io/tvq-site/screenshots/home-fr.png) | ![Horaire](https://tchendoh.github.io/tvq-site/screenshots/schedule-fr.png) | ![Mes séries](https://tchendoh.github.io/tvq-site/screenshots/my-shows-fr.png) |
 
 | Recherche | Fiche série (sombre) | Fiche série (clair) |
 |---|---|---|
-| ![Recherche](Screenshots/tvQ-recherche-dark-mode.jpeg) | ![Fiche série, sombre](Screenshots/tvQ-serie-detail-dark-mode.png) | ![Fiche série, clair](Screenshots/tvQ-serie-detail.png) |
+| ![Recherche](https://tchendoh.github.io/tvq-site/screenshots/search-fr-dark.jpeg) | ![Fiche série, sombre](https://tchendoh.github.io/tvq-site/screenshots/show-detail-fr-dark.png) | ![Fiche série, clair](https://tchendoh.github.io/tvq-site/screenshots/show-detail-fr-light.png) |
 
 ## Points forts
 

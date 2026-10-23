@@ -134,3 +134,4 @@ firestore-debug.log
 
 # Réglages locaux de Claude Code
 .claude/
+Screenshots/raw/

@@ -201,6 +201,7 @@ struct MyShowsView: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("showCard")
             }
         }
         .padding(.horizontal, 20)
@@ -219,6 +220,8 @@ struct MyShowsView: View {
                 )
             }
             .buttonStyle(.plain)
+            // Repère pour les tests d'interface (ReadmeScreenshotsTests).
+            .accessibilityIdentifier("showCard")
         }
         .padding(.horizontal, 20)
     }
