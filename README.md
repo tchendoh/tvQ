@@ -136,3 +136,7 @@ firestore-tests/    Firestore security rules tests (emulator)
 ## Credits
 
 Show data from [TMDB](https://www.themoviedb.org/) (this product uses the TMDB API but is not endorsed or certified by TMDB) and [TVmaze](https://www.tvmaze.com/). Streaming availability from [JustWatch](https://www.justwatch.com/).
+
+## License
+
+The source code is available under the [MIT License](LICENSE). The tvQ name, logo and app icon are not covered by it, and third-party logos and data remain subject to their owners' terms.

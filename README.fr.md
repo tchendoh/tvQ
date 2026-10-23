@@ -136,3 +136,7 @@ firestore-tests/    Tests des règles de sécurité Firestore (émulateur)
 ## Crédits
 
 Données des séries fournies par [TMDB](https://www.themoviedb.org/) (ce produit utilise l'API de TMDB, mais n'est ni approuvé ni certifié par TMDB) et [TVmaze](https://www.tvmaze.com/). Disponibilité en streaming fournie par [JustWatch](https://www.justwatch.com/).
+
+## Licence
+
+Le code source est offert sous [licence MIT](LICENSE). Le nom, le logo et l'icône de tvQ n'en font pas partie, et les logos et données de tiers restent soumis aux conditions de leurs propriétaires.
