@@ -3,11 +3,12 @@ import FirebaseFirestore
 
 /// Cache de métadonnées de série partagé entre utilisateurs — même principe que
 /// FirestoreEpisodeCacheService (voir ce fichier pour le raisonnement complet).
-/// Collection séparée (`showMetadataCache`) plutôt que de réutiliser `showsCache` :
+/// Collection séparée (`showMetadataCache`) plutôt que de réutiliser `episodesCache` :
 /// structure différente, pas besoin de les mélanger.
 ///
-/// Comme pour les épisodes, la fraîcheur (dont la règle « une série terminée ne
-/// périme jamais ») est décidée par le repository, pas ici.
+/// Comme pour les épisodes, la fraîcheur (dont la durée plus longue d'une série
+/// terminée, voir AppRules.Cache.endedShowMaxAge) est décidée par le repository,
+/// pas ici.
 final class FirestoreShowCacheService {
     private let db: Firestore
 

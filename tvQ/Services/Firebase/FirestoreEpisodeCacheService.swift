@@ -11,7 +11,7 @@ import FirebaseFirestore
 /// Ce service ne juge pas de la fraîcheur : il retourne la donnée avec sa date de
 /// synchronisation et le repository décide (voir CachePolicy).
 ///
-/// Collection `showsCache/{cacheKey}`. Note de sécurité : les règles Firestore
+/// Collection `episodesCache/{cacheKey}`. Note de sécurité : les règles Firestore
 /// donnent actuellement lecture et écriture à tout utilisateur authentifié ;
 /// à revisiter avec une Cloud Function si l'app grossit.
 final class FirestoreEpisodeCacheService {
@@ -22,7 +22,7 @@ final class FirestoreEpisodeCacheService {
     }
 
     private func document(cacheKey: String) -> DocumentReference {
-        db.collection("showsCache").document(cacheKey)
+        db.collection("episodesCache").document(cacheKey)
     }
 
     /// nil si absent ou dans un format illisible (ancienne version de l'app, par exemple) :
@@ -35,13 +35,13 @@ final class FirestoreEpisodeCacheService {
             // Le repository ignore les erreurs de cache (try?) : sans ceci, un
             // dépassement de quota passerait inaperçu.
             FirestoreQuota.recordIfExceeded(error)
-            Log.data.error("Lecture showsCache/\(cacheKey) échouée", error)
+            Log.data.error("Lecture episodesCache/\(cacheKey) échouée", error)
             throw error
         }
         guard snapshot.exists else { return nil }
         guard let entry = try? snapshot.data(as: FirestoreEpisodeCacheEntry.self) else {
             // Format d'une autre version de l'app : on retombe sur les API et on réécrit.
-            Log.data.notice("Document showsCache/\(cacheKey) illisible, ignoré")
+            Log.data.notice("Document episodesCache/\(cacheKey) illisible, ignoré")
             return nil
         }
         return Cached(value: entry.episodes, syncedAt: entry.syncedAt)
@@ -59,7 +59,7 @@ final class FirestoreEpisodeCacheService {
         let entry = FirestoreEpisodeCacheEntry(episodes: episodes, syncedAt: syncedAt)
         // Fonction de rappel : voir FirestoreShowCacheService.logWriteError.
         try document(cacheKey: cacheKey).setData(from: entry) { error in
-            FirestoreShowCacheService.logWriteError(error, path: "showsCache/\(cacheKey)")
+            FirestoreShowCacheService.logWriteError(error, path: "episodesCache/\(cacheKey)")
         }
     }
 }

@@ -50,7 +50,7 @@ service cloud.firestore {
     // Lecture et écriture par tout utilisateur connecté, forme validée, jamais de suppression.
     // Risque résiduel accepté : un utilisateur malveillant peut écrire un contenu faux
     // mais bien formé. Solution définitive : écriture par Cloud Function seulement.
-    match /showsCache/{cacheKey} {
+    match /episodesCache/{cacheKey} {
       allow read: if signedIn();
       allow create, update: if signedIn()
                             && validCacheKey(cacheKey)
