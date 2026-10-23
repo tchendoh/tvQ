@@ -34,9 +34,11 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     ) -> Bool {
         #if DEBUG
         // Clé lue par AppCheckDebugProvider. Sans elle, le SDK génère un jeton
-        // aléatoire par simulateur, à réenregistrer dans la console à chaque fois.
+        // aléatoire par appareil, à réenregistrer dans la console à chaque fois.
+        // Depuis AppCheckCore réécrit en Swift (Firebase 12.x), la clé UserDefaults
+        // est « GACAppCheckDebugToken »
         if !Secrets.appCheckDebugToken.isEmpty {
-            UserDefaults.standard.set(Secrets.appCheckDebugToken, forKey: "FIRAAppCheckDebugToken")
+            UserDefaults.standard.set(Secrets.appCheckDebugToken, forKey: "GACAppCheckDebugToken")
         }
         #endif
         // Doit précéder FirebaseApp.configure().
