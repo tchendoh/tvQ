@@ -105,6 +105,11 @@ struct AboutView: View {
                 if let url = URL(string: "mailto:tvq.app.support@gmail.com") {
                     Link("Contact", destination: url)
                 }
+                // Page hébergée sur GitHub Pages (dépôt tchendoh/tvq-site), même URL
+                // que dans App Store Connect.
+                if let url = URL(string: "https://tchendoh.github.io/tvq-site/privacy.html") {
+                    Link("Privacy Policy", destination: url)
+                }
             } header: {
                 Text("Feedback")
             } footer: {
