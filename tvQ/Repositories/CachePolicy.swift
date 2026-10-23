@@ -10,6 +10,9 @@ import Foundation
 /// évite un écran vide quand le réseau est lent ou absent.
 nonisolated struct CachePolicy: Sendable {
     let maxAge: TimeInterval
+    /// Durée pour une série terminée : plus longue, mais pas infinie (une série
+    /// peut revenir). Voir AppRules.Cache.endedShowMaxAge.
+    var endedMaxAge: TimeInterval = AppRules.Cache.endedShowMaxAge
 
     // Durées : voir AppRules.Cache.
 
@@ -22,9 +25,9 @@ nonisolated struct CachePolicy: Sendable {
     /// Disponibilité de visionnement (« Où regarder »).
     static let watchAvailability = CachePolicy(maxAge: AppRules.Cache.watchAvailabilityMaxAge)
 
-    /// `isEnded`: une série terminée ne change plus jamais (ni statut, ni épisodes),
-    /// donc sa copie en cache ne périme pas.
+    /// `isEnded` : une série terminée change rarement, sa copie dure donc plus
+    /// longtemps (endedMaxAge), sans être éternelle : une série peut être relancée.
     func isFresh(syncedAt: Date, isEnded: Bool = false, now: Date = .now) -> Bool {
-        isEnded || now.timeIntervalSince(syncedAt) < maxAge
+        now.timeIntervalSince(syncedAt) < (isEnded ? max(maxAge, endedMaxAge) : maxAge)
     }
 }

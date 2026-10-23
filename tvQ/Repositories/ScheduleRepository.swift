@@ -69,7 +69,7 @@ final class ScheduleRepository {
         _ = try await resolveRemotely(show: show, cacheKey: cacheKey)
     }
 
-    /// Une série terminée ne produira plus jamais de nouvel épisode : sa copie ne périme pas.
+    /// Une série terminée est revérifiée moins souvent (voir AppRules.Cache.endedShowMaxAge).
     private func refreshInBackgroundIfStale(show: Show, cacheKey: String, syncedAt: Date) {
         guard !CachePolicy.local.isFresh(syncedAt: syncedAt, isEnded: show.status == .ended) else { return }
         Task {

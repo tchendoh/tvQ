@@ -53,12 +53,18 @@ nonisolated enum AppRules {
         /// Copie locale (SwiftData). Même durée que la copie partagée : la copie
         /// locale reprend la date d'origine de la copie Firestore, et une durée plus
         /// courte la rendait aussitôt périmée (relecture de Firestore à chaque
-        /// chargement). Une série terminée ne périme jamais.
+        /// chargement). Une série terminée suit endedShowMaxAge.
         static let localMaxAge: TimeInterval = 24 * 3600
 
         /// Copie partagée entre tous les utilisateurs (Firestore) : elle absorbe la
         /// charge de TMDB et TVmaze ; 24 h suffit pour un horaire de diffusion.
         static let sharedMaxAge: TimeInterval = 24 * 3600
+
+        /// Série terminée (les deux copies) : elle change rarement, mais pas jamais.
+        /// Une série peut revenir (ex. True Detective, annoncée en octobre 2026 alors
+        /// que tvQ la gardait « terminée » pour toujours) : revérifiée une fois par
+        /// semaine au lieu de chaque jour.
+        static let endedShowMaxAge: TimeInterval = 7 * 24 * 3600
 
         /// « Où regarder » : les diffuseurs d'une série changent rarement.
         static let watchAvailabilityMaxAge: TimeInterval = 72 * 3600

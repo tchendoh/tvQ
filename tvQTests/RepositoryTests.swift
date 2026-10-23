@@ -77,7 +77,9 @@ struct RepositoryTests {
         })
     }
 
-    @Test func staleEndedShowIsNeverRefreshed() async throws {
+    /// Plus vieille qu'un jour, mais moins d'une semaine : une série terminée
+    /// n'est pas encore revérifiée (voir AppRules.Cache.endedShowMaxAge).
+    @Test func recentlySyncedEndedShowIsNotRefreshed() async throws {
         try await showStore.save(makeShow(tmdbID: 100, status: .ended), cacheKey: key(100), syncedAt: stale)
 
         _ = try await showRepository().getShow(tmdbID: 100)
@@ -195,10 +197,12 @@ struct RepositoryTests {
         #expect(colors.requestedURLs.isEmpty)
     }
 
-    /// Ancienne copie sans couleur (série terminée, jamais rafraîchie) : la couleur
-    /// est ajoutée en arrière-plan, sans rajeunir la copie.
+    /// Copie encore fraîche mais sans couleur (série terminée, synchronisée il y a
+    /// 3 jours : plus d'un jour, moins que endedShowMaxAge) : la couleur est ajoutée
+    /// en arrière-plan, sans rajeunir la copie. Une copie périmée, elle, est
+    /// rafraîchie au complet (et reçoit sa couleur à ce moment-là).
     @Test func cachedShowWithoutColorIsBackfilledKeepingItsDate() async throws {
-        let oldDate = now.addingTimeInterval(-90 * 86_400)
+        let oldDate = now.addingTimeInterval(-3 * 86_400)
         let old = Show(tmdbID: 100, imdbID: nil, tvmazeID: nil, title: "Ancienne", overview: "",
                        posterURL: nil, backdropURL: URL(string: "https://image.tmdb.org/t/p/w500/fond.jpg"),
                        genres: [], network: nil, status: .ended, numberOfSeasons: 1, originalLanguage: "en")
