@@ -154,6 +154,10 @@ Façons de faire un peu datées :
 Commentaires périmés :
 - [x] **`WatchProvidersMapper`** : commentaires corrigés le 2026-10-19 (`WatchAvailabilityMapper`).
 
+## Idées pour plus tard
+
+- **Xcode Cloud** (idée du 2026-10-23, pas urgent : l'archive manuelle et `RELEASE.md` suffisent tant que les publications sont rares) : à chaque push sur `main` (ou à chaque étiquette), compiler, lancer les tests, archiver et envoyer le build au groupe TestFlight interne. Inclus dans l'abonnement de développeur (25 heures de calcul par mois). Chantier principal : les fichiers absents du dépôt (`Config/Secrets.xcconfig`, `tvQ/GoogleService-Info.plist`) à recréer dans un script `ci_scripts/ci_post_clone.sh` à partir de variables secrètes d'Xcode Cloud. Vérifier aussi les phases de build (génération de `Secrets.generated.swift`, envoi des dSYM à Crashlytics) et connecter le dépôt GitHub. Bon sujet de portfolio.
+
 ## Divers
 
 - ~~**Nettoyage de l'horaire à la déconnexion**~~ — résolu (commit f7629e0, constaté le 2026-10-17) : `RootView` appelle `followedShowsStore.clear()` et `scheduleViewModel.clear()` quand l'utilisateur devient nil; `clear()` annule le chargement en cours avant de vider l'horaire.
