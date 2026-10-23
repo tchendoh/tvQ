@@ -94,6 +94,15 @@ test('Personne ne supprime un cache', async () => {
   await assertFails(deleteDoc(doc(bob(), 'showMetadataCache/1399_fr-CA')));
 });
 
+// Tendances : lecture seule pour l'app, écriture réservée au SDK Admin (Mac mini)
+test('Tendances : lisibles par un utilisateur connecté, jamais modifiables', async () => {
+  await assertSucceeds(getDoc(doc(bob(), 'trends/current')));
+  await assertSucceeds(getDoc(doc(guest(), 'trends/current')));
+  await assertFails(setDoc(doc(bob(), 'trends/current'), { mostFollowed: [] }));
+  await assertFails(deleteDoc(doc(bob(), 'trends/current')));
+  await assertFails(getDoc(doc(anon(), 'trends/current')));
+});
+
 // Visiteur non connecté et collections inconnues
 test('Visiteur non connecté ne peut rien faire', async () => {
   await assertFails(getDoc(doc(anon(), 'users/alice')));

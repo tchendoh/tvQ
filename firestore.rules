@@ -67,6 +67,14 @@ service cloud.firestore {
                             && request.resource.data.show is map;
     }
 
+    // ---- Tendances (calculées hors de l'app) ----
+    // Écrites seulement par le script du Mac mini (SDK Admin, qui ne passe pas par
+    // ces règles) à partir des séries suivies : comptes anonymes et agrégés.
+    match /trends/{document} {
+      allow read: if signedIn();
+      // aucune écriture : seul le Mac mini (SDK Admin) écrit ici
+    }
+
     // ---- Tout le reste : refusé ----
     match /{document=**} {
       allow read, write: if false;
