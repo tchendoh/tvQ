@@ -14,7 +14,7 @@ enum WatchAvailabilityMapper {
         func names(_ lists: [TMDBWatchProviderDTO]?...) -> [String] {
             lists.compactMap { $0 }.flatMap { $0 }
                 .map { normalizedProviderName($0.providerName) }
-                .filter { seen.insert($0).inserted }
+                .filter { seen.insert($0.lowercased()).inserted }  // sans casse : « netflix with ads » = « Netflix »
         }
         let included = names(regionDTO?.flatrate)
         let free = names(regionDTO?.free, regionDTO?.ads)
