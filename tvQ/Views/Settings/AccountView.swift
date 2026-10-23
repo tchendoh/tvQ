@@ -25,6 +25,9 @@ struct AccountView: View {
 
     private let notificationScheduler = NotificationScheduler.shared
 
+    @AppStorage(AppSettings.Keys.appearance)
+    private var appearance: AppAppearance = .system
+
     @State private var isPresentingLogin = false
     @State private var isPresentingEraseData = false
 
@@ -42,6 +45,17 @@ struct AccountView: View {
                         color: .red,
                         value: alertsSummary.text,
                         valueColor: alertsSummary.isProblem ? .orange : .secondary
+                    )
+                }
+
+                NavigationLink {
+                    AppearanceSettingsView()
+                } label: {
+                    SettingsRow(
+                        title: "Appearance",
+                        systemImage: "circle.lefthalf.filled",
+                        color: .indigo,
+                        value: Text(appearance.displayName)
                     )
                 }
 

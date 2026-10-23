@@ -25,6 +25,7 @@ enum AppSettings {
         /// Minutes depuis minuit (540 = 9 h).
         static let notificationMorningMinutes = "settings.notificationMorningMinutes"
         static let liveActivitiesEnabled = "settings.liveActivitiesEnabled"
+        static let appearance = "settings.appearance"
     }
 
     /// Lu par TMDBService à l'initialisation — voir son paramètre `language`.
@@ -72,5 +73,31 @@ enum AppSettings {
 
     static var cacheLanguageKey: String {
         useOriginalLanguage ? "original" : contentLanguage
+    }
+}
+
+/// Settings › Appearance : suivre iOS, ou forcer le mode clair ou sombre pour tvQ seulement.
+enum AppAppearance: String, CaseIterable, Identifiable {
+    case system
+    case light
+    case dark
+
+    var id: Self { self }
+
+    var displayName: LocalizedStringKey {
+        switch self {
+        case .system: "System"
+        case .light: "Light"
+        case .dark: "Dark"
+        }
+    }
+
+    /// nil : laisse iOS décider (réglage System).
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: nil
+        case .light: .light
+        case .dark: .dark
+        }
     }
 }

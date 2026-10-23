@@ -1,14 +1,16 @@
 import SwiftUI
 
 /// Racine de l'app : affiche le contenu principal dès qu'un utilisateur existe
-/// (compte ou session anonyme). LoginView n'est plus une étape obligatoire :
-/// elle s'ouvre depuis Settings.
+/// (compte ou session anonyme).
 struct RootView: View {
     @State private var session = SessionStore()
     @State private var followedShowsStore = FollowedShowsStore()
     // Créé ici (et non dans ScheduleView) pour que l'horaire se précharge dès
     // le lancement, sans attendre la première ouverture de l'onglet Schedule.
     @State private var scheduleViewModel = ScheduleViewModel()
+
+    @AppStorage(AppSettings.Keys.appearance)
+    private var appearance: AppAppearance = .system
 
     var body: some View {
         Group {
@@ -27,6 +29,8 @@ struct RootView: View {
                 )
             }
         }
+        // S'applique aussi aux feuilles (Account, fiche série) présentées par-dessus.
+        .preferredColorScheme(appearance.colorScheme)
         // Écoute Firebase tant que l'app est ouverte ; SwiftUI annule la tâche avec la vue.
         .task { await session.observe() }
         // Déconnexion ou suppression de compte : vider l'état partagé qui vit ici.
