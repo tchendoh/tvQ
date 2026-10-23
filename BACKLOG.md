@@ -16,6 +16,14 @@ Choses identifiées en cours de route, volontairement mises de côté pour reste
 
 - [x] **Écran de connexion** : refait le 2026-10-21. La connexion n'est plus obligatoire : session anonyme Firebase au lancement, création de compte depuis Settings.
 - [ ] **Revoir le design et la mise en forme de la feuille ShowDetail** (noté le 2026-10-21).
+- [ ] **Retour haptique (mini-vibrations)** (noté le 2026-10-23, dans l'esprit de l'app Claude) : modificateur SwiftUI `.sensoryFeedback(_:trigger:)`, qui respecte déjà le réglage Sons et vibrations d'iOS. Endroits candidats :
+  - suivre ou ne plus suivre une série (`.success` / `.impact(weight: .light)`), dans la fiche, les cartes et Search ;
+  - cloche d'alertes d'une série (`.selection`) ;
+  - fin d'un « tirer pour rafraîchir » dans l'Horaire et Mes séries (`.impact(weight: .light)`) ;
+  - retour sur « Aujourd'hui » (bouton Today ou deuxième toucher sur l'onglet) ;
+  - choix dans les réglages (apparence, langue, moment des alertes) et changement de pays dans « Où regarder » (`.selection`) ;
+  - erreur visible (quota dépassé, échec réseau) : `.error`.
+  Rester discret : pas de vibration au simple défilement ni à chaque toucher de navigation.
 - [x] **Roue d'engrenage remplacée par un avatar « Account »** : fait le 2026-10-21. `accountToolbarItem()` ouvre `AccountView` (ex-`SettingsView`) dans une feuille avec transition zoom depuis l'avatar, comme App Store, Music et Books. `axisBehavior(.verticalPreferred)` (iOS 27.1) pour que l'avatar rejoigne la colonne verticale sur l'iPhone Duo ; bouton X en `.cancellationAction`. À juger plus tard : la pastille rose pleine en session anonyme.
 - [ ] **Remplir les informations de distribution dans App Store Connect, en français et en anglais** (noté le 2026-10-19) : description, sous-titre, mots-clés, captures d'écran, URL de soutien et de politique de confidentialité, informations de test TestFlight. Ajouter la localisation française (Canada) en plus de l'anglais. **Fait le 2026-10-23** : confidentialité de l'app (6 types de données), URL de politique et de soutien, informations TestFlight (anglais, français, français Canada), build 3 soumis à la Beta App Review. **Reste, avant l'App Store** : fiche produit (description, sous-titre, mots-clés, captures 6,9 po) en anglais et en français, idéalement avec un mode démo pour ReadmeScreenshotsTests.
 - **Notifications de nouveaux épisodes** (implanté le 2026-10-17 : `Notifications/`, tests dans `NotificationPlannerTests`. permission proposée au premier suivi depuis le 2026-10-18, si iOS n'a jamais posé la question ; en Debug, Settings > Notifications ouvre une page « Scheduled notifications (debug) » : notifications programmées, permission, notification de test) — notifications **locales** (`UserNotifications`, aucun serveur, compatible Spark), programmées à partir des épisodes déjà chargés par `ScheduleViewModel`.
