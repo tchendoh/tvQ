@@ -7,8 +7,10 @@ import XCTest
 /// lancer, suivre quelques séries dans l'app sur ce simulateur (les données restent
 /// entre deux lancements de test).
 ///
-/// Récupérer les images : Report Navigator (⌘9) > le test > pièces jointes, ou
-///   xcrun xcresulttool export attachments --path <résultat>.xcresult --output-path <dossier>
+/// Récupérer les images (dernier résultat de test, dans Screenshots/raw/, ignoré par Git) :
+///   rm -rf ~/iOS/tvQ/Screenshots/raw && R=$(ls -td ~/Library/Developer/Xcode/DerivedData/tvQ-*/Logs/Test/*.xcresult | head -1) && xcrun xcresulttool export attachments --path "$R" --output-path ~/iOS/tvQ/Screenshots/raw
+/// Ensuite : tri, réduction à 600 px de large, et copie dans le dépôt tvq-site
+/// (dossier screenshots/), qui sert les images des README.
 final class ReadmeScreenshotsTests: XCTestCase {
     private var app: XCUIApplication!
 
@@ -20,16 +22,21 @@ final class ReadmeScreenshotsTests: XCTestCase {
         let home: String
         let schedule: String
         let myShows: String
+        let search: String
     }
 
     private let languages = [
-        Language(code: "en", locale: "en_CA", home: "Home", schedule: "Schedule", myShows: "My Shows"),
-        Language(code: "fr", locale: "fr_CA", home: "Accueil", schedule: "Horaire", myShows: "Mes séries"),
+        Language(code: "en", locale: "en_CA", home: "Home", schedule: "Schedule", myShows: "My Shows", search: "Search"),
+        Language(code: "fr", locale: "fr_CA", home: "Accueil", schedule: "Horaire", myShows: "Mes séries", search: "Recherche"),
     ]
 
     /// Série montrée dans la fiche (titre ou partie du titre, tel qu'affiché dans
     /// My Shows). Choisir une série suivie avec une belle affiche.
     private static let featuredShow = "Severance"
+
+    /// Requête montrée dans la capture de Search : choisir un mot qui donne une
+    /// grille d'affiches variées.
+    private static let searchQuery = "Star Wars"
 
     override func setUp() {
         continueAfterFailure = true
@@ -55,6 +62,7 @@ final class ReadmeScreenshotsTests: XCTestCase {
 
         capture("home-\(suffix)", afterTapping: language.home)
         capture("schedule-\(suffix)", afterTapping: language.schedule)
+        captureSearch("search-\(suffix)", tab: language.search)
         capture("my-shows-\(suffix)", afterTapping: language.myShows)
 
         // Fiche : la série vedette si elle est suivie, sinon la première de My Shows.
@@ -98,6 +106,24 @@ final class ReadmeScreenshotsTests: XCTestCase {
             settle()
         }
         app.terminate()
+    }
+
+    @MainActor
+    private func captureSearch(_ name: String, tab: String) {
+        let button = app.tabBars.buttons[tab]
+        if button.waitForExistence(timeout: 10) { button.tap() }
+        let field = app.searchFields.firstMatch
+        guard field.waitForExistence(timeout: 10) else {
+            return XCTFail("Champ de recherche introuvable (\(tab))")
+        }
+        field.tap()
+        field.typeText(Self.searchQuery)
+        settle()
+        // Ferme le clavier pour montrer la grille entière.
+        app.swipeUp()
+        app.swipeDown()
+        settle()
+        snapshot(name)
     }
 
     @MainActor

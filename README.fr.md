@@ -10,9 +10,9 @@ Une application iOS native, développée en solo en Swift 6 et SwiftUI.
 |---|---|---|
 | <img src="https://tchendoh.github.io/tvq-site/screenshots/home-fr.png" alt="Accueil" width="250"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/schedule-fr.png" alt="Horaire" width="250"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/my-shows-fr.png" alt="Mes séries" width="250"> |
 
-| Fiche série (sombre) | Fiche série (clair) |
-|---|---|
-| <img src="https://tchendoh.github.io/tvq-site/screenshots/show-detail-fr-dark.png" alt="Fiche série, sombre" width="250"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/show-detail-fr-light.png" alt="Fiche série, clair" width="250"> |
+| Recherche | Fiche série (sombre) | Fiche série (clair) |
+|---|---|---|
+| <img src="https://tchendoh.github.io/tvq-site/screenshots/search-fr.png" alt="Recherche" width="250"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/show-detail-fr-dark.png" alt="Fiche série, sombre" width="250"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/show-detail-fr-light.png" alt="Fiche série, clair" width="250"> |
 
 ## Points forts
 

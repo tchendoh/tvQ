@@ -10,9 +10,9 @@ A native iOS app built solo in Swift 6 and SwiftUI.
 |---|---|---|
 | <img src="https://tchendoh.github.io/tvq-site/screenshots/home-en.png" alt="Home" width="250"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/schedule-en.png" alt="Schedule" width="250"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/my-shows-en.png" alt="My Shows" width="250"> |
 
-| Show detail (dark) | Show detail (light) |
-|---|---|
-| <img src="https://tchendoh.github.io/tvq-site/screenshots/show-detail-en-dark.png" alt="Show detail, dark" width="250"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/show-detail-en-light.png" alt="Show detail, light" width="250"> |
+| Search | Show detail (dark) | Show detail (light) |
+|---|---|---|
+| <img src="https://tchendoh.github.io/tvq-site/screenshots/search-en.png" alt="Search" width="250"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/show-detail-en-dark.png" alt="Show detail, dark" width="250"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/show-detail-en-light.png" alt="Show detail, light" width="250"> |
 
 ## Highlights
 
