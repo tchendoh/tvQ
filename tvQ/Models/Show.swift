@@ -43,6 +43,12 @@ nonisolated struct Show: Identifiable, Equatable, Hashable, Codable {
     /// la Live Activity). nil si l'image n'a qu'une couleur, ou pas encore calculée.
     var accentColor: ShowColor? = nil
 
+    /// Accent à afficher : accentColor, sinon la dominante éclaircie. Même
+    /// calcul que la Live Activity (ShowColor.resolvedAccent).
+    var resolvedAccentColor: ShowColor? {
+        ShowColor.resolvedAccent(accent: accentColor, dominant: dominantColor)
+    }
+
     /// Format selon TVmaze ("Scripted", "Reality", "Game Show"…), nil si TVmaze ne
     /// connaît pas la série. Sert à écarter les jeux quotidiens de Home.
     var tvmazeType: String? = nil
@@ -50,10 +56,20 @@ nonisolated struct Show: Identifiable, Equatable, Hashable, Codable {
     /// (TMDB). Repli quand le type TVmaze manque.
     var recentSeasonEpisodeCount: Int? = nil
 
+    /// Version du calcul qui a produit dominantColor et accentColor. Une copie
+    /// en cache d'une autre version est recalculée (ShowRepository) : à
+    /// incrémenter quand la source ou l'algorithme des couleurs change.
+    /// nil : copie antérieure à ce champ (calculée sur l'image de fond).
+    var colorVersion: Int? = nil
+
+    /// 2 : couleurs tirées de l'affiche plutôt que de l'image de fond (2026-10-22).
+    static let currentColorVersion = 2
+
     /// Applique les couleurs calculées (voir ShowColorExtractor).
     mutating func apply(_ palette: ShowPalette?) {
         dominantColor = palette?.dominant
         accentColor = palette?.accent
+        colorVersion = palette == nil ? nil : Self.currentColorVersion
     }
 }
 

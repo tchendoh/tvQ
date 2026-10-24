@@ -16,7 +16,8 @@ struct ShowColorExtractor: ShowColorExtracting {
 }
 
 extension Show {
-    /// Image d'où tirer la couleur : l'image de fond, plus représentative de
-    /// l'ambiance de la série que l'affiche (souvent chargée de texte).
-    var colorSourceURL: URL? { backdropURL ?? posterURL }
+    /// Image d'où tirer les couleurs : l'affiche, l'identité visuelle de la
+    /// série (choix du 2026-10-22 ; avant, l'image de fond). L'image de fond
+    /// seulement s'il n'y a pas d'affiche.
+    var colorSourceURL: URL? { posterURL ?? backdropURL }
 }

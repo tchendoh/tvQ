@@ -212,14 +212,14 @@ final class ShowRepository {
 
     // MARK: - Couleur dominante
 
-    /// Copie en cache sans couleur (antérieure à son ajout, ou image indisponible à
-    /// l'époque) : la calcule en arrière-plan et met à jour les deux copies, sans
+    /// Copie en cache sans couleur (antérieure à son ajout, image indisponible à
+    /// l'époque, ou calculée par une ancienne version : voir Show.colorVersion) : la calcule en arrière-plan et met à jour les deux copies, sans
     /// toucher à leur date de synchronisation. Utile surtout pour les séries
     /// terminées, dont la copie ne se rafraîchit jamais.
     private func backfillColorIfNeeded(_ cached: Cached<Show>, cacheKey: String) {
-        // Sans accent : copie antérieure à son ajout, ou image d'une seule couleur.
-        // Dans ce dernier cas le calcul redonne le même résultat et rien n'est écrit.
-        guard cached.value.dominantColor == nil || cached.value.accentColor == nil,
+        // Couleurs absentes, ou calculées par une autre version (ex. sur l'image
+        // de fond avant le passage à l'affiche) : Show.currentColorVersion.
+        guard cached.value.dominantColor == nil || cached.value.colorVersion != Show.currentColorVersion,
               let url = cached.value.colorSourceURL,
               !colorBackfillAttempted.contains(cacheKey)
         else { return }

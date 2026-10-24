@@ -270,21 +270,13 @@ private let tvQMagenta = Color(red: 232 / 255, green: 61 / 255, blue: 158 / 255)
 private extension EpisodeActivityAttributes {
     /// Couleur du bandeau (sombre, pour du texte blanc).
     var tintColor: Color {
-        guard let tint else { return tvQMagenta.opacity(0.85) }
-        return Color(red: tint.red, green: tint.green, blue: tint.blue)
+        tint?.color ?? tvQMagenta.opacity(0.85)
     }
 
-    /// Couleur d'accent sur fond noir (compte à rebours, barre) : la deuxième couleur
-    /// de la série si son image en a une, sinon sa couleur éclaircie, sinon le
-    /// magenta de tvQ.
+    /// Couleur d'accent sur fond noir (compte à rebours, barre) : calcul commun
+    /// avec la fiche (ShowColor.resolvedAccent), sinon le magenta de tvQ.
     var accent: Color {
-        if let accentTint {
-            return Color(red: accentTint.red, green: accentTint.green, blue: accentTint.blue)
-        }
-        guard let tint else { return tvQMagenta }
-        let brightest = max(tint.red, tint.green, tint.blue, 0.01)
-        let boost = min(1 / brightest, 4)
-        return Color(red: min(tint.red * boost, 1), green: min(tint.green * boost, 1), blue: min(tint.blue * boost, 1))
+        ShowColor.resolvedAccent(accent: accentTint, dominant: tint)?.color ?? tvQMagenta
     }
 
     var image: UIImage? {
