@@ -12,10 +12,13 @@
 // Clé du compte de service : variable GOOGLE_APPLICATION_CREDENTIALS, sinon
 // ~/.config/tvq/tvq-trends.json. Jamais dans le dépôt.
 //
-// Usage : node index.js [--dry-run]   (--dry-run : calcule et affiche, sans écrire)
+// Exécuté directement par Node (>= 22.18, suppression native des types) :
+//     node index.ts [--dry-run]   (--dry-run : calcule et affiche, sans écrire)
+// Vérification des types : npm run typecheck
 
 import { initializeApp, applicationDefault } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import type { Timestamp } from "firebase-admin/firestore";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -24,6 +27,16 @@ const PROJECT_ID = "projet-tvq";
 const TOP_COUNT = 100;
 const RISING_WINDOW_DAYS = 7;
 const DRY_RUN = process.argv.includes("--dry-run");
+
+/// Une entrée de classement : { showID, followers } ou { showID, added }.
+type RankEntry<Field extends string> = { showID: string } & Record<Field, number>;
+
+/// Contenu de trends/current (sans updatedAt, ajouté à l'écriture).
+interface Trends {
+  userCount: number;
+  mostFollowed: RankEntry<"followers">[];
+  risingThisWeek: RankEntry<"added">[];
+}
 
 if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
   const defaultKey = join(homedir(), ".config", "tvq", "tvq-trends.json");
@@ -39,34 +52,46 @@ const db = getFirestore();
 
 /// Les n entrées les plus élevées d'un compteur, à égalité triées par showID
 /// pour un résultat stable d'une exécution à l'autre.
-function top(counts, n, field) {
+function top<Field extends string>(
+  counts: Map<string, number>,
+  n: number,
+  field: Field,
+): RankEntry<Field>[] {
   return [...counts.entries()]
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
     .slice(0, n)
-    .map(([showID, count]) => ({ showID, [field]: count }));
+    .map(([showID, count]) => ({ showID, [field]: count }) as RankEntry<Field>);
 }
 
-async function main() {
+/// Vrai si la valeur ressemble à un Timestamp Firestore.
+function isTimestamp(value: unknown): value is Timestamp {
+  return typeof (value as Timestamp | null)?.toMillis === "function";
+}
+
+function increment(counts: Map<string, number>, key: string): void {
+  counts.set(key, (counts.get(key) ?? 0) + 1);
+}
+
+async function main(): Promise<void> {
   const since = Date.now() - RISING_WINDOW_DAYS * 24 * 60 * 60 * 1000;
-  const followers = new Map();
-  const added = new Map();
+  const followers = new Map<string, number>();
+  const added = new Map<string, number>();
 
   const snapshot = await db.collection("users").get();
   for (const doc of snapshot.docs) {
-    const followed = doc.get("followedShows");
+    const followed: unknown = doc.get("followedShows");
     if (!followed || typeof followed !== "object") continue;
-    for (const [showID, addedAt] of Object.entries(followed)) {
-      followers.set(showID, (followers.get(showID) ?? 0) + 1);
+    for (const [showID, addedAt] of Object.entries(followed as Record<string, unknown>)) {
+      increment(followers, showID);
       // Timestamp Firestore attendu ; une autre valeur compte comme suivie,
       // mais pas comme ajout récent.
-      const millis = typeof addedAt?.toMillis === "function" ? addedAt.toMillis() : null;
-      if (millis !== null && millis >= since) {
-        added.set(showID, (added.get(showID) ?? 0) + 1);
+      if (isTimestamp(addedAt) && addedAt.toMillis() >= since) {
+        increment(added, showID);
       }
     }
   }
 
-  const trends = {
+  const trends: Trends = {
     userCount: snapshot.size,
     mostFollowed: top(followers, TOP_COUNT, "followers"),
     risingThisWeek: top(added, TOP_COUNT, "added"),
@@ -90,7 +115,7 @@ async function main() {
   console.log("trends/current mis à jour.");
 }
 
-main().catch((error) => {
+main().catch((error: unknown) => {
   console.error(error);
   process.exit(1);
 });
