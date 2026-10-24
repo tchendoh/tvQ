@@ -90,9 +90,6 @@ struct ShowDetailView: View {
 
                 aboutSection(for: show)
                     .padding(.horizontal)
-
-                linksSection(for: show)
-                    .padding(.horizontal)
             }
             .padding(.bottom, 24)
         }
@@ -199,48 +196,45 @@ struct ShowDetailView: View {
                 if let language = Locale.current.localizedString(forLanguageCode: show.originalLanguage) {
                     LabeledContent("Original language") { Text(verbatim: language.localizedCapitalized) }
                 }
+                // Couleurs de la série, mêmes que sa Live Activity : la dominante
+                // et l'accent (dérivé de la dominante si l'image n'en a pas).
+                let colors = [show.dominantColor, show.resolvedAccentColor].compactMap { $0 }
+                if !colors.isEmpty {
+                    LabeledContent("Colors") {
+                        HStack(spacing: 6) {
+                            ForEach(colors, id: \.self) { color in
+                                Circle()
+                                    .fill(color.color)
+                                    .frame(width: 18, height: 18)
+                                    .overlay { Circle().strokeBorder(.primary.opacity(0.15), lineWidth: 1) }
+                            }
+                        }
+                        .accessibilityHidden(true)
+                    }
+                }
+                // Lien IMDb (l'ancienne section Links, retirée le 2026-10-22 avec
+                // le lien TMDB). imdbID est optionnel : certaines séries n'en ont
+                // pas sur TMDB. Logo officiel (brand.imdb.com), noir ou blanc
+                // selon le thème.
+                if let imdbID = show.imdbID, let imdbURL = URL(string: "https://www.imdb.com/title/\(imdbID)/") {
+                    LabeledContent("More info") {
+                        Link(destination: imdbURL) {
+                            HStack(spacing: 4) {
+                                Image("IMDbLogo")
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(height: 16)
+                                    .accessibilityHidden(true)
+                                Image(systemName: "arrow.up.right")
+                                    .font(.caption2.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .accessibilityLabel("View on IMDb")
+                    }
+                }
             }
             .font(.subheadline)
-        }
-    }
-
-    @ViewBuilder
-    private func linksSection(for show: Show) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            sectionHeader("Links") { EmptyView() }
-
-            HStack(spacing: 20) {
-                // imdbID est optionnel (voir Show.swift) : certaines séries
-                // n'ont pas d'IMDB ID renseigné sur TMDB.
-                if let imdbID = show.imdbID, let imdbURL = URL(string: "https://www.imdb.com/title/\(imdbID)/") {
-                    // Logo officiel (trousse de marque IMDb, brand.imdb.com),
-                    // versions noir/blanc adaptées au mode clair/sombre.
-                    Link(destination: imdbURL) {
-                        HStack(spacing: 6) {
-                            Image("IMDbLogo")
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(height: 16)
-                                .accessibilityHidden(true)
-                            Image(systemName: "arrow.up.right")
-                                .font(.caption2.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .accessibilityLabel("View on IMDb")
-                }
-
-                if let tmdbURL = URL(string: "https://www.themoviedb.org/tv/\(show.tmdbID)") {
-                    Link(destination: tmdbURL) {
-                        HStack(spacing: 4) {
-                            Text(verbatim: "TMDB")
-                                .font(.subheadline.weight(.semibold))
-                            Image(systemName: "arrow.up.right")
-                                .font(.caption2.weight(.semibold))
-                        }
-                    }
-                }
-            }
         }
     }
 
