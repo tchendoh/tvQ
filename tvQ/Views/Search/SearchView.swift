@@ -3,6 +3,9 @@ import SwiftUI
 struct SearchView: View {
     @State private var viewModel = SearchViewModel()
     @State private var selectedTMDBID: Int?
+    /// Focus du champ de recherche, retiré avant d'ouvrir une fiche pour que
+    /// le clavier ne reste pas affiché par-dessus la feuille.
+    @FocusState private var isSearchFieldFocused: Bool
     /// Largeur minimale d'une carte, qui grandit avec la taille du texte choisie
     /// dans les réglages d'accessibilité.
     @ScaledMetric(relativeTo: .body) private var cardMinimumWidth = ShowCardView.baseMinimumWidth
@@ -23,7 +26,10 @@ struct SearchView: View {
                     ScrollView {
                         EvenGrid(items: viewModel.results, minimumWidth: cardMinimumWidth) { summary in
                             let showID = String(summary.tmdbID)
-                            Button { selectedTMDBID = summary.tmdbID } label: {
+                            Button {
+                                isSearchFieldFocused = false
+                                selectedTMDBID = summary.tmdbID
+                            } label: {
                                 ShowCardView(
                                     title: summary.title,
                                     posterURL: summary.posterURL,
@@ -35,11 +41,13 @@ struct SearchView: View {
                         }
                         .padding(20)
                     }
+                    .scrollDismissesKeyboard(.immediately)
                 }
             }
             .navigationTitle("Search")
             .presentsShowDetailSheet(tmdbID: $selectedTMDBID)
             .searchable(text: $viewModel.query, prompt: "Show title")
+            .searchFocused($isSearchFieldFocused)
             .onChange(of: viewModel.query) {
                 viewModel.search()
             }

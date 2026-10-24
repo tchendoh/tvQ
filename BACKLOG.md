@@ -16,7 +16,7 @@ Choses identifiées en cours de route, volontairement mises de côté pour reste
 
 - [x] **Écran de connexion** : refait le 2026-10-21. La connexion n'est plus obligatoire : session anonyme Firebase au lancement, création de compte depuis Settings.
 - [ ] **Revoir le design et la mise en forme de la feuille ShowDetail** (noté le 2026-10-21).
-- [ ] **Bogue : le clavier reste par-dessus la feuille d'une série** (noté le 2026-10-23, sur iPhone) : dans Search, après une recherche, toucher un résultat ouvre la feuille ShowDetail, mais le clavier reste affiché par-dessus. Piste : fermer le clavier avant de présenter la feuille (retirer le focus du champ de recherche, ex. `@FocusState` ou `.searchFocused(_:)`, ou `.scrollDismissesKeyboard(.immediately)` sur la grille).
+- [x] **Bogue : le clavier reste par-dessus la feuille d'une série** (noté le 2026-10-23, sur iPhone ; corrigé le 2026-10-24 : `@FocusState` + `.searchFocused`, focus retiré avant d'ouvrir la fiche, et `.scrollDismissesKeyboard(.immediately)` sur la grille) : dans Search, après une recherche, toucher un résultat ouvre la feuille ShowDetail, mais le clavier reste affiché par-dessus. Piste : fermer le clavier avant de présenter la feuille (retirer le focus du champ de recherche, ex. `@FocusState` ou `.searchFocused(_:)`, ou `.scrollDismissesKeyboard(.immediately)` sur la grille).
 - [ ] **Retour haptique (mini-vibrations)** (noté le 2026-10-23, dans l'esprit de l'app Claude) : modificateur SwiftUI `.sensoryFeedback(_:trigger:)`, qui respecte déjà le réglage Sons et vibrations d'iOS. Endroits candidats :
   - suivre ou ne plus suivre une série (`.success` / `.impact(weight: .light)`), dans la fiche, les cartes et Search ;
   - cloche d'alertes d'une série (`.selection`) ;
