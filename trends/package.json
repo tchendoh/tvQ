@@ -1,0 +1,14 @@
+{
+  "name": "tvq-trends",
+  "private": true,
+  "type": "module",
+  "description": "Calcule les tendances de tvQ (séries les plus suivies, ajouts de la semaine) et les écrit dans trends/current.",
+  "scripts": {
+    "start": "node index.js",
+    "dry-run": "node index.js --dry-run"
+  },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "firebase-admin": "^13.0.0"
+  }
+}

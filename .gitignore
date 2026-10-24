@@ -130,6 +130,7 @@ GoogleService-Info.plist
 
 # Tests des règles Firestore
 firestore-tests/node_modules/
+trends/node_modules/
 firestore-debug.log
 
 # Réglages locaux de Claude Code
