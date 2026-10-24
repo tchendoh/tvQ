@@ -102,6 +102,11 @@ test('Tendances : lisibles par un utilisateur connecté, jamais modifiables', as
   await assertFails(deleteDoc(doc(bob(), 'trends/current')));
   await assertFails(getDoc(doc(anon(), 'trends/current')));
 });
+test('Historique des tendances : interne, aucun accès depuis l\'app', async () => {
+  await assertFails(getDoc(doc(bob(), 'trendsHistory/2026-10-24')));
+  await assertFails(getDoc(doc(guest(), 'trendsHistory/2026-10-24')));
+  await assertFails(setDoc(doc(bob(), 'trendsHistory/2026-10-24'), { followers: {} }));
+});
 
 // Visiteur non connecté et collections inconnues
 test('Visiteur non connecté ne peut rien faire', async () => {

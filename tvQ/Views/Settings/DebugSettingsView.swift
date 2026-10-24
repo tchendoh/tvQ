@@ -23,6 +23,9 @@ struct DebugSettingsView: View {
             NavigationLink(verbatimLabel("Live Activities")) {
                 NotificationsDebugView(kind: .liveActivities)
             }
+            NavigationLink(verbatimLabel("Trends")) {
+                TrendsDebugView()
+            }
             NavigationLink(verbatimLabel("Style Lab")) {
                 StyleLabView()
             }
