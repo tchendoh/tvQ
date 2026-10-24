@@ -21,7 +21,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 const PROJECT_ID = "projet-tvq";
-const TOP_COUNT = 20;
+const TOP_COUNT = 100;
 const RISING_WINDOW_DAYS = 7;
 const DRY_RUN = process.argv.includes("--dry-run");
 
