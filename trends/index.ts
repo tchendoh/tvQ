@@ -3,8 +3,9 @@
 // Lit tous les documents users/{userID} :
 //     { followedShows: { "1399": <Timestamp d'ajout>, ... }, ... }
 // et écrit un seul document trends/current :
-//     { updatedAt, userCount, mostFollowed: [{ showID, followers }],
-//       risingThisWeek: [{ showID, added }] }
+//     { updatedAt, userCount, mostFollowed: [{ showID, url, followers }],
+//       risingThisWeek: [{ showID, url, added }] }
+// url : la fiche TMDB de la série, pratique pour consulter les données dans la console.
 //
 // Seulement des comptes agrégés : aucun identifiant d'utilisateur n'est écrit.
 // Le SDK Admin ne passe pas par les règles de sécurité ni par App Check.
@@ -28,8 +29,13 @@ const TOP_COUNT = 100;
 const RISING_WINDOW_DAYS = 7;
 const DRY_RUN = process.argv.includes("--dry-run");
 
-/// Une entrée de classement : { showID, followers } ou { showID, added }.
-type RankEntry<Field extends string> = { showID: string } & Record<Field, number>;
+/// Une entrée de classement : { showID, url, followers } ou { showID, url, added }.
+type RankEntry<Field extends string> = { showID: string; url: string } & Record<Field, number>;
+
+/// Fiche TMDB d'une série.
+function tmdbURL(showID: string): string {
+  return `https://www.themoviedb.org/tv/${showID}`;
+}
 
 /// Contenu de trends/current (sans updatedAt, ajouté à l'écriture).
 interface Trends {
@@ -60,7 +66,7 @@ function top<Field extends string>(
   return [...counts.entries()]
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
     .slice(0, n)
-    .map(([showID, count]) => ({ showID, [field]: count }) as RankEntry<Field>);
+    .map(([showID, count]) => ({ showID, url: tmdbURL(showID), [field]: count }) as RankEntry<Field>);
 }
 
 /// Vrai si la valeur ressemble à un Timestamp Firestore.
