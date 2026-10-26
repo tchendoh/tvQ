@@ -7,10 +7,10 @@ import XCTest
 /// lancer, suivre quelques séries dans l'app sur ce simulateur (les données restent
 /// entre deux lancements de test).
 ///
-/// Récupérer les images (dernier résultat de test, dans Screenshots/raw/, ignoré par Git) :
-///   rm -rf ~/iOS/tvQ/Screenshots/raw && R=$(ls -td ~/Library/Developer/Xcode/DerivedData/tvQ-*/Logs/Test/*.xcresult | head -1) && xcrun xcresulttool export attachments --path "$R" --output-path ~/iOS/tvQ/Screenshots/raw
-/// Ensuite : tri, réduction à 600 px de large, et copie dans le dépôt tvq-site
-/// (dossier screenshots/), qui sert les images des README.
+/// Publier ensuite avec ./Screenshots/publish.sh : export du dernier résultat de test
+/// (Screenshots/raw/, ignoré par Git), renommage d'après les noms ci-dessous,
+/// réduction à 600 px et copie dans le dépôt tvq-site (screenshots/), qui sert les
+/// images des README, puis commit et poussée sur confirmation.
 final class ReadmeScreenshotsTests: XCTestCase {
     private var app: XCUIApplication!
 
