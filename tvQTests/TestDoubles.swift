@@ -70,7 +70,6 @@ final class FakeTMDB: TMDBFetching {
     }
 
     func fetchTrendingTV(timeWindow: String) async throws -> [TMDBSearchResultDTO] { [] }
-    func fetchOnTheAirTV() async throws -> [TMDBSearchResultDTO] { [] }
     func fetchAiringTodayTV() async throws -> [TMDBSearchResultDTO] { [] }
 
     func fetchWatchProviders(seriesID: Int) async throws -> TMDBWatchProvidersDTO {

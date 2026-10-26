@@ -76,7 +76,7 @@ struct TMDBService {
         return response.episodes
     }
 
-    /// Trois listes toutes faites de TMDB, pour la page Accueil (découverte) —
+    /// Deux listes toutes faites de TMDB, pour la page Accueil (découverte) —
     /// à ne pas confondre avec une métrique propre à tvQ.
 
     /// "week" plutôt que "day" : plus stable d'une ouverture d'app à l'autre.
@@ -84,12 +84,8 @@ struct TMDBService {
         try await fetchList(path: "trending/tv/\(timeWindow)")
     }
 
-    /// Séries ayant un épisode prévu dans les 7 prochains jours.
-    func fetchOnTheAirTV() async throws -> [TMDBSearchResultDTO] {
-        try await fetchList(path: "tv/on_the_air")
-    }
-
-    /// Séries ayant un épisode qui sort aujourd'hui même.
+    /// Séries ayant un épisode qui sort aujourd'hui même. Sans paramètre `timezone`,
+    /// TMDB compte « aujourd'hui » à l'heure de New York, la même qu'à Montréal.
     func fetchAiringTodayTV() async throws -> [TMDBSearchResultDTO] {
         try await fetchList(path: "tv/airing_today")
     }

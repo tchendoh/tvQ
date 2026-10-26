@@ -31,6 +31,18 @@ nonisolated enum AppRules {
         /// Sinon, repli sur TMDB : plus de 120 épisodes dans une saison récente. Les
         /// jeux en ont 150 et plus ; Survivor Québec, quotidien lui aussi, environ 67.
         static let gameShowMinSeasonEpisodes = 120
+
+        /// Rangée « Popular on tvQ » (lue dans trends/current) : affichée seulement
+        /// quand le classement veut dire quelque chose. En bêta, une carte
+        /// d'invitation la remplace (voir AppDistribution).
+        static let tvQPopularMinUsers = 5
+        /// Une série n'entre dans la rangée que si au moins 2 personnes la suivent :
+        /// une série suivie par une seule personne ne dit rien, et révélerait les
+        /// goûts d'un testeur précis.
+        static let tvQPopularMinFollowers = 2
+        static let tvQPopularMinShows = 3
+        /// Séries affichées dans la rangée : chacune demande sa fiche (caches à 3 paliers).
+        static let tvQPopularMaxShows = 15
     }
 
     // MARK: - Horaire (Schedule)

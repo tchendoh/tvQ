@@ -9,7 +9,6 @@ protocol TMDBFetching {
     func fetchShowDetails(id: Int, language: String?) async throws -> TMDBShowDTO
     func fetchEpisodes(seriesID: Int, season: Int, language: String?) async throws -> [TMDBEpisodeDTO]
     func fetchTrendingTV(timeWindow: String) async throws -> [TMDBSearchResultDTO]
-    func fetchOnTheAirTV() async throws -> [TMDBSearchResultDTO]
     func fetchAiringTodayTV() async throws -> [TMDBSearchResultDTO]
     func fetchWatchProviders(seriesID: Int) async throws -> TMDBWatchProvidersDTO
 }

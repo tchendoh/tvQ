@@ -56,10 +56,6 @@ final class ShowRepository {
         try await recommendations(from: tmdbService.fetchTrendingTV())
     }
 
-    func onTheAirShows() async throws -> [ShowSummary] {
-        try await recommendations(from: tmdbService.fetchOnTheAirTV())
-    }
-
     func airingTodayShows() async throws -> [ShowSummary] {
         try await recommendations(from: tmdbService.fetchAiringTodayTV())
     }
