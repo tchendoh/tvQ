@@ -55,9 +55,16 @@ final class ReadmeScreenshotsTests: XCTestCase {
     @MainActor
     private func shoot(_ language: Language, _ appearance: XCUIDevice.Appearance) {
         app = XCUIApplication()
+        // Le mode est imposé à l'app elle-même, en plus de l'appareil : son réglage
+        // Account › Appearance (clé settings.appearance, appliqué par RootView avec
+        // preferredColorScheme) l'emporte sur l'appareil. Resté sur « Light » dans le
+        // simulateur, il donnait une rangée « Dark » entièrement claire. Un argument
+        // de lancement ne vaut que pour ce lancement : le réglage enregistré est intact.
+        let mode = appearance == .dark ? "dark" : "light"
         app.launchArguments += ["-AppleLanguages", "(\(language.code))", "-AppleLocale", language.locale]
+        app.launchArguments += ["-settings.appearance", mode]
         XCUIDevice.shared.appearance = appearance
-        let suffix = "\(language.code)-\(appearance == .dark ? "dark" : "light")"
+        let suffix = "\(language.code)-\(mode)"
         app.launch()
 
         capture("home-\(suffix)", afterTapping: language.home)
