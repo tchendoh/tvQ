@@ -213,9 +213,37 @@ private struct EpisodeProgress: View {
 
 /// Dynamic Island compacte. Plus étroite en paysage et sur l'iPhone Duo (île
 /// verticale) : la barre circulaire seule plutôt que le compte à rebours.
+/// isDynamicIslandLimitedInWidth n'existe que depuis iOS 27 : avant, la largeur
+/// est considérée comme normale.
 private struct CompactTrailing: View {
     let context: ActivityViewContext<EpisodeActivityAttributes>
+
+    var body: some View {
+        if #available(iOS 27.0, *) {
+            LimitedWidthReader { isLimitedInWidth in
+                CompactTrailingContent(context: context, isLimitedInWidth: isLimitedInWidth)
+            }
+        } else {
+            CompactTrailingContent(context: context, isLimitedInWidth: false)
+        }
+    }
+}
+
+/// Lit isDynamicIslandLimitedInWidth (iOS 27) : un @Environment ne peut pas être
+/// conditionnel, d'où cette petite vue réservée à iOS 27.
+@available(iOS 27.0, *)
+private struct LimitedWidthReader<Content: View>: View {
     @Environment(\.isDynamicIslandLimitedInWidth) private var isLimitedInWidth
+    @ViewBuilder var content: (Bool) -> Content
+
+    var body: some View {
+        content(isLimitedInWidth)
+    }
+}
+
+private struct CompactTrailingContent: View {
+    let context: ActivityViewContext<EpisodeActivityAttributes>
+    let isLimitedInWidth: Bool
 
     var body: some View {
         let attributes = context.attributes
