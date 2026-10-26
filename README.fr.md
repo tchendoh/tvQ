@@ -6,13 +6,10 @@ Une application iOS native, développée en solo en Swift 6 et SwiftUI.
 
 *[English version](README.md)*
 
-| Accueil | Horaire | Mes séries |
-|---|---|---|
-| <img src="https://tchendoh.github.io/tvq-site/screenshots/home-fr.png" alt="Accueil" width="250"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/schedule-fr.png" alt="Horaire" width="250"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/my-shows-fr.png" alt="Mes séries" width="250"> |
-
-| Recherche | Fiche série (sombre) | Fiche série (clair) |
-|---|---|---|
-| <img src="https://tchendoh.github.io/tvq-site/screenshots/search-fr.png" alt="Recherche" width="250"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/show-detail-fr-dark.png" alt="Fiche série, sombre" width="250"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/show-detail-fr-light.png" alt="Fiche série, clair" width="250"> |
+| | Accueil | Horaire | Mes séries | Recherche | Fiche série |
+|---|---|---|---|---|---|
+| **Clair** | <img src="https://tchendoh.github.io/tvq-site/screenshots/home-fr-light.png" alt="Accueil, clair" width="160"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/schedule-fr-light.png" alt="Horaire, clair" width="160"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/my-shows-fr-light.png" alt="Mes séries, clair" width="160"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/search-fr-light.png" alt="Recherche, clair" width="160"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/show-detail-fr-light.png" alt="Fiche série, clair" width="160"> |
+| **Sombre** | <img src="https://tchendoh.github.io/tvq-site/screenshots/home-fr-dark.png" alt="Accueil, sombre" width="160"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/schedule-fr-dark.png" alt="Horaire, sombre" width="160"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/my-shows-fr-dark.png" alt="Mes séries, sombre" width="160"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/search-fr-dark.png" alt="Recherche, sombre" width="160"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/show-detail-fr-dark.png" alt="Fiche série, sombre" width="160"> |
 
 ## Points forts
 

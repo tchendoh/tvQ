@@ -6,13 +6,10 @@ A native iOS app built solo in Swift 6 and SwiftUI.
 
 *[Version française](README.fr.md)*
 
-| Home | Schedule | My Shows |
-|---|---|---|
-| <img src="https://tchendoh.github.io/tvq-site/screenshots/home-en.png" alt="Home" width="250"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/schedule-en.png" alt="Schedule" width="250"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/my-shows-en.png" alt="My Shows" width="250"> |
-
-| Search | Show detail (dark) | Show detail (light) |
-|---|---|---|
-| <img src="https://tchendoh.github.io/tvq-site/screenshots/search-en.png" alt="Search" width="250"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/show-detail-en-dark.png" alt="Show detail, dark" width="250"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/show-detail-en-light.png" alt="Show detail, light" width="250"> |
+| | Home | Schedule | My Shows | Search | Show detail |
+|---|---|---|---|---|---|
+| **Light** | <img src="https://tchendoh.github.io/tvq-site/screenshots/home-en-light.png" alt="Home, light" width="160"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/schedule-en-light.png" alt="Schedule, light" width="160"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/my-shows-en-light.png" alt="My Shows, light" width="160"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/search-en-light.png" alt="Search, light" width="160"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/show-detail-en-light.png" alt="Show detail, light" width="160"> |
+| **Dark** | <img src="https://tchendoh.github.io/tvq-site/screenshots/home-en-dark.png" alt="Home, dark" width="160"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/schedule-en-dark.png" alt="Schedule, dark" width="160"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/my-shows-en-dark.png" alt="My Shows, dark" width="160"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/search-en-dark.png" alt="Search, dark" width="160"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/show-detail-en-dark.png" alt="Show detail, dark" width="160"> |
 
 ## Highlights
 
