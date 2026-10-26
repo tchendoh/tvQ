@@ -409,36 +409,74 @@ struct ShowDetailView: View {
         }
     }
 
-    /// Une ligne repliable par saison (la saison ancienne se charge à l'ouverture).
+    /// Une saison à la fois, choisie dans un menu (modèle de l'app TV) : la section
+    /// garde la même hauteur pour 2 ou 40 saisons. Ouvre sur la saison en cours
+    /// (ShowDetailViewModel.currentSeason) ; une saison ancienne se charge quand on
+    /// la choisit.
     private var episodesSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("Episodes") { EmptyView() }
-
-            ForEach(viewModel.sortedSeasonNumbers, id: \.self) { seasonNumber in
-                DisclosureGroup("Season \(seasonNumber)") {
-                    if let episodes = viewModel.episodesBySeason[seasonNumber] {
-                        VStack(alignment: .leading, spacing: 0) {
-                            ForEach(episodes.sorted(by: { $0.episodeNumber < $1.episodeNumber })) { episode in
-                                EpisodeRow(episode: episode)
-                                Divider()
-                            }
-                        }
-                    } else if viewModel.failedSeasons.contains(seasonNumber) {
-                        Button("Couldn't load this season. Try again.") {
-                            viewModel.loadSeason(seasonNumber)
-                        }
-                        .font(.subheadline)
-                        .padding(.vertical, 8)
-                    } else {
-                        // Saison ancienne : le contenu n'apparaît qu'à l'ouverture,
-                        // c'est donc là qu'on la charge.
-                        ProgressView()
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
-                            .task { viewModel.loadSeason(seasonNumber) }
-                    }
+            sectionHeader("Episodes") {
+                if viewModel.sortedSeasonNumbers.count > 1 {
+                    seasonMenu
                 }
             }
+
+            if let season = viewModel.displayedSeason {
+                if viewModel.sortedSeasonNumbers.count == 1 {
+                    Text("Season \(season)")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                seasonEpisodes(season)
+            }
+        }
+    }
+
+    private var seasonMenu: some View {
+        Menu {
+            Picker(selection: Binding(
+                get: { viewModel.displayedSeason ?? 0 },
+                set: { viewModel.selectedSeason = $0 }
+            )) {
+                ForEach(viewModel.sortedSeasonNumbers, id: \.self) { seasonNumber in
+                    Text("Season \(seasonNumber)").tag(seasonNumber)
+                }
+            } label: {
+                EmptyView()
+            }
+        } label: {
+            HStack(spacing: 3) {
+                if let season = viewModel.displayedSeason {
+                    Text("Season \(season)")
+                }
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption2.weight(.semibold))
+            }
+        }
+        .font(.subheadline)
+    }
+
+    @ViewBuilder
+    private func seasonEpisodes(_ seasonNumber: Int) -> some View {
+        if let episodes = viewModel.episodesBySeason[seasonNumber] {
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(episodes.sorted(by: { $0.episodeNumber < $1.episodeNumber })) { episode in
+                    EpisodeRow(episode: episode)
+                    Divider()
+                }
+            }
+        } else if viewModel.failedSeasons.contains(seasonNumber) {
+            Button("Couldn't load this season. Try again.") {
+                viewModel.loadSeason(seasonNumber)
+            }
+            .font(.subheadline)
+            .padding(.vertical, 8)
+        } else {
+            // Saison ancienne : chargée quand on la choisit dans le menu.
+            ProgressView()
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+                .task(id: seasonNumber) { viewModel.loadSeason(seasonNumber) }
         }
     }
 }

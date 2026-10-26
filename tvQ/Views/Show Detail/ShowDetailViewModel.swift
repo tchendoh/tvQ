@@ -12,6 +12,9 @@ final class ShowDetailViewModel {
     private(set) var loadingSeasons: Set<Int> = []
     /// Saisons anciennes dont le chargement a échoué : on affiche un message.
     private(set) var failedSeasons: Set<Int> = []
+    /// Saison choisie dans le menu de la section Episodes ; nil = saison en cours
+    /// (voir displayedSeason). Remise à nil quand la série change.
+    var selectedSeason: Int?
     private(set) var watchAvailability: WatchAvailability?
     private var watchAvailabilityTask: Task<Void, Never>?
     private(set) var isLoading = false
@@ -40,6 +43,29 @@ final class ShowDetailViewModel {
         let count = show?.numberOfSeasons ?? 0
         let all = count > 0 ? Set(1...count) : []
         return all.union(episodesBySeason.keys).sorted(by: >)
+    }
+
+    /// Saison affichée dans la section Episodes : le choix de l'utilisateur, sinon
+    /// la saison en cours.
+    var displayedSeason: Int? {
+        selectedSeason ?? currentSeason
+    }
+
+    /// Saison de l'épisode à venir le plus proche ; sinon celle du dernier épisode
+    /// sorti ; sinon la plus récente. Évite d'ouvrir sur une saison annoncée mais
+    /// encore vide, ou sur la saison 1 des Simpson.
+    var currentSeason: Int? {
+        let startOfToday = Calendar.current.startOfDay(for: .now)
+        let dated = episodesBySeason.values.joined().compactMap { episode in
+            episode.airDate.map { (season: episode.seasonNumber, date: $0) }
+        }
+        if let next = dated.filter({ $0.date >= startOfToday }).min(by: { $0.date < $1.date }) {
+            return next.season
+        }
+        if let last = dated.max(by: { $0.date < $1.date }) {
+            return last.season
+        }
+        return sortedSeasonNumbers.first
     }
 
     /// Ouverture d'une saison ancienne dans la fiche : chargée à ce moment-là,
@@ -74,6 +100,7 @@ final class ShowDetailViewModel {
             episodesBySeason = [:]
             loadingSeasons = []
             failedSeasons = []
+            selectedSeason = nil
             watchAvailability = nil
             errorMessage = nil
             isLoading = false
