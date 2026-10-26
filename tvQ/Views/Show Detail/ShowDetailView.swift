@@ -527,7 +527,7 @@ private struct AmbientReflection: View {
     @Environment(\.colorScheme) private var colorScheme
 
     private static let height: CGFloat = 520
-    private static let blurRadius: CGFloat = 70
+    private static let blurRadius: CGFloat = 40
 
     var body: some View {
         VStack(spacing: 0) {
@@ -542,10 +542,12 @@ private struct AmbientReflection: View {
             .frame(height: Self.height)
             .clipped()
             .scaleEffect(y: -1)
+            // Mode clair : couleurs saturées pour qu'elles ressortent sur le fond blanc
+            // (une image terne y donnait un simple voile gris). Mode sombre inchangé.
+            .saturation(colorScheme == .dark ? 1 : 1.6)
             // opaque : pas de bords transparents autour du flou.
             .blur(radius: Self.blurRadius, opaque: true)
-            // Plus discret en mode clair : un reflet sombre sur fond blanc paraît sale.
-            .opacity(colorScheme == .dark ? 0.55 : 0.3)
+            .opacity(colorScheme == .dark ? 0.55 : 0.45)
             .mask {
                 LinearGradient(colors: [.black, .black.opacity(0.6), .clear], startPoint: .top, endPoint: .bottom)
             }
