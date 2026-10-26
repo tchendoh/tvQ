@@ -45,6 +45,17 @@ nonisolated enum AppRules {
         static let tvQPopularMaxShows = 15
     }
 
+    // MARK: - Fiche d'une série (ShowDetail)
+
+    nonisolated enum ShowDetail {
+        /// Au-delà de ce nombre d'épisodes, la saison en cours s'ouvre sur une
+        /// fenêtre autour d'aujourd'hui (quotidiennes comme Antigang, des centaines
+        /// d'épisodes). Les saisons plus courtes s'affichent au complet.
+        static let longSeasonEpisodeCount = 20
+        /// Épisodes déjà sortis gardés dans la fenêtre, avant les épisodes à venir.
+        static let recentAiredEpisodesShown = 5
+    }
+
     // MARK: - Horaire (Schedule)
 
     nonisolated enum Schedule {

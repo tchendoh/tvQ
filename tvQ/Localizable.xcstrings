@@ -2767,6 +2767,17 @@
           }
         }
       }
+    },
+    "Show %lld earlier episodes" : {
+      "comment" : "Show detail: button that reveals the earlier episodes of a long current season.",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les %lld épisodes précédents"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"

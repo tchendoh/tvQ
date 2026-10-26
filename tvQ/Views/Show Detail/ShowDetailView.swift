@@ -13,6 +13,8 @@ struct ShowDetailView: View {
     @State private var isHeroScrolledAway = false
     /// Résumé déplié (« more ») ou limité à 3 lignes.
     @State private var isOverviewExpanded = false
+    /// Longues saisons dépliées avec « Show earlier episodes » (voir seasonEpisodes).
+    @State private var expandedSeasons: Set<Int> = []
 
     /// Hauteur de l'image d'en-tête.
     nonisolated private static let heroHeight: CGFloat = 300
@@ -53,6 +55,7 @@ struct ShowDetailView: View {
         .task(id: tmdbID) { viewModel.load(tmdbID: tmdbID) }
         .onChange(of: tmdbID) {
             isOverviewExpanded = false
+            expandedSeasons = []
         }
         .onContentLanguageChange { viewModel.reload() }
         .onChange(of: regionOverride) { viewModel.reloadWatchAvailability() }
@@ -460,11 +463,38 @@ struct ShowDetailView: View {
         .font(.subheadline)
     }
 
+    /// Épisodes du début cachés dans une longue saison en cours : on garde les
+    /// derniers épisodes sortis et tous les épisodes à venir (ordre croissant
+    /// partout). 0 pour une saison courte, une saison passée ou une saison dépliée.
+    private func hiddenEarlierEpisodeCount(_ sorted: [Episode], season: Int) -> Int {
+        guard sorted.count > AppRules.ShowDetail.longSeasonEpisodeCount,
+              season == viewModel.currentSeason,
+              !expandedSeasons.contains(season)
+        else { return 0 }
+        let startOfToday = Calendar.current.startOfDay(for: .now)
+        // Épisodes sortis : date connue et passée. Un épisode sans date compte comme à venir.
+        let airedCount = sorted.prefix { ($0.airDate ?? .distantFuture) < startOfToday }.count
+        return max(0, airedCount - AppRules.ShowDetail.recentAiredEpisodesShown)
+    }
+
     @ViewBuilder
     private func seasonEpisodes(_ seasonNumber: Int) -> some View {
         if let episodes = viewModel.episodesBySeason[seasonNumber] {
+            let sorted = episodes.sorted(by: { $0.episodeNumber < $1.episodeNumber })
+            let hidden = hiddenEarlierEpisodeCount(sorted, season: seasonNumber)
             VStack(alignment: .leading, spacing: 0) {
-                ForEach(episodes.sorted(by: { $0.episodeNumber < $1.episodeNumber })) { episode in
+                if hidden > 0 {
+                    Button {
+                        withAnimation { _ = expandedSeasons.insert(seasonNumber) }
+                    } label: {
+                        Text("Show \(hidden) earlier episodes")
+                            .font(.subheadline)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, 10)
+                    }
+                    Divider()
+                }
+                ForEach(sorted.dropFirst(hidden)) { episode in
                     EpisodeRow(episode: episode)
                     Divider()
                 }
