@@ -33,7 +33,7 @@ A native iOS app built solo in Swift 6 and SwiftUI.
 | | |
 |---|---|
 | UI | SwiftUI, Observation (`@Observable`) |
-| Language | Swift 6 language mode, iOS 27.0 |
+| Language | Swift 6 language mode, iOS 26.0 |
 | Concurrency | `async`/`await`, actors, `@ModelActor`, task groups |
 | Local storage | SwiftData |
 | Backend | Firebase Auth (anonymous, Sign in with Apple, email), Cloud Firestore, Remote Config, App Check, Crashlytics |
@@ -72,19 +72,11 @@ Protocols appear only where they pay for themselves: at the boundary with extern
 
 ## App rules
 
-Every threshold, limit and duration the app relies on (genres hidden from Home, seasons loaded for the schedule, cache lifetimes, the soft limit on followed shows, notification and Live Activity timing, color thresholds) lives in one file, [`tvQ/Core/AppRules.swift`](tvQ/Core/AppRules.swift), each with the reason it was chosen. The types that apply them only keep an alias. Server-side caps live in [`firestore.rules`](firestore.rules).
-
-## What I learned
-
-- **Scale the architecture to the project.** I started with a full Clean Architecture (Domain, Data and Presentation layers, a protocol for every repository) and removed it: for one developer, it added indirection without adding safety.
-- **Measure before optimizing.** The slow schedule screen wasn't caused by the schedule itself but by shows being resolved one at a time. Resolving them in parallel removed several seconds at launch.
-- **Moving to Swift 6 mode was worth it.** The compiler found real issues: a non-`Sendable` Firebase handle crossing actors, and a `[weak self]` that was silently strong for the lifetime of a stream.
-- **Manual tests find what unit tests don't.** Rotating the token in the console showed that the app needed two relaunches to recover. The fix (refetch on 401) is now covered by tests that simulate a rotation while the app runs.
-- **Read your own comments critically.** A comment promised that two screens would share in-flight requests, but each screen had its own repository instance. Sharing the repositories fixed it.
+Every threshold, limit and duration the app relies on lives in one file, [`tvQ/Core/AppRules.swift`](tvQ/Core/AppRules.swift), each with the reason it was chosen. The types that apply them only keep an alias. Server-side caps live in [`firestore.rules`](firestore.rules).
 
 ## Tests
 
-More than 180 unit tests in Swift Testing, with no network access: real SwiftData stores in memory, test doubles for TMDB, TVmaze and Firestore, and a `URLProtocol` stub for the network layer.
+Unit tests in Swift Testing, with no network access: real SwiftData stores in memory, test doubles for TMDB, TVmaze and Firestore, and a `URLProtocol` stub for the network layer.
 
 - **Mappers and decoding**: merging TMDB and TVmaze (precise time over date only, show status priority), where-to-watch deduplication, and decoding of every API response shape, `null` values included.
 - **Repositories**: the full cache cascade (fresh, stale, shared copy, ended series), deduplication of concurrent requests, a Firestore write failure that doesn't fail the request, season joins and sorting.
@@ -98,7 +90,7 @@ The Firestore security rules have their own tests in `firestore-tests/` (Firebas
 
 ## Getting started
 
-Requirements: Xcode 27, iOS 27.0.
+Requirements: Xcode 27, iOS 26.0.
 
 1. Clone the repository and open `tvQ.xcodeproj`. Swift Package Manager dependencies (Firebase) resolve on the first build.
 2. Copy `Config/Secrets.xcconfig.template` to `Config/Secrets.xcconfig` and add an App Check debug token (`uuidgen`).
@@ -108,29 +100,23 @@ Requirements: Xcode 27, iOS 27.0.
 
 Both files are excluded from the repository on purpose.
 
-## Next steps
-
-- TestFlight beta
-- Shared cache split by season, for daily shows with hundreds of episodes
-- A "Trending" page based on what tvQ users follow most
-- Face ID to unlock the app at launch
-
 ## Project structure
 
 ```
 tvQ/
 ├── App/            Entry point and root navigation
 ├── Core/           App rules, settings, logging, networking, TMDB token (Remote Config)
-├── Models/         Show, Episode, ShowSummary, WatchAvailability, AppUser
+├── Models/         Domain models (shows, episodes, users)
 ├── Notifications/  Notification and Live Activity planners and schedulers
-├── Repositories/   ShowRepository, ScheduleRepository, CachePolicy
-├── Services/       TMDB, TVmaze, Firebase, mappers, NetworkService
+├── Repositories/   Cache or network decisions
+├── Services/       TMDB, TVmaze, Firebase, mappers
 ├── Stores/         SwiftData entities and stores, image cache
 └── Views/          Screens and their ViewModels
 tvQActivity/        Live Activity widget extension
 Shared/             Code shared by the app and the extension
 tvQTests/           Unit tests (Swift Testing)
 firestore-tests/    Firestore security rules tests (emulator)
+trends/             Trends script (Node, firebase-admin), run on a home server
 ```
 
 ## Credits

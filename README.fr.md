@@ -33,7 +33,7 @@ Une application iOS native, développée en solo en Swift 6 et SwiftUI.
 | | |
 |---|---|
 | Interface | SwiftUI, Observation (`@Observable`) |
-| Langage | mode Swift 6, iOS 27.0 |
+| Langage | mode Swift 6, iOS 26.0 |
 | Concurrence | `async`/`await`, actors, `@ModelActor`, groupes de tâches |
 | Stockage local | SwiftData |
 | Backend | Firebase Auth (anonyme, Sign in with Apple, courriel), Cloud Firestore, Remote Config, App Check, Crashlytics |
@@ -72,19 +72,11 @@ Les protocoles n'apparaissent que là où ils sont utiles : à la frontière ave
 
 ## Règles de l'app
 
-Tous les seuils, limites et durées dont l'app dépend (genres écartés de Home, saisons chargées pour l'horaire, durée des caches, limite douce de séries suivies, moments des notifications et des Live Activities, seuils des couleurs) sont dans un seul fichier, [`tvQ/Core/AppRules.swift`](tvQ/Core/AppRules.swift), chacun avec la raison de son choix. Les types qui les appliquent n'en gardent qu'un alias. Les plafonds côté serveur sont dans [`firestore.rules`](firestore.rules).
-
-## Ce que j'ai appris
-
-- **Adapter l'architecture au projet.** J'ai commencé avec une Clean Architecture complète (couches Domain, Data et Presentation, un protocole par repository), puis je l'ai retirée : pour un seul développeur, elle ajoutait des intermédiaires sans ajouter de sécurité.
-- **Mesurer avant d'optimiser.** La lenteur de l'écran Horaire ne venait pas de l'horaire lui-même, mais des séries résolues une à une. Les résoudre en parallèle a fait gagner plusieurs secondes au lancement.
-- **Le passage au mode Swift 6 en valait la peine.** Le compilateur a trouvé de vrais problèmes : un jeton Firebase non `Sendable` qui traversait une frontière entre actors, et un `[weak self]` qui restait en fait une référence forte pendant toute la durée d'un flux.
-- **Les tests manuels trouvent ce que les tests unitaires ne voient pas.** Changer le jeton dans la console a montré que l'app avait besoin de deux relancements pour s'en remettre. La correction (nouvelle récupération sur un 401) est maintenant couverte par des tests qui simulent un changement pendant que l'app tourne.
-- **Relire ses propres commentaires d'un œil critique.** Un commentaire promettait que deux écrans partageraient les requêtes en cours, alors que chaque écran avait sa propre instance de repository. Partager les repositories a réglé le problème.
+Tous les seuils, limites et durées dont l'app dépend sont dans un seul fichier, [`tvQ/Core/AppRules.swift`](tvQ/Core/AppRules.swift), chacun avec la raison de son choix. Les types qui les appliquent n'en gardent qu'un alias. Les plafonds côté serveur sont dans [`firestore.rules`](firestore.rules).
 
 ## Tests
 
-Plus de 180 tests unitaires en Swift Testing, sans aucun accès au réseau : de vrais stores SwiftData en mémoire, des doublures pour TMDB, TVmaze et Firestore, et un `URLProtocol` factice pour la couche réseau.
+Des tests unitaires en Swift Testing, sans aucun accès au réseau : de vrais stores SwiftData en mémoire, des doublures pour TMDB, TVmaze et Firestore, et un `URLProtocol` factice pour la couche réseau.
 
 - **Mappers et décodage** : la fusion de TMDB et de TVmaze (heure précise plutôt que date seule, priorité du statut de la série), le dédoublonnage des diffuseurs, et le décodage de toutes les formes de réponse des API, valeurs `null` comprises.
 - **Repositories** : toute la cascade du cache (copie fraîche, périmée, partagée, série terminée), le dédoublonnage des requêtes simultanées, un échec d'écriture Firestore qui ne fait pas échouer la requête, la jointure et le tri des saisons.
@@ -98,7 +90,7 @@ Les règles de sécurité Firestore ont leurs propres tests dans `firestore-test
 
 ## Installation
 
-Prérequis : Xcode 27, iOS 27.0.
+Prérequis : Xcode 27, iOS 26.0.
 
 1. Cloner le dépôt et ouvrir `tvQ.xcodeproj`. Les dépendances Swift Package Manager (Firebase) se résolvent au premier build.
 2. Copier `Config/Secrets.xcconfig.template` en `Config/Secrets.xcconfig` et y ajouter un jeton de débogage App Check (`uuidgen`).
@@ -108,29 +100,23 @@ Prérequis : Xcode 27, iOS 27.0.
 
 Ces deux fichiers sont volontairement exclus du dépôt.
 
-## Prochaines étapes
-
-- Une version bêta sur TestFlight
-- Un cache partagé découpé par saison, pour les quotidiennes de plusieurs centaines d'épisodes
-- Une page « Tendances » basée sur les séries les plus suivies par les utilisateurs de tvQ
-- Le déverrouillage par Face ID au lancement
-
 ## Structure du projet
 
 ```
 tvQ/
 ├── App/            Point d'entrée et navigation racine
 ├── Core/           Règles de l'app, réglages, journalisation, réseau, jeton TMDB (Remote Config)
-├── Models/         Show, Episode, ShowSummary, WatchAvailability, AppUser
+├── Models/         Modèles du domaine (séries, épisodes, utilisateurs)
 ├── Notifications/  Planification des notifications et des Live Activities
-├── Repositories/   ShowRepository, ScheduleRepository, CachePolicy
-├── Services/       TMDB, TVmaze, Firebase, mappers, NetworkService
+├── Repositories/   Choix entre le cache et le réseau
+├── Services/       TMDB, TVmaze, Firebase, mappers
 ├── Stores/         Entités et stores SwiftData, cache d'images
 └── Views/          Écrans et leurs ViewModels
 tvQActivity/        Extension de widget des Live Activities
 Shared/             Code partagé par l'app et l'extension
 tvQTests/           Tests unitaires (Swift Testing)
 firestore-tests/    Tests des règles de sécurité Firestore (émulateur)
+trends/             Script des tendances (Node, firebase-admin), sur un serveur maison
 ```
 
 ## Crédits
