@@ -2,9 +2,19 @@ import SwiftUI
 
 enum ContentLanguage: String, CaseIterable, Identifiable {
     case english = "en-US"
-    case french = "fr-CA"
+    /// "fr" sans région : TMDB renvoie alors la traduction principale (fr-FR),
+    /// bien mieux couverte que fr-CA, qui laisse souvent des résumés vides.
+    case french = "fr"
 
     var id: String { rawValue }
+
+    /// Langue de contenu tant que l'utilisateur n'a rien choisi : celle dans
+    /// laquelle l'interface de tvQ s'affiche réellement (String Catalog en "fr").
+    /// Rien n'est écrit dans UserDefaults, donc la valeur suit l'appareil.
+    static var interfaceDefault: ContentLanguage {
+        let ui = Bundle.main.preferredLocalizations.first ?? "en"
+        return ui.hasPrefix("fr") ? .french : .english
+    }
 
     /// Endonyme — le nom d'une langue reste le même peu importe la langue de l'interface.
     var displayName: LocalizedStringKey {
@@ -30,7 +40,15 @@ enum AppSettings {
 
     /// Lu par TMDBService à l'initialisation — voir son paramètre `language`.
     static var contentLanguage: String {
-        UserDefaults.standard.string(forKey: Keys.contentLanguage) ?? ContentLanguage.english.rawValue
+        UserDefaults.standard.string(forKey: Keys.contentLanguage) ?? ContentLanguage.interfaceDefault.rawValue
+    }
+
+    /// Ancienne valeur "fr-CA" (avant le 2026-10-26) ramenée à "fr". Appelé au lancement.
+    static func migrateLegacyContentLanguage() {
+        let defaults = UserDefaults.standard
+        if defaults.string(forKey: Keys.contentLanguage) == "fr-CA" {
+            defaults.set(ContentLanguage.french.rawValue, forKey: Keys.contentLanguage)
+        }
     }
 
     /// Pays (ISO 3166-1, ex. "CA") des diffuseurs affichés dans ShowDetailView.

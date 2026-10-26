@@ -4,7 +4,7 @@ import SwiftUI
 /// Le pays des diffuseurs se choisit dans la fiche d'une série (ShowDetailView).
 struct ContentLanguageSettingsView: View {
     @AppStorage(AppSettings.Keys.contentLanguage)
-    private var contentLanguage: String = ContentLanguage.english.rawValue
+    private var contentLanguage: String = ContentLanguage.interfaceDefault.rawValue
 
     @AppStorage(AppSettings.Keys.useOriginalLanguage)
     private var useOriginalLanguage: Bool = false

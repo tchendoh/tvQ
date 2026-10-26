@@ -63,8 +63,8 @@ struct CacheLanguageKeyTests {
     }
 
     @Test func usesContentLanguage() {
-        withSettings(contentLanguage: "fr-CA", useOriginal: false) {
-            #expect(AppSettings.cacheLanguageKey == "fr-CA")
+        withSettings(contentLanguage: "fr", useOriginal: false) {
+            #expect(AppSettings.cacheLanguageKey == "fr")
         }
     }
 
@@ -75,7 +75,7 @@ struct CacheLanguageKeyTests {
     }
 
     @Test func originalLanguageHasItsOwnKey() {
-        withSettings(contentLanguage: "fr-CA", useOriginal: true) {
+        withSettings(contentLanguage: "fr", useOriginal: true) {
             #expect(AppSettings.cacheLanguageKey == "original")
         }
     }

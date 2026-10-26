@@ -151,7 +151,7 @@ struct RepositoryTests {
         let keys = [AppSettings.Keys.contentLanguage, AppSettings.Keys.useOriginalLanguage]
         let saved = keys.map { defaults.object(forKey: $0) }
         defer { for (key, value) in zip(keys, saved) { defaults.set(value, forKey: key) } }
-        defaults.set("fr-CA", forKey: AppSettings.Keys.contentLanguage)
+        defaults.set("fr", forKey: AppSettings.Keys.contentLanguage)
         defaults.set(true, forKey: AppSettings.Keys.useOriginalLanguage)
         tmdb.shows[100] = dto(id: 100, language: "ja")
 
@@ -165,7 +165,7 @@ struct RepositoryTests {
         let keys = [AppSettings.Keys.contentLanguage, AppSettings.Keys.useOriginalLanguage]
         let saved = keys.map { defaults.object(forKey: $0) }
         defer { for (key, value) in zip(keys, saved) { defaults.set(value, forKey: key) } }
-        defaults.set("fr-CA", forKey: AppSettings.Keys.contentLanguage)
+        defaults.set("fr", forKey: AppSettings.Keys.contentLanguage)
         defaults.set(true, forKey: AppSettings.Keys.useOriginalLanguage)
         tmdb.shows[100] = dto(id: 100, language: "fr")
 

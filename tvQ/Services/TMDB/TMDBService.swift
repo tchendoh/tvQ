@@ -10,7 +10,7 @@ struct TMDBService {
     /// Langue imposée à la construction (tests) ; nil pour suivre le réglage.
     private let languageOverride: String?
 
-    /// Langue des réponses TMDB (format ISO, ex. "en-US", "fr-CA"). Lue à chaque
+    /// Langue des réponses TMDB (format ISO, ex. "en-US", "fr"). Lue à chaque
     /// requête plutôt qu'une fois à la construction : les repositories sont partagés
     /// pour toute la durée de l'app, et un changement dans Settings doit s'appliquer
     /// aux requêtes suivantes sans redémarrer.

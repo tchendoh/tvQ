@@ -41,6 +41,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
             UserDefaults.standard.set(Secrets.appCheckDebugToken, forKey: "GACAppCheckDebugToken")
         }
         #endif
+        AppSettings.migrateLegacyContentLanguage()
         // Doit précéder FirebaseApp.configure().
         AppCheck.setAppCheckProviderFactory(TvQAppCheckProviderFactory())
         FirebaseApp.configure()

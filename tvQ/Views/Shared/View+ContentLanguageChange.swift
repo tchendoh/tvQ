@@ -11,7 +11,7 @@ import SwiftUI
 /// Ne se déclenche pas à l'apparition : le chargement initial reste à .task.
 private struct ContentLanguageChangeModifier: ViewModifier {
     @AppStorage(AppSettings.Keys.contentLanguage)
-    private var contentLanguage: String = ContentLanguage.english.rawValue
+    private var contentLanguage: String = ContentLanguage.interfaceDefault.rawValue
 
     @AppStorage(AppSettings.Keys.useOriginalLanguage)
     private var useOriginalLanguage = false

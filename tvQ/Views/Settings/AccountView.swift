@@ -9,7 +9,7 @@ struct AccountView: View {
     @Environment(\.dismiss) private var dismiss
 
     @AppStorage(AppSettings.Keys.contentLanguage)
-    private var contentLanguage: String = ContentLanguage.english.rawValue
+    private var contentLanguage: String = ContentLanguage.interfaceDefault.rawValue
 
     @AppStorage(AppSettings.Keys.useOriginalLanguage)
     private var useOriginalLanguage: Bool = false
