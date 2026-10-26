@@ -92,6 +92,10 @@ struct ShowDetailView: View {
                     .padding(.horizontal)
             }
             .padding(.bottom, 24)
+            // Reflet de l'image sous l'en-tête, qui défile avec le contenu.
+            .background(alignment: .top) {
+                AmbientReflection(show: show, offset: Self.heroHeight)
+            }
         }
         // L'image passe sous la barre de navigation, comme dans l'app TV et
         // l'exemple Landmarks d'Apple : les boutons de la barre flottent en
@@ -478,6 +482,51 @@ struct ShowDetailView: View {
                 .padding(.vertical, 8)
                 .task(id: seasonNumber) { viewModel.loadSeason(seasonNumber) }
         }
+    }
+}
+
+/// Reflet de l'image de la série sous l'en-tête, comme l'éclairage ambiant de
+/// l'écran du bas d'un appareil pliant : la même image, retournée (son bas touche
+/// le bas de l'en-tête), très floue, atténuée et fondue vers le fond normal.
+/// Pendant le chargement de l'image, la couleur dominante de la série sert de repli.
+private struct AmbientReflection: View {
+    let show: Show
+    /// Hauteur de l'en-tête : le reflet commence juste dessous.
+    let offset: CGFloat
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    private static let height: CGFloat = 520
+    private static let blurRadius: CGFloat = 70
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Color.clear.frame(height: offset)
+
+            RetryingAsyncImage(url: show.backdropURL ?? show.posterURL) { image in
+                image.resizable().aspectRatio(contentMode: .fill)
+            } placeholder: {
+                fallbackColor
+            }
+            .frame(minWidth: 0, maxWidth: .infinity)
+            .frame(height: Self.height)
+            .clipped()
+            .scaleEffect(y: -1)
+            // opaque : pas de bords transparents autour du flou.
+            .blur(radius: Self.blurRadius, opaque: true)
+            // Plus discret en mode clair : un reflet sombre sur fond blanc paraît sale.
+            .opacity(colorScheme == .dark ? 0.55 : 0.3)
+            .mask {
+                LinearGradient(colors: [.black, .black.opacity(0.6), .clear], startPoint: .top, endPoint: .bottom)
+            }
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+
+    private var fallbackColor: Color {
+        guard let dominant = show.dominantColor else { return .clear }
+        return Color(red: dominant.red, green: dominant.green, blue: dominant.blue)
     }
 }
 
