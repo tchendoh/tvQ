@@ -621,11 +621,28 @@ private struct StatusPill: View {
             .fixedSize()
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
-            .foregroundStyle(isActive ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
-            .background(
-                isActive ? AnyShapeStyle(.tint.opacity(0.15)) : AnyShapeStyle(.fill.tertiary),
-                in: Capsule()
-            )
+            // PillText : rose foncé (#590A37) en mode clair, rose clair (#F07ABF) en
+            // mode sombre, lisibles sur le fond rose posé sur le reflet (PillBackground).
+            .foregroundStyle(isActive ? AnyShapeStyle(Color("PillText")) : AnyShapeStyle(.secondary))
+            .modifier(PillBackground(isActive: isActive))
+    }
+}
+
+/// Fond des pastilles (StatusPill, ProviderChip). Active : rose de l'app à 15 %
+/// (mode clair) ou 25 % (mode sombre), texte PillText (#590A37 en clair, #F07ABF
+/// en sombre) pour rester lisible sur le reflet. Pas de Liquid Glass : réservé aux
+/// contrôles (bouton de suivi, cloche) ; sur une étiquette, il la fait passer pour
+/// un bouton (essai dans le Style Lab, 2026-10-26). Inactive : gris de remplissage.
+private struct PillBackground: ViewModifier {
+    let isActive: Bool
+    @Environment(\.colorScheme) private var colorScheme
+
+    func body(content: Content) -> some View {
+        if isActive {
+            content.background(.tint.opacity(colorScheme == .dark ? 0.25 : 0.15), in: Capsule())
+        } else {
+            content.background(.fill.tertiary, in: Capsule())
+        }
     }
 }
 
@@ -641,10 +658,7 @@ private struct ProviderChip: View {
             .lineLimit(1)
             .padding(.horizontal, 9)
             .padding(.vertical, 4)
-            .foregroundStyle(prominent ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
-            .background(
-                prominent ? AnyShapeStyle(.tint.opacity(0.15)) : AnyShapeStyle(.fill.tertiary),
-                in: Capsule()
-            )
+            .foregroundStyle(prominent ? AnyShapeStyle(Color("PillText")) : AnyShapeStyle(.secondary))
+            .modifier(PillBackground(isActive: prominent))
     }
 }
