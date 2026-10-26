@@ -27,6 +27,15 @@ struct SearchView: View {
                         EvenGrid(items: viewModel.results, minimumWidth: cardMinimumWidth) { summary in
                             let showID = String(summary.tmdbID)
                             Button {
+                                // Retrait direct par UIKit, synchrone : .searchFocused
+                                // passe par le UISearchController lors d'une mise à jour
+                                // suivante, et la feuille avait le temps de monter au
+                                // complet avant que le clavier descende (vu au ralenti).
+                                UIApplication.shared.sendAction(
+                                    #selector(UIResponder.resignFirstResponder),
+                                    to: nil, from: nil, for: nil
+                                )
+                                // Garde l'état SwiftUI cohérent avec le champ.
                                 isSearchFieldFocused = false
                                 selectedTMDBID = summary.tmdbID
                             } label: {
