@@ -7,7 +7,7 @@
 //   1. compte les abonnés de chaque série (la « photo » du jour) ;
 //   2. enregistre cette photo dans trendsHistory/{AAAA-MM-JJ} (une par jour,
 //      la dernière exécution de la journée remplace les précédentes) ;
-//   3. compare avec la photo d'il y a N jours (--days, 7 par défaut) pour
+//   3. compare avec la photo d'il y a N jours (--days, 28 par défaut) pour
 //      obtenir la variation nette (ajouts moins retraits) ;
 //   4. écrit trends/current :
 //      { updatedAt, userCount, mostFollowed: [{ showID, url, followers }],
@@ -43,7 +43,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const { values: options } = parseArgs({
   options: {
     "dry-run": { type: "boolean", default: false },
-    days: { type: "string", default: "7" },
+    days: { type: "string", default: "28" },
     top: { type: "string", default: "100" },
   },
 });
