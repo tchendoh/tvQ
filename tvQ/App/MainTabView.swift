@@ -11,6 +11,14 @@ struct MainTabView: View {
 
     @State private var selectedTab: AppTab = .home
 
+    /// Vibration d'onglet : voir `TabHaptic` et `AppRules.Haptics`.
+    @AppStorage(AppSettings.Keys.tabHaptic)
+    private var tabHaptic: TabHaptic = AppRules.Haptics.tabDefault
+    @AppStorage(AppSettings.Keys.tabHapticIntensity)
+    private var tabHapticIntensity = AppRules.Haptics.tabDefaultIntensity
+    /// Incrémenté à chaque changement d'onglet et à chaque retour sur « Aujourd'hui ».
+    @State private var tabHapticTick = 0
+
     /// Le setter est appelé même quand on touche l'onglet déjà actif : c'est ce qui
     /// permet de reconnaître un deuxième toucher sur Schedule. iOS remonte alors la
     /// liste tout en haut ; on la ramène plutôt sur « Aujourd'hui ».
@@ -20,6 +28,9 @@ struct MainTabView: View {
             set: { tab in
                 if tab == .schedule, selectedTab == .schedule {
                     scheduleViewModel.requestScrollToToday()
+                    tabHapticTick += 1
+                } else if tab != selectedTab {
+                    tabHapticTick += 1
                 }
                 selectedTab = tab
             }
@@ -48,6 +59,9 @@ struct MainTabView: View {
         // iPhone et Duo plié : barre d'onglets habituelle. iPad et Duo déplié :
         // barre d'onglets en haut, convertible en barre latérale.
         .tabViewStyle(.sidebarAdaptable)
+        .sensoryFeedback(trigger: tabHapticTick) { _, _ in
+            tabHaptic.feedback(intensity: tabHapticIntensity)
+        }
         /// Préchargement de l'horaire au lancement : un TabView n'évalue un onglet
         /// qu'à sa première apparition, donc le déclencheur vit ici plutôt que
         /// dans ScheduleView. Se relance à chaque follow/unfollow.

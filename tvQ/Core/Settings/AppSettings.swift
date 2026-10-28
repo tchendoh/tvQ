@@ -36,6 +36,9 @@ enum AppSettings {
         static let notificationMorningMinutes = "settings.notificationMorningMinutes"
         static let liveActivitiesEnabled = "settings.liveActivitiesEnabled"
         static let appearance = "settings.appearance"
+        /// Réglages internes (Settings › Debug) : voir `TabHaptic`.
+        static let tabHaptic = "settings.debug.tabHaptic"
+        static let tabHapticIntensity = "settings.debug.tabHapticIntensity"
     }
 
     /// Lu par TMDBService à l'initialisation — voir son paramètre `language`.

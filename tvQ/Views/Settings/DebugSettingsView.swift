@@ -4,10 +4,16 @@ import SwiftUI
 /// Settings › Debug : outils de développement, absents en Release (textes non traduits).
 struct DebugSettingsView: View {
     @State private var didClearCache = false
+    @AppStorage(AppSettings.Keys.tabHaptic)
+    private var tabHaptic: TabHaptic = AppRules.Haptics.tabDefault
+    @AppStorage(AppSettings.Keys.tabHapticIntensity)
+    private var tabHapticIntensity = AppRules.Haptics.tabDefaultIntensity
+    @State private var hapticTestTick = 0
 
     var body: some View {
         Form {
             debugSection
+            hapticsSection
         }
         .navigationTitle(Text(verbatim: "Debug"))
         .navigationBarTitleDisplayMode(.inline)
@@ -49,6 +55,41 @@ struct DebugSettingsView: View {
             Text(verbatim: didClearCache
                  ? "Local cache cleared."
                  : "Debug builds only. Clear local cache forces shows and episodes to reload from scratch; Test Crashlytics crashes the app on purpose.")
+        }
+    }
+
+    /// Vibration au changement d'onglet : type, intensité et essai sur place.
+    private var hapticsSection: some View {
+        Section {
+            Picker(selection: $tabHaptic) {
+                ForEach(TabHaptic.allCases) { haptic in
+                    Text(verbatim: haptic.label).tag(haptic)
+                }
+            } label: {
+                Text(verbatim: "Tab switch")
+            }
+            if tabHaptic.supportsIntensity {
+                LabeledContent {
+                    Slider(value: $tabHapticIntensity, in: 0.1...1, step: 0.1)
+                } label: {
+                    Text(verbatim: "Intensity \(tabHapticIntensity.formatted(.number.precision(.fractionLength(1))))")
+                }
+            }
+            Button(verbatimLabel("Try it")) {
+                hapticTestTick += 1
+            }
+            .disabled(tabHaptic == .off)
+            .sensoryFeedback(trigger: hapticTestTick) { _, _ in
+                tabHaptic.feedback(intensity: tabHapticIntensity)
+            }
+            Button(verbatimLabel("Reset to default")) {
+                tabHaptic = AppRules.Haptics.tabDefault
+                tabHapticIntensity = AppRules.Haptics.tabDefaultIntensity
+            }
+        } header: {
+            Text(verbatim: "Haptics")
+        } footer: {
+            Text(verbatim: "Played on every tab change and when a second tap on Schedule returns to Today. Other builds use AppRules.Haptics. Silent in the simulator.")
         }
     }
 

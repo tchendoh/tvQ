@@ -45,6 +45,19 @@ nonisolated enum AppRules {
         static let tvQPopularMaxShows = 15
     }
 
+    // MARK: - Retour haptique
+
+    nonisolated enum Haptics {
+        /// Vibration au changement d'onglet (2026-10-28) : impact léger, comme dans
+        /// l'app de Claude, et le même que pour suivre une série ou toucher la cloche.
+        /// Les apps d'Apple ne vibrent pas à cet endroit. Modifiable sans recompiler
+        /// dans Settings › Debug › Haptics (builds Debug seulement).
+        static let tabDefault: TabHaptic = .light
+        /// Intensité de 0 à 1, sans effet sur `.selection`. 1 = l'impact léger
+        /// standard d'iOS, identique au `.impact(weight: .light)` du reste de l'app.
+        static let tabDefaultIntensity = 1.0
+    }
+
     // MARK: - Fiche d'une série (ShowDetail)
 
     nonisolated enum ShowDetail {
