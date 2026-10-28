@@ -6,10 +6,32 @@ A native iOS app built solo in Swift 6 and SwiftUI.
 
 *[Version française](README.fr.md)*
 
-| | Home | Schedule | My Shows | Search | Show detail |
-|---|---|---|---|---|---|
-| **Light** | <img src="https://tchendoh.github.io/tvq-site/screenshots/home-en-light.png" alt="Home, light" width="160"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/schedule-en-light.png" alt="Schedule, light" width="160"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/my-shows-en-light.png" alt="My Shows, light" width="160"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/search-en-light.png" alt="Search, light" width="160"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/show-detail-en-light.png" alt="Show detail, light" width="160"> |
-| **Dark** | <img src="https://tchendoh.github.io/tvq-site/screenshots/home-en-dark.png" alt="Home, dark" width="160"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/schedule-en-dark.png" alt="Schedule, dark" width="160"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/my-shows-en-dark.png" alt="My Shows, dark" width="160"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/search-en-dark.png" alt="Search, dark" width="160"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/show-detail-en-dark.png" alt="Show detail, dark" width="160"> |
+<table>
+  <tr>
+    <th></th>
+    <th width="160">Home</th>
+    <th width="160">Schedule</th>
+    <th width="160">My Shows</th>
+    <th width="160">Search</th>
+    <th width="160">Show detail</th>
+  </tr>
+  <tr>
+    <th>Light</th>
+    <td width="160" valign="top"><img src="https://tchendoh.github.io/tvq-site/screenshots/home-en-light.png" alt="Home, light" width="160" height="348"></td>
+    <td width="160" valign="top"><img src="https://tchendoh.github.io/tvq-site/screenshots/schedule-en-light.png" alt="Schedule, light" width="160" height="348"></td>
+    <td width="160" valign="top"><img src="https://tchendoh.github.io/tvq-site/screenshots/my-shows-en-light.png" alt="My Shows, light" width="160" height="348"></td>
+    <td width="160" valign="top"><img src="https://tchendoh.github.io/tvq-site/screenshots/search-en-light.png" alt="Search, light" width="160" height="348"></td>
+    <td width="160" valign="top"><img src="https://tchendoh.github.io/tvq-site/screenshots/show-detail-en-light.png" alt="Show detail, light" width="160" height="348"></td>
+  </tr>
+  <tr>
+    <th>Dark</th>
+    <td width="160" valign="top"><img src="https://tchendoh.github.io/tvq-site/screenshots/home-en-dark.png" alt="Home, dark" width="160" height="348"></td>
+    <td width="160" valign="top"><img src="https://tchendoh.github.io/tvq-site/screenshots/schedule-en-dark.png" alt="Schedule, dark" width="160" height="348"></td>
+    <td width="160" valign="top"><img src="https://tchendoh.github.io/tvq-site/screenshots/my-shows-en-dark.png" alt="My Shows, dark" width="160" height="348"></td>
+    <td width="160" valign="top"><img src="https://tchendoh.github.io/tvq-site/screenshots/search-en-dark.png" alt="Search, dark" width="160" height="348"></td>
+    <td width="160" valign="top"><img src="https://tchendoh.github.io/tvq-site/screenshots/show-detail-en-dark.png" alt="Show detail, dark" width="160" height="348"></td>
+  </tr>
+</table>
 
 ## Highlights
 

@@ -6,10 +6,32 @@ Une application iOS native, développée en solo en Swift 6 et SwiftUI.
 
 *[English version](README.md)*
 
-| | Accueil | Horaire | Mes séries | Recherche | Fiche série |
-|---|---|---|---|---|---|
-| **Clair** | <img src="https://tchendoh.github.io/tvq-site/screenshots/home-fr-light.png" alt="Accueil, clair" width="160"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/schedule-fr-light.png" alt="Horaire, clair" width="160"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/my-shows-fr-light.png" alt="Mes séries, clair" width="160"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/search-fr-light.png" alt="Recherche, clair" width="160"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/show-detail-fr-light.png" alt="Fiche série, clair" width="160"> |
-| **Sombre** | <img src="https://tchendoh.github.io/tvq-site/screenshots/home-fr-dark.png" alt="Accueil, sombre" width="160"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/schedule-fr-dark.png" alt="Horaire, sombre" width="160"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/my-shows-fr-dark.png" alt="Mes séries, sombre" width="160"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/search-fr-dark.png" alt="Recherche, sombre" width="160"> | <img src="https://tchendoh.github.io/tvq-site/screenshots/show-detail-fr-dark.png" alt="Fiche série, sombre" width="160"> |
+<table>
+  <tr>
+    <th></th>
+    <th width="160">Accueil</th>
+    <th width="160">Horaire</th>
+    <th width="160">Mes séries</th>
+    <th width="160">Recherche</th>
+    <th width="160">Fiche série</th>
+  </tr>
+  <tr>
+    <th>Clair</th>
+    <td width="160" valign="top"><img src="https://tchendoh.github.io/tvq-site/screenshots/home-fr-light.png" alt="Accueil, clair" width="160" height="348"></td>
+    <td width="160" valign="top"><img src="https://tchendoh.github.io/tvq-site/screenshots/schedule-fr-light.png" alt="Horaire, clair" width="160" height="348"></td>
+    <td width="160" valign="top"><img src="https://tchendoh.github.io/tvq-site/screenshots/my-shows-fr-light.png" alt="Mes séries, clair" width="160" height="348"></td>
+    <td width="160" valign="top"><img src="https://tchendoh.github.io/tvq-site/screenshots/search-fr-light.png" alt="Recherche, clair" width="160" height="348"></td>
+    <td width="160" valign="top"><img src="https://tchendoh.github.io/tvq-site/screenshots/show-detail-fr-light.png" alt="Fiche série, clair" width="160" height="348"></td>
+  </tr>
+  <tr>
+    <th>Sombre</th>
+    <td width="160" valign="top"><img src="https://tchendoh.github.io/tvq-site/screenshots/home-fr-dark.png" alt="Accueil, sombre" width="160" height="348"></td>
+    <td width="160" valign="top"><img src="https://tchendoh.github.io/tvq-site/screenshots/schedule-fr-dark.png" alt="Horaire, sombre" width="160" height="348"></td>
+    <td width="160" valign="top"><img src="https://tchendoh.github.io/tvq-site/screenshots/my-shows-fr-dark.png" alt="Mes séries, sombre" width="160" height="348"></td>
+    <td width="160" valign="top"><img src="https://tchendoh.github.io/tvq-site/screenshots/search-fr-dark.png" alt="Recherche, sombre" width="160" height="348"></td>
+    <td width="160" valign="top"><img src="https://tchendoh.github.io/tvq-site/screenshots/show-detail-fr-dark.png" alt="Fiche série, sombre" width="160" height="348"></td>
+  </tr>
+</table>
 
 ## Points forts
 
