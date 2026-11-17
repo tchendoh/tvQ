@@ -1,0 +1,75 @@
+# Tests unitaires de tvQ sur un runner macOS hébergé par GitHub (gratuit pour un dépôt public).
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: # bouton « Run workflow » dans l'onglet Actions
+
+# Un nouveau push annule l'exécution précédente encore en cours sur la même branche.
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit-tests:
+    runs-on: xcode-27 # image Apple Silicon avec Xcode 27
+    timeout-minutes: 30
+
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Afficher la version de Xcode
+        run: xcodebuild -version
+
+      # Fichiers ignorés par git, nécessaires à la compilation.
+      - name: Créer Secrets.xcconfig depuis le modèle
+        run: cp Config/Secrets.xcconfig.template Config/Secrets.xcconfig
+
+      - name: Créer GoogleService-Info.plist depuis le secret
+        env:
+          GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
+        run: |
+          if [ -z "$GOOGLE_SERVICE_INFO_PLIST" ]; then
+            echo "::error::Secret GOOGLE_SERVICE_INFO_PLIST absent (normal pour une PR venant d'un fork)."
+            exit 1
+          fi
+          echo "$GOOGLE_SERVICE_INFO_PLIST" | base64 --decode > tvQ/GoogleService-Info.plist
+
+      # Cache des paquets SPM (Firebase est long à télécharger).
+      # Ils restent dans DerivedData/SourcePackages : le script Crashlytics les cherche là.
+      - name: Cache SPM
+        uses: actions/cache@v4
+        with:
+          path: DerivedData/SourcePackages
+          key: spm-${{ hashFiles('tvQ.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          restore-keys: spm-
+
+      # Les noms de simulateurs changent d'une image à l'autre : on prend le premier iPhone disponible.
+      - name: Choisir un simulateur
+        run: |
+          UDID=$(xcrun simctl list devices available | grep -m1 -E "^\s+iPhone" | grep -oE "[0-9A-F-]{36}")
+          echo "Simulateur : $UDID"
+          echo "SIM_UDID=$UDID" >> "$GITHUB_ENV"
+
+      - name: Lancer les tests unitaires
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project tvQ.xcodeproj \
+            -scheme tvQ \
+            -destination "id=$SIM_UDID" \
+            -only-testing:tvQTests \
+            -derivedDataPath DerivedData \
+            -resultBundlePath TestResults.xcresult \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Conserver les résultats en cas d'échec
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TestResults
+          path: TestResults.xcresult
