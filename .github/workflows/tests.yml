@@ -65,7 +65,10 @@ jobs:
             -only-testing:tvQTests \
             -derivedDataPath DerivedData \
             -resultBundlePath TestResults.xcresult \
-            CODE_SIGNING_ALLOWED=NO
+            CODE_SIGNING_ALLOWED=NO \
+            ENABLE_USER_SCRIPT_SANDBOXING=NO
+          # Le bac à sable des scripts empêche la phase Crashlytics de lire
+          # DerivedData/SourcePackages/.../Crashlytics/run sur le runner.
 
       - name: Conserver les résultats en cas d'échec
         if: failure()
